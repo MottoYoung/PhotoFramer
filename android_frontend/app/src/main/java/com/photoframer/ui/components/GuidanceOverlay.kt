@@ -20,7 +20,7 @@ import com.photoframer.data.api.CompositionStep
  */
 @Composable
 fun GuidanceOverlay(
-    step: CompositionStep,
+    step: CompositionStep?,
     validationResult: com.photoframer.vision.StepValidationResult? = null,
     modifier: Modifier = Modifier
 ) {
@@ -38,8 +38,8 @@ fun GuidanceOverlay(
 
     // UI 层补间动画：让圆环在 60fps 下平滑移动
     val isCompleted = validationResult?.isCompleted == true
-    val isZoomStep = step.actionType.equals("zoom", ignoreCase = true)
-    val isViewChangeStep = step.actionType.equals("view-change", ignoreCase = true)
+    val isZoomStep = step?.actionType.equals("zoom", ignoreCase = true)
+    val isViewChangeStep = step?.actionType.equals("view-change", ignoreCase = true)
     
     // 各步骤类型的 tx 语义不同：
     // Zoom: tx = visualScale（1.0=完美匹配），默认 1.0
@@ -113,7 +113,7 @@ fun GuidanceOverlay(
         drawLine(color, Offset(centerX, centerY - armStart), Offset(centerX, centerY - armEnd), strokeWidth = crossStroke)
 
         // ======== 目标圆环 + 连线 (仅 Shift) ========
-        if (step.actionType.equals("shift", ignoreCase = true)) {
+        if (step?.actionType.equals("shift", ignoreCase = true)) {
             val tx = animTx
             val ty = animTy
             
@@ -163,7 +163,7 @@ fun GuidanceOverlay(
         }
 
         // ======== 同心双圆环 (仅 Zoom) ========
-        if (step.actionType.equals("zoom", ignoreCase = true)) {
+        if (step?.actionType.equals("zoom", ignoreCase = true)) {
             // validationResult.tx 存放 visualScale（当前视觉缩放比，1.0=完美）
             val visualScale = animTx.coerceIn(0.3f, 3.0f)  // 安全范围
             
@@ -210,7 +210,7 @@ fun GuidanceOverlay(
         }
 
         // ======== 进度弧环 (仅 View-change) ========
-        if (step.actionType.equals("view-change", ignoreCase = true)) {
+        if (step?.actionType.equals("view-change", ignoreCase = true)) {
             // validationResult.tx 存放 progress（0-1 完成进度）
             val progress = animTx.coerceIn(0f, 1f)
             

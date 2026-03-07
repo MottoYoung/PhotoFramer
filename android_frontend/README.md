@@ -40,7 +40,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 1. 打开 Android Studio
 2. 选择 `File -> Open`
 3. 选择 `android_frontend` 目录
-4. 等待 Gradle 同步完成
+4.点击sync project with gradle files 等待同步完成
 5. 连接手机或启动模拟器
 6. 点击 Run 运行
 
