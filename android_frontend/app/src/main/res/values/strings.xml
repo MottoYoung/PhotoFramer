@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PhotoFramer</string>
+    <string name="analyze_button">分析构图</string>
+    <string name="analyzing">分析中...</string>
+    <string name="take_photo">拍照</string>
+    <string name="select_composition">选择你喜欢的构图方案</string>
+    <string name="camera_permission_required">需要相机权限才能使用此功能</string>
+    <string name="grant_permission">授予权限</string>
+    <string name="back">返回</string>
+    <string name="step_format">步骤 %1$d/%2$d</string>
+    <string name="next_step">下一步</string>
+    <string name="previous_step">上一步</string>
+</resources>

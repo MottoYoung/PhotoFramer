@@ -1,0 +1,405 @@
+package com.photoframer.vision
+
+import android.graphics.Bitmap
+import android.util.Log
+import kotlin.math.abs
+import kotlin.math.exp
+
+private const val TAG = "StepValidator"
+
+/**
+ * 步骤验证结果
+ */
+data class StepValidationResult(
+    val isCompleted: Boolean,       // 步骤是否完成
+    val progress: Float,            // 完成进度 0-1
+    val feedbackText: String,       // 反馈文本（中文）
+    val shiftDistance: Float?,      // 平移距离（像素）
+    val tx: Float?,                 // X轴平移量（辅助UI指示方向）
+    val ty: Float?,                 // Y轴平移量（辅助UI指示方向）
+    val scaleFactor: Float?,        // 缩放因子
+    val rotationAngle: Float?,      // 旋转角度（度）
+    val matchQuality: Float         // 匹配质量 0-1
+)
+
+/**
+ * 步骤验证器
+ */
+class StepValidator(
+    targetBitmap: Bitmap
+) {
+    private val featureMatcher = FeatureMatcher()
+    private val homographyAnalyzer = HomographyAnalyzer()
+    private val objectMatcher: ObjectMatcher  // 用于 View-change 验证
+    
+    // 阈值设定
+    companion object {
+        const val SHIFT_THRESHOLD = 25.0       // 平移阈值 (25px on 360px frame ≈ 7% 帧宽)
+        const val ZOOM_THRESHOLD = 0.10        // 缩放阈值 (10%，更严格)
+        const val SCALE_GUIDANCE_THRESHOLD = 0.15 // 触发缩放建议的阈值
+        const val ROTATION_THRESHOLD = 5.0     // 旋转阈值 (5度，用于 View-change)
+        const val ROLL_THRESHOLD = 3.0         // Roll 水平校正阈值 (3度，用于 Shift)
+        const val MIN_MATCH_QUALITY = 8        // 最小匹配点数
+    }
+    
+    init {
+        // 关键修复：将目标图片缩放到与分析帧相同的宽度 (360px)
+        // 确保 Scale=1.0 代表完美匹配，消除分辨率差异带来的伪误差
+        val scaledTarget = if (targetBitmap.width != 360) {
+            val ratio = 360f / targetBitmap.width
+            val newHeight = (targetBitmap.height * ratio).toInt()
+            Bitmap.createScaledBitmap(targetBitmap, 360, newHeight, true)
+        } else {
+            targetBitmap
+        }
+        
+        featureMatcher.setTargetImage(scaledTarget)
+        
+        // 初始化 ObjectMatcher 用于 View-change 验证
+        objectMatcher = ObjectMatcher(targetBitmap)
+        
+        Log.d(TAG, "StepValidator 初始化完成 (Target Resized to 360px, ObjectMatcher Ready)")
+    }
+    
+    // 状态保持
+    private var lastValidComponents: HomographyComponents? = null
+    private var lastValidTime: Long = 0
+    private val PERSISTENCE_DURATION = 800L // 丢失目标后保持显示的时间 (ms)
+    
+    // 平滑滤波器
+    private val smoothingFilter = SmoothingFilter(alpha = 0.5f) // alpha越小越平滑，延迟越高；0.5兼顾跟手与防抖
+    private val feedbackDebouncer = FeedbackDebouncer()
+
+    /**
+     * 验证当前帧是否完成指定步骤
+     */
+    /**
+     * 验证当前帧是否完成指定步骤
+     */
+    fun validateStep(
+        currentFrame: Bitmap,
+        actionType: String,
+        direction: String,
+        currentZoomRatio: Float = 1.0f
+    ): StepValidationResult {
+        Log.d(TAG, "开始验证: actionType=$actionType, direction=$direction, zoom=$currentZoomRatio")
+        
+        // 计算单应性矩阵
+        val result = featureMatcher.computeHomography(currentFrame)
+        
+        Log.d(TAG, "匹配结果: matchCount=${result.matchCount}, message=${result.message}")
+        
+        val currentTime = System.currentTimeMillis()
+        var components: HomographyComponents? = null
+        var matchQuality = 0f
+
+        if (result.homography != null && result.matchCount >= MIN_MATCH_QUALITY) {
+             // 分解单应性矩阵
+            components = homographyAnalyzer.decompose(result.homography)
+            matchQuality = (result.matchCount.toFloat() / 50f).coerceIn(0f, 1f)
+        }
+
+        // 策略：如果当前帧识别失败，但在有效期内，则使用上一次的有效数据
+        if (components == null) {
+            if (currentTime - lastValidTime < PERSISTENCE_DURATION && lastValidComponents != null) {
+                // 使用缓存数据，但稍微降低匹配质量
+                components = lastValidComponents
+                matchQuality = 0.3f // 标记为缓存数据
+                Log.d(TAG, "处于保持期，使用缓存数据")
+            } else {
+                // 确实丢失了
+                return StepValidationResult(
+                    isCompleted = false,
+                    progress = 0f,
+                    feedbackText = "", // 丢失时返回空，UI显示静态引导
+                    shiftDistance = null,
+                    tx = null,
+                    ty = null,
+                    scaleFactor = null,
+                    rotationAngle = null,
+                    matchQuality = 0f
+                )
+            }
+        } else {
+            // 当前帧有效，更新缓存和时间
+            // 应用平滑滤波
+            val smoothed = smoothingFilter.filter(components)
+            components = smoothed
+            
+            lastValidComponents = smoothed
+            lastValidTime = currentTime
+        }
+        
+        Log.d(TAG, "验证数据: tx=${components!!.translationX}, ty=${components.translationY}, " +
+                "scale=${components.scaleFactor}, rotation=${components.rotationAngle}")
+        
+        // 根据操作类型判定
+        return when (actionType.lowercase()) {
+            "shift" -> validateShift(components, direction, matchQuality, currentZoomRatio)
+            "zoom" -> validateZoom(components, direction, matchQuality, currentZoomRatio)
+            "view-change" -> validateViewChange(components, direction, matchQuality)
+            else -> {
+                validateShift(components, direction, matchQuality, currentZoomRatio)
+            }
+        }
+    }
+    
+    /**
+     * 验证平移步骤
+     * 使用 sigmoid 函数计算进度，确保进度始终在0-1之间且有意义
+     */
+    private fun validateShift(
+        components: HomographyComponents,
+        direction: String,
+        matchQuality: Float,
+        currentZoom: Float
+    ): StepValidationResult {
+        val distance = components.translationDistance
+        val tx = components.translationX
+        val ty = components.translationY
+        val rollAngle = components.rotationAngle  // Roll 角度（水平校正）
+        
+        // 完成条件：只看平移距离 + 水平校正，不考虑缩放（缩放留给 zoom 步骤）
+        val isCompleted = distance < SHIFT_THRESHOLD && 
+                          abs(rollAngle) < ROLL_THRESHOLD * 2
+        
+        // 使用 sigmoid 函数计算进度（综合考虑平移和 Roll）
+        val rollProgress = (1.0 / (1.0 + exp((abs(rollAngle) - ROLL_THRESHOLD) / 2.0)))
+        val shiftProgress = (1.0 / (1.0 + exp((distance - SHIFT_THRESHOLD) / 15.0)))
+        val progress = ((rollProgress + shiftProgress) / 2.0).toFloat()
+        
+        val feedbackText = if (isCompleted) {
+            "✓ 位置已对齐"
+        } else {
+            when {
+                // 只有严重倾斜(2倍阈值)才提示校正水平
+                abs(rollAngle) > ROLL_THRESHOLD * 2 ->
+                    if (rollAngle > 0) "先校正水平 ↻" else "先校正水平 ↺"
+                // 常规情况：优先提示步骤主方向
+                else -> generateShiftFeedback(tx, ty, distance, direction)
+            }
+        }
+        
+        return StepValidationResult(
+            isCompleted = isCompleted,
+            progress = progress,
+            feedbackText = feedbackDebouncer.debounce(feedbackText),
+            shiftDistance = distance.toFloat(),
+            tx = tx.toFloat(),
+            ty = ty.toFloat(),
+            scaleFactor = components.scaleFactor.toFloat(),
+            rotationAngle = rollAngle.toFloat(),
+            matchQuality = matchQuality
+        )
+    }
+    
+    /**
+     * 验证缩放步骤
+     * feedbackText 参考 direction 参数，确保与 TopGuidanceBar 大字方向一致
+     */
+    private fun validateZoom(
+        components: HomographyComponents,
+        direction: String,
+        matchQuality: Float,
+        currentZoom: Float
+    ): StepValidationResult {
+        // 计算视觉缩放因子：scaleFactor 来自仿射矩阵（target→current），1.0=完美匹配
+        val visualScale = components.scaleFactor * currentZoom
+        val scaleError = abs(1.0 - visualScale)
+        
+        val isCompleted = scaleError < ZOOM_THRESHOLD
+        val progress = (1.0 / (1.0 + exp((scaleError - ZOOM_THRESHOLD) / 0.1))).toFloat()
+        
+        // targetZoom = 让 visualScale 变为 1.0 时，用户应该设置的数码变焦
+        val targetZoom = (currentZoom / visualScale).coerceIn(1.0, 8.0)
+        
+        val feedbackText = if (isCompleted) {
+            "✓ 焦距已对齐"
+        } else {
+            // 根据步骤 direction 生成与大字一致的文案
+            val needZoomIn = direction.lowercase() == "in"
+            when {
+                // 步骤要求放大
+                needZoomIn && visualScale < 1.0 - ZOOM_THRESHOLD -> 
+                    "放大变焦至 %.1fx".format(targetZoom)
+                needZoomIn && visualScale > 1.0 + ZOOM_THRESHOLD -> 
+                    "已超过目标，缩回至 %.1fx".format(targetZoom)
+                needZoomIn -> "再放大一点"
+                // 步骤要求缩小
+                !needZoomIn && visualScale > 1.0 + ZOOM_THRESHOLD -> 
+                    "缩小变焦至 %.1fx".format(targetZoom)
+                !needZoomIn && visualScale < 1.0 - ZOOM_THRESHOLD -> 
+                    "已超过目标，放大至 %.1fx".format(targetZoom)
+                !needZoomIn -> "再缩小一点"
+                else -> "微调焦距"
+            }
+        }
+        
+        return StepValidationResult(
+            isCompleted = isCompleted,
+            progress = progress,
+            feedbackText = feedbackDebouncer.debounce(feedbackText),
+            shiftDistance = components.translationDistance.toFloat(),
+            tx = visualScale.toFloat(),  // 传给 UI：当前视觉缩放比（用于绘制缩放圆环）
+            ty = null,
+            scaleFactor = components.scaleFactor.toFloat(),
+            rotationAngle = components.rotationAngle.toFloat(),
+            matchQuality = matchQuality
+        )
+    }
+    
+    /**
+     * 验证视角变换步骤 - 使用 ML Kit 物体检测
+     * 注意：ML Kit 是异步的，此方法返回当前状态，并通过回调更新
+     */
+    private fun validateViewChange(
+        components: HomographyComponents,
+        direction: String,
+        matchQuality: Float
+    ): StepValidationResult {
+        // View-change 验证通过 validateViewChangeAsync 异步处理
+        // 此处返回基于 Homography 的初始结果作为备用
+        val rotation = components.rotationAngle
+        val rotationError = abs(rotation)
+        
+        // Homography 作为辅助判断
+        val progress = (1.0 / (1.0 + exp((rotationError - ROTATION_THRESHOLD) / 5.0))).toFloat()
+        
+        return StepValidationResult(
+            isCompleted = false,  // 需要异步验证确认
+            progress = progress * 0.5f,  // 初始进度减半，等待物体检测
+            feedbackText = "正在分析视角...",
+            shiftDistance = components.translationDistance.toFloat(),
+            tx = null, // View-change 不使用矢量UI
+            ty = null,
+            scaleFactor = components.scaleFactor.toFloat(),
+            rotationAngle = rotation.toFloat(),
+            matchQuality = matchQuality
+        )
+    }
+    
+    /**
+     * 异步验证 View-change 步骤
+     * 使用 ML Kit 物体检测比较主体位置
+     */
+    fun validateViewChangeAsync(
+        currentFrame: Bitmap,
+        callback: (StepValidationResult) -> Unit
+    ) {
+        objectMatcher.compareObjectsSync(currentFrame) { result ->
+            val progress = (1f - result.positionError).coerceIn(0f, 1f)
+            val validationResult = StepValidationResult(
+                isCompleted = result.isMatched,
+                progress = progress,
+                feedbackText = result.feedbackText,
+                shiftDistance = null,
+                tx = progress,  // 传给 UI：完成进度（用于绘制进度弧环）
+                ty = null,
+                scaleFactor = null,
+                rotationAngle = null,
+                matchQuality = if (result.hasObject) 0.8f else 0f
+            )
+            callback(validationResult)
+        }
+    }
+    
+    /**
+     * 生成平移方向反馈
+     * 优先提示步骤主方向 (direction) 的轴，只有主轴已接近时才提示副轴
+     */
+    private fun generateShiftFeedback(tx: Double, ty: Double, distance: Double, direction: String): String {
+        val absX = abs(tx)
+        val absY = abs(ty)
+        
+        val distanceHint = when {
+            distance > 150 -> " (较远)"
+            distance > 80 -> ""
+            else -> " (接近)"
+        }
+        
+        // 根据步骤 direction 判断主轴
+        val isHorizontalStep = direction.lowercase() in listOf("left", "right")
+        val isVerticalStep = direction.lowercase() in listOf("up", "down")
+        val primaryThreshold = 25.0  // 主轴未对齐阈值
+        
+        return when {
+            // 主轴是水平方向 → 优先提示水平
+            isHorizontalStep && absX > primaryThreshold -> {
+                if (tx > 0) "向右移动$distanceHint →" else "向左移动$distanceHint ←"
+            }
+            // 主轴是垂直方向 → 优先提示垂直
+            isVerticalStep && absY > primaryThreshold -> {
+                if (ty > 0) "向下移动$distanceHint ↓" else "向上移动$distanceHint ↑"
+            }
+            // 主轴已接近，提示副轴
+            absX > primaryThreshold -> {
+                if (tx > 0) "微调向右$distanceHint →" else "微调向左$distanceHint ←"
+            }
+            absY > primaryThreshold -> {
+                if (ty > 0) "微调向下$distanceHint ↓" else "微调向上$distanceHint ↑"
+            }
+            distance > 25 -> "微调位置$distanceHint"
+            else -> "接近目标"
+        }
+    }
+
+    /**
+     * 反馈文字防抖器
+     * 同一反馈至少保持 minDurationMs 才能被替换，避免文字快速跳变
+     */
+    private class FeedbackDebouncer(private val minDurationMs: Long = 500L) {
+        private var lastText: String = ""
+        private var lastChangeTime: Long = 0
+
+        fun debounce(newText: String): String {
+            val now = System.currentTimeMillis()
+            if (newText != lastText && now - lastChangeTime > minDurationMs) {
+                lastText = newText
+                lastChangeTime = now
+            }
+            return lastText
+        }
+    }
+
+    /**
+     * 简单的低通滤波器 (Exponential Moving Average)
+     */
+    private class SmoothingFilter(private val alpha: Float) {
+        private var lastVal: HomographyComponents? = null
+        
+        fun filter(input: HomographyComponents): HomographyComponents {
+            val last = lastVal
+            if (last == null) {
+                lastVal = input
+                return input
+            }
+            
+            // Apply EMA for each component
+            // y[n] = alpha * x[n] + (1 - alpha) * y[n-1]
+            val newTx = alpha * input.translationX + (1 - alpha) * last.translationX
+            val newTy = alpha * input.translationY + (1 - alpha) * last.translationY
+            // Distance recalculate from new tx, ty roughly
+            val newDist = kotlin.math.sqrt(newTx * newTx + newTy * newTy) 
+            
+            val newScale = alpha * input.scaleFactor + (1 - alpha) * last.scaleFactor
+            val newRot = alpha * input.rotationAngle + (1 - alpha) * last.rotationAngle
+            
+            val result = HomographyComponents(
+                translationX = newTx,
+                translationY = newTy,
+                translationDistance = newDist,
+                scaleFactor = newScale,
+                rotationAngle = newRot
+            )
+            lastVal = result
+            return result
+        }
+    }
+    
+    /**
+     * 释放资源
+     */
+    fun close() {
+        objectMatcher.close()
+    }
+}

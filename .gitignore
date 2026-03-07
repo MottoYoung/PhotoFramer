@@ -1,0 +1,95 @@
+# ==================== Python 后端 ==================== #
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Python 临时文件
+*.log
+*.pot
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 后端临时目录
+pc_demo_v2/backend/temp/
+pc_demo_v3.1/backend/temp/
+
+# 旧的完整代码
+pc_demo_v1
+# ==================== Android 前端 ==================== #
+# Gradle 和编译产物
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+*.aar
+
+# 所有模块的 build 目录
+build/
+*/build/
+*/*/build/
+
+# Gradle 缓存
+.gradle/
+*/.gradle/
+gradlew.bat
+
+# Android Studio 配置
+.idea/
+*.iml
+local.properties
+.DS_Store
+
+# 签名文件（敏感）
+*.jks
+*.keystore
+
+# 生成的文件
+app/release/
+app/debug/
+captures/
+*/captures/
+
+# ==================== IDE & 系统文件 ==================== #
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+*.ipr
+*.iws
+
+# ==================== 测试输出 ==================== #
+Gemini_prompt_tests/*/outputs/
+Gemini_prompt_tests/*/reports/
+Gemini_prompt_tests/*/results/
+test_images/
+
+# ==================== 敏感信息 ==================== #
+# API 密钥（如果不小心写在代码里）
+**/secrets.py
+**/credentials.json
+.env.local
+.env.*.local

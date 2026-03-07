@@ -1,0 +1,10 @@
+# Gemini Imagen API 图生图测试依赖
+
+# Google Gemini AI SDK
+google-genai>=0.2.0
+
+# 图像处理
+Pillow>=10.0.0
+
+# 其他
+python-dotenv>=1.0.0  # 可选：用于从.env文件加载环境变量
