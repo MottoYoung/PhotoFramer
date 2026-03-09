@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "reasoning": "主体（树和骑马的人）当前位于画面中心，通过将它们移至三分之一线或交叉点，可以增强画面的动态感和视觉吸引力。",
+  "composition_data": {
+    "aesthetic_desc": "将地平线放置在下三分之一处，并将树和骑马的人放置在右侧三分之一的垂直线上，使画面更具平衡感和故事性。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Down",
+        "guide_text": "将相机稍微向下平移，使地平线位于画面的下三分之一处。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "将相机稍微向右平移，使树和骑马的人位于画面的右侧三分之一垂直线上。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "Out",
+        "guide_text": "稍微缩小焦距或向后退，以包含更多的天空和地面，同时保持主体在三分之一线上。"
+      }
+    ]
+  }
+}
+```

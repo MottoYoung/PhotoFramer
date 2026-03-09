@@ -1,0 +1,18 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "reasoning": "主体（树和骑马人）当前位于画面中心，通过将它们向右侧三分线移动，可以使画面更具动态感和平衡性，避免过于居中带来的呆板。",
+  "composition_data": {
+    "aesthetic_desc": "将树和骑马人的剪影移至画面右侧的三分线位置，使画面构图更具黄金比例的视觉吸引力，天空和地面的比例也更协调。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右平移相机，将树和骑马人的主体放在画面右侧的垂直三分线上。"
+      }
+    ]
+  }
+}
+```

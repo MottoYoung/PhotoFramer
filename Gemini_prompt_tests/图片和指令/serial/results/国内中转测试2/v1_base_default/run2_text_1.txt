@@ -1,0 +1,22 @@
+
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "将焦点放在中间站立的人物，采用特写构图，同时利用光影营造氛围，去除背景中的其他人物和杂物。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使画面中央站立的人物成为主体。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，对该人物进行特写，去除画面中其他分散注意力的元素。"
+    }
+  ]
+}
+```

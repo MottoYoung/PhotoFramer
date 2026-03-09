@@ -1,0 +1,63 @@
+```json
+{
+  "header": {
+    "analysis_summary": "The frame includes three subjects in a market setting, with strong directional light creating interesting shadows. However, there's excessive empty space at the top, and the composition could be tightened to focus more effectively on the subjects or the market interaction."
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "聚焦微笑与市集互动",
+      "image_gen_prompt": "Street photography portrait of a smiling older man in a market, with another person holding an umbrella next to him, warm golden hour light, tight composition, shallow depth of field.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.8,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 1.8 倍，突出画面中央的两位主要人物"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向右移动半步，使微笑男子和伞下人物在画面中获得更好的平衡"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "市集全景，优化构图",
+      "image_gen_prompt": "Wide street photography shot of three people at a market stall, natural interaction, golden hour light, focus on the market environment and people, less empty space at the top, dynamic composition.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.3,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 1.3 倍，减少顶部空白并拉近所有人物"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Left",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向左移动半步，将左侧人物更好地纳入画面，使三人形成一个更紧密的群组"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5,
+          "magnitude_unit": "degrees",
+          "text_cn": "稍微向下倾斜 5 度，纳入更多地面物品以增加场景感，同时减少不必要的墙壁空间"
+        }
+      ]
+    }
+  ]
+}
+```

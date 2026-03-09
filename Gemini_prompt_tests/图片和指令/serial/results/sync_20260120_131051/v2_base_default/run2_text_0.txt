@@ -1,0 +1,1 @@
+{"id":1,"reason":"裁剪多余空间，突出人物对话场景。","steps":[{"action":"Shift Left 10%","guide":"向左平移"},{"action":"Zoom In 15%","guide":"拉近焦距"}]}

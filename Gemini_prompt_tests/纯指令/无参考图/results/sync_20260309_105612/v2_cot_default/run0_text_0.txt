@@ -1,0 +1,60 @@
+```json
+[
+  {
+    "technique": "rule_of_thirds",
+    "reasoning": "1. 照片的主体是广阔的绿色田野，以及背景中的白色小屋和树林。2. 是，当前地平线大约在画面中央，白色小屋偏右。将地平线置于下三分线，并尝试将白色小屋置于右侧垂直三分线附近，能增强构图平衡感。3. 将相机向下平移以使地平线位于下三分线，并向左平移将白色小屋移至右侧垂直三分线。",
+    "is_applicable": true,
+    "composition_data": {
+      "aesthetic_desc": "强调前景田野，平衡背景主体",
+      "steps": [
+        {
+          "step_order": 1,
+          "action_type": "Shift",
+          "direction": "Down",
+          "guide_text": "将相机向下平移，使地平线位于画面下三分之一处。"
+        },
+        {
+          "step_order": 2,
+          "action_type": "Shift",
+          "direction": "Left",
+          "guide_text": "将相机向左平移，使白色小屋位于右侧垂直三分线附近。"
+        }
+      ]
+    }
+  },
+  {
+    "technique": "center_composition",
+    "reasoning": "1. 照片的主体是广阔的绿色田野，以及背景中的白色小屋和树林。白色小屋是画面中一个明确的视觉兴趣点。2. 是，白色小屋是一个独立的、清晰可见的兴趣点，可以作为中心构图的主体。3. 将相机向左平移，使白色小屋位于画面中央。",
+    "is_applicable": true,
+    "composition_data": {
+      "aesthetic_desc": "突出白色小屋作为视觉焦点",
+      "steps": [
+        {
+          "step_order": 1,
+          "action_type": "Shift",
+          "direction": "Left",
+          "guide_text": "将相机向左平移，使画面中的白色小屋位于中心位置。"
+        }
+      ]
+    }
+  },
+  {
+    "technique": "leading_lines",
+    "reasoning": "1. 照片的主体是广阔的绿色田野，以及背景中的白色小屋和树林。2. 否，虽然田野中有耕作留下的细微纹理，但它们不够明显或连贯，不足以形成强烈的物理引导线来引导视线。场景开阔平坦，没有清晰的道路、河流或围栏等引导元素。3. 不适用。",
+    "is_applicable": false,
+    "composition_data": null
+  },
+  {
+    "technique": "foreground_framing",
+    "reasoning": "1. 照片的主体是广阔的绿色田野，以及背景中的白色小屋和树林。2. 否，画面是一个开阔的田野场景。前景中没有明显的物体（如树叶、拱门、窗户或柱子）可以用来框架背景中的小屋或树林。3. 不适用。",
+    "is_applicable": false,
+    "composition_data": null
+  },
+  {
+    "technique": "diagonal_composition",
+    "reasoning": "1. 照片的主体是广阔的绿色田野，以及背景中的白色小屋和树林。2. 否，场景主要由水平的田野和垂直的树林构成，缺乏天然的、清晰的对角线元素（如山坡、蜿蜒的道路或倾斜的结构）。田野中的细微纹理不足以形成强烈的对角线构图，且不允许通过倾斜相机来制造对角线。3. 不适用。",
+    "is_applicable": false,
+    "composition_data": null
+  }
+]
+```

@@ -1,0 +1,84 @@
+{
+  "timestamp": "20260121_153524",
+  "model_name": "gemini-2.5-flash",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 3,
+  "prompts_config": {
+    "test_prompt": {
+      "description": "",
+      "system_instruction": "you are a helpful assistant .\n",
+      "user_prompt": "分析当前图片的构图并给出20字以内的点评."
+    }
+  },
+  "results": [
+    {
+      "case_id": "test_prompt_default",
+      "prompt_id": "test_prompt",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 11471.790666662855,
+      "min_response_time_ms": 11057.698249991518,
+      "max_response_time_ms": 11984.567125007743,
+      "std_response_time_ms": 471.2487484643658,
+      "all_timings": [
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 0,
+          "start_time": "2026-01-21T15:35:24.990598",
+          "end_time": "2026-01-21T15:35:36.363664",
+          "response_time_ms": 11373.106624989305,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "**构图分析：**\n画面采用开放式构图，三个人物错落分布，形成一个非对称的视觉平衡。最左侧的人物被部分裁切，增强了画面的纪实感。中间的男子是视觉焦点，其面部表情丰富。右侧人物被撑开的伞遮挡，增加了神秘感和日常生活的真实性。构图巧妙利用了强烈的侧逆光，人物和伞的阴影在墙面和地面上形成几何图形，与人物主体构成有趣的光影对比。大面积的素色墙面作为背景留白，突出前景人物活动，增强了画面的纵深感和空间感。前景地面上的蔬菜和物品交代了场景的市井气息。\n\n**点评 (20字以内):**\n光影错落有致，人物互动自然，墙面留白衬托市井日常。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 189,
+            "total_tokens": 1758
+          }
+        },
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 1,
+          "start_time": "2026-01-21T15:35:41.372506",
+          "end_time": "2026-01-21T15:35:52.430180",
+          "response_time_ms": 11057.698249991518,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "**构图分析：**\n画面采用多主体构图，三个人物由左至右错落分布，形成视觉平衡。强烈而低角度的自然光线是核心，将人物与背景的墙壁、地面分割开来，并投射出戏剧性的影子，增强了画面的纵深感和空间感。背景墙面简洁，凸显人物活动。右侧花伞的图案与左侧人物的表情是视觉焦点。\n\n**点评：**\n强烈光影，捕捉日常生动瞬间。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 114,
+            "total_tokens": 1624
+          }
+        },
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 2,
+          "start_time": "2026-01-21T15:35:57.438578",
+          "end_time": "2026-01-21T15:36:09.423109",
+          "response_time_ms": 11984.567125007743,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "**构图分析:**\n这张图片通过侧逆光和强烈的阴影对比，巧妙地将三个人物分布在画面中。背景的素色墙面为人物和他们的影子提供了干净的画布。画面重心落在中间的笑容男子上，他被光线照亮，而两侧人物则在光影中或被遮挡，形成丰富的层次感。长长的影子作为前景和背景的连接，增强了空间的深度和动态感。右侧的花伞和人物的印花衣物也为画面增添了色彩和趣味性。\n\n**点评 (20字以内):**\n光影构图精妙，市井人物生动。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 144,
+            "total_tokens": 1632
+          }
+        }
+      ]
+    }
+  ]
+}

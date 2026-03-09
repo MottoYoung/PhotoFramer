@@ -1,0 +1,15 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "放大画面，突出人物，同时利用光影增强视觉冲击力。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "放大画面，突出中间的人物。"
+    }
+  ]
+}
+```

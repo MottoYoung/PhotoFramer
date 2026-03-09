@@ -1,0 +1,71 @@
+```json
+{
+  "header": {
+    "analysis_summary": "金色的夕阳光线在墙上投射出极具戏剧性的长阴影，但画面右侧人物背影过于遮挡视线，且左侧构图略显散乱，缺乏明确的视觉中心。"
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "金秋暖阳人像特写",
+      "image_gen_prompt": "A close-up street portrait of a smiling elderly man in a light blue polo shirt, bathed in warm golden hour sunlight, long dramatic shadows on a plain concrete wall behind him, cinematic lighting, sharp focus on eyes.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 2.5,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 2.5 倍，排除右侧遮挡物，聚焦中心男子的生动表情"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "meters",
+          "text_cn": "向右平移约 0.5 米，使人物处于画面三分线位置，并与墙上的阴影形成呼应"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5,
+          "magnitude_unit": "degrees",
+          "text_cn": "手机向下微俯 5 度，避开顶部过亮区域，使光影更有层次感"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "光影叙事极简构图",
+      "image_gen_prompt": "Cinematic wide shot of a man standing against a grey wall, long silhouette shadows stretched across the wall during golden hour, minimalist composition, street photography style.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Left",
+          "magnitude_val": 2,
+          "magnitude_unit": "steps",
+          "text_cn": "向左跨 2 步，寻找一个可以避开右侧人物的角度，让画面更简洁"
+        },
+        {
+          "step": 2,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.2,
+          "magnitude_unit": "x",
+          "text_cn": "稍微放大画面至 1.2 倍，裁掉底部零乱的地面杂物"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-up",
+          "magnitude_val": 10,
+          "magnitude_unit": "degrees",
+          "text_cn": "将手机向上抬起 10 度，增加上方墙面的留白，利用光影留出故事感空间"
+        }
+      ]
+    }
+  ]
+}
+```

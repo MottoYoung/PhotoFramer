@@ -1,0 +1,1 @@
+{"id":1,"reason":"突显人物表情，增强画面故事性","steps":[{"action":"Shift Left 10%","guide":"向左平移"},{"action":"Zoom In 30%","guide":"拉近焦距"}]}

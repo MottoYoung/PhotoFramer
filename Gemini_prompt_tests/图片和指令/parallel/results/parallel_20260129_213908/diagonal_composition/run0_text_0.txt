@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "diagonal_composition",
+  "reasoning": "这张照片的拍摄场景包含地平线和树木剪影，通过调整视角和构图，可以利用地平线和马的动感姿态形成对角线构图，增加画面的动态感和视觉引导。",
+  "composition_data": {
+    "aesthetic_desc": "将地平线从画面一角延伸至对角，并让马匹的剪影以动感的姿态跨越画面对角线，增强视觉冲击力和深度。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Left",
+        "guide_text": "向左稍微移动，让画面左下角出现更多的前景地面。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "View-change",
+        "direction": "Low-angle",
+        "guide_text": "稍微降低拍摄角度，使得地平线在画面中呈现出更明显的对角趋势。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Shift",
+        "direction": "Up",
+        "guide_text": "稍微向上移动相机，使树木和马的剪影与地平线形成更好的对角线布局，强调天空与地面的交界。"
+      }
+    ]
+  }
+}
+```

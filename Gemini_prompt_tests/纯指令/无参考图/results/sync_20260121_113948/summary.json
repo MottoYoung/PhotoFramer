@@ -1,0 +1,76 @@
+{
+  "timestamp": "20260121_113948",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 3,
+  "results": [
+    {
+      "case_id": "v1_json_en_default",
+      "prompt_id": "v1_json_en",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 16772.383180330507,
+      "min_response_time_ms": 15622.2483330057,
+      "max_response_time_ms": 18145.02724999329,
+      "std_response_time_ms": 1276.023562289646,
+      "all_timings": [
+        {
+          "case_id": "v1_json_en_default",
+          "run_index": 0,
+          "start_time": "2026-01-21T11:39:48.818671",
+          "end_time": "2026-01-21T11:40:06.963638",
+          "response_time_ms": 18145.02724999329,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"The current frame is wide, including excessive empty wall space and a less engaged subject on the far left. The smiling man in the middle and the person under the umbrella offer compelling subjects with excellent golden hour lighting and strong shadows. Improvements should focus on tighter framing and better subject emphasis.\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"笑容特写与市场细节\",\n      \"image_gen_prompt\": \"Close-up portrait of an elderly man smiling brightly, captured during golden hour, with warm light highlighting his face and subtle market details in the lower frame, plain wall in the background, candid street photography style.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.8,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 1.8 倍，突出中间人物的笑容和神态\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Down\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"meters\",\n          \"text_cn\": \"将手机向下平移约 0.5 米，减少顶部空白墙面，纳入更多市场地面的细节\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"聚焦市集互动瞬间\",\n      \"image_gen_prompt\": \"Candid shot of two people interacting in a market setting during golden hour, with one man smiling and another person holding an umbrella, strong shadows on a plain wall background, showing market goods on the ground, street photography vibe.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Forward\",\n          \"magnitude_val\": 1.0,\n          \"magnitude_unit\": \"meters\",\n          \"text_cn\": \"向前走近约 1 米，让人物在画面中更具存在感\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Down\",\n          \"magnitude_val\": 0.4,\n          \"magnitude_unit\": \"meters\",\n          \"text_cn\": \"将手机向下平移约 0.4 米，减少上方墙面，更好展现人物与地面的互动\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.2,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 1.2 倍，进一步收紧构图，聚焦中间的人物关系\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 942,
+            "candidates_tokens": 685,
+            "total_tokens": 3618
+          }
+        },
+        {
+          "case_id": "v1_json_en_default",
+          "run_index": 1,
+          "start_time": "2026-01-21T11:40:11.970182",
+          "end_time": "2026-01-21T11:40:28.520013",
+          "response_time_ms": 16549.87395799253,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"The current frame captures a candid street scene with three individuals, well-lit by golden hour sun. However, it's a bit wide, with ample empty wall space above and some clutter at the bottom. The composition could be improved by focusing more tightly on the subjects and their interactions, or by balancing all three figures more effectively within the frame.\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"微笑交谈特写\",\n      \"image_gen_prompt\": \"Close-up portrait of an older man smiling and another person with an umbrella, golden hour lighting, street market scene, shallow depth of field, natural expression, warm tones.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Forward\",\n          \"magnitude_val\": 1.0,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向前走约 1 大步，靠近拍摄对象\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Left\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向左移动约 0.5 步，将正在微笑的男士移至画面左侧三分之一处\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.8,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"将画面放大至 1.8 倍，突出微笑的男士和撑伞的人物\"\n        },\n        {\n          \"step\": 4,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5.0,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"将手机稍微向下倾斜约 5 度，减少上方空白墙面，多包含人物身体\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"市井生活捕捉\",\n      \"image_gen_prompt\": \"Candid medium shot of three older people interacting at a street market stall during golden hour, natural light, some market goods visible, warm and inviting atmosphere.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Forward\",\n          \"magnitude_val\": 0.75,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向前走约 0.75 步，稍微靠近拍摄对象\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向右移动约 0.5 步，将三位人物更均匀地分布在画面中\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.3,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"将画面放大至 1.3 倍，使人物更清晰，同时保留部分环境信息\"\n        },\n        {\n          \"step\": 4,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5.0,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"将手机稍微向下倾斜约 5 度，优化人物与背景的比例\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 942,
+            "candidates_tokens": 913,
+            "total_tokens": 3376
+          }
+        },
+        {
+          "case_id": "v1_json_en_default",
+          "run_index": 2,
+          "start_time": "2026-01-21T11:40:33.528997",
+          "end_time": "2026-01-21T11:40:49.151205",
+          "response_time_ms": 15622.2483330057,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"The current frame includes a distracted person on the left and excessive empty space above the subjects. The central man's engaging smile and the unique umbrella offer strong focal points for improved compositions.\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"聚焦微笑特写\",\n      \"image_gen_prompt\": \"Close-up portrait of an older Chinese man smiling, standing in a market, with soft side lighting and a plain wall background, an umbrella visible in the background, candid street photography.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 1.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向右移动 1.5 步，将左侧人物移出画面\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 2.0,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 2 倍，突出笑容特写\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"轻微向下倾斜 5 度，减少上方空白墙壁\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"伞下市集全景\",\n      \"image_gen_prompt\": \"Wider shot of an outdoor market stall, featuring an ornate white umbrella, two older Chinese individuals interacting, with produce laid out on the ground, warm natural light casting shadows on a simple wall background, street photography.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Out\",\n          \"magnitude_val\": 1.0,\n          \"magnitude_unit\": \"meter\",\n          \"text_cn\": \"向后退 1 米，以捕捉更广阔的场景\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Left\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向左移动 0.5 步，使伞和人物居中\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-up\",\n          \"magnitude_val\": 5,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"轻微向上倾斜 5 度，确保伞的顶部完整入画\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 942,
+            "candidates_tokens": 705,
+            "total_tokens": 3305
+          }
+        }
+      ]
+    }
+  ]
+}

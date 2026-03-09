@@ -1,0 +1,22 @@
+
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "将焦点放在左侧正在整理蔬菜的摊主身上，通过平移和放大，突出他的工作状态和细节，同时利用背景的两位人物和光影作为画面的辅助元素，营造出一种更具市井气息的构图。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移相机，将左侧正在整理蔬菜的摊主置于画面三分线处。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "放大画面，以便更好地捕捉摊主的动作和表情细节。"
+    }
+  ]
+}
+```

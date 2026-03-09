@@ -1,0 +1,71 @@
+```json
+{
+  "header": {
+    "analysis_summary": "画面拥有极佳的午后侧逆光，形成的拉长阴影具有强烈的叙事感。但左侧路人干扰了主体视线，构图略显散乱，且地平线有轻微倾斜。"
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "温暖瞬间人像特写",
+      "image_gen_prompt": "Cinematic portrait of a smiling elderly man in a blue shirt, golden hour sunlight, sharp shadows on a concrete wall, shallow depth of field, street photography style.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 2.0,
+          "magnitude_unit": "meters",
+          "text_cn": "向右移动约 2 米，将左侧提水壶的人移除出画面"
+        },
+        {
+          "step": 2,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 2.0,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 2 倍焦距，聚焦老人的神态与伞下的互动"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5.0,
+          "magnitude_unit": "degrees",
+          "text_cn": "镜头向下微倾，将地面的蔬菜摊作为前景引导"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "光影几何叙事",
+      "image_gen_prompt": "Wide angle street photography, long shadows of people cast on a grey wall at sunset, minimalist composition, graphic play of light and shadow, urban life scene.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Left",
+          "magnitude_val": 2.0,
+          "magnitude_unit": "steps",
+          "text_cn": "向左横移约 2 步，使雨伞的阴影与老人身体分开，增强光影美感"
+        },
+        {
+          "step": 2,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.2,
+          "magnitude_unit": "x",
+          "text_cn": "稍微拉近，精准裁剪掉最左侧的杂乱物体"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-adjust",
+          "magnitude_val": 3.0,
+          "magnitude_unit": "degrees",
+          "text_cn": "向右旋转手机约 3 度，矫正地面水平线"
+        }
+      ]
+    }
+  ]
+}
+```

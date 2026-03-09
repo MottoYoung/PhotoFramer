@@ -1,0 +1,71 @@
+```json
+{
+  "header": {
+    "analysis_summary": "Multiple interesting subjects are present, but the wide framing includes excessive empty space and ground clutter, diluting the focus."
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "人像特写：温暖笑容",
+      "image_gen_prompt": "Close-up portrait of an elderly Asian man smiling genuinely, wearing a blue polo shirt. The background is a clean, sunlit beige wall. Golden hour lighting. Focused on the man's expression.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向右移动相机 0.5 步，将中央的笑容老人移至画面中心"
+        },
+        {
+          "step": 2,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 2.0,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面 2 倍，聚焦于老人的笑容，取其上半身"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5,
+          "magnitude_unit": "degrees",
+          "text_cn": "稍向下倾斜 5 度，减少墙壁的空白区域，更突出人物"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "市场小景：雨伞与互动",
+      "image_gen_prompt": "Street market scene capturing three individuals in interaction during golden hour. An elderly Asian man smiles in the center, another man is on the left, and a person holds a decorative umbrella on the right. Market produce is visible on the ground, creating an authentic atmosphere.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Forward",
+          "magnitude_val": 1.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向前移动相机 1.5 步，更接近场景，增加沉浸感"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向右移动相机 0.5 步，确保右侧的伞和人物完整入画"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 10,
+          "magnitude_unit": "degrees",
+          "text_cn": "向下倾斜 10 度，包含更多地面的市场商品，展现生活气息"
+        }
+      ]
+    }
+  ]
+}
+```

@@ -1,0 +1,36 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原始图像中，三个人物散落在画面中，虽然生动，但主体（中间的男子和右侧的伞）位置偏低且不够突出。画面左侧有较多空白，整体平衡感一般。采用三分法重新构图，可以将画面中最具活力的两个元素——带伞的女子和微笑的男子——分别放置在右侧和左侧的垂直三分线上，从而建立画面内的对角线联系，使构图更加平衡、严谨，同时增强主体（以及他们复杂的影子）在画面中的视觉重要性。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "up-level",
+        "guide_text": "将相机视角向右和略微向上移动，以重新构图。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "zoom",
+        "direction": "out",
+        "guide_text": "略微拉远镜头（缩小焦距），以在画面中包含更多左侧的灰色墙面，平衡右侧的主体。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "shift",
+        "direction": "right",
+        "guide_text": "向右移动相机，使左侧的三分线对齐穿过穿蓝色T恤的男子，而右侧的三分线穿过带花伞的女子。"
+      },
+      {
+        "step_order": 4,
+        "action_type": "view-change",
+        "direction": "down-angle",
+        "guide_text": "略微调低拍摄角度，以突出地面上的蔬菜和复杂的影子，同时使人物的头部接近上三分线。"
+      }
+    ]
+  }
+}
+```
+

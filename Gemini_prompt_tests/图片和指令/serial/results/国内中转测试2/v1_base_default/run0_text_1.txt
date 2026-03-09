@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "利用环境光线，将两位主要人物放置在画面右侧的三分线位置，突出画面右侧的光影效果，同时保留画面左侧的墙面留白，形成对比。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，使两位主要人物位于画面右侧三分线处。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "Out",
+      "guide_text": "略微拉远镜头，增加画面背景的留白，强调光影和空间感。"
+    }
+  ]
+}
+```

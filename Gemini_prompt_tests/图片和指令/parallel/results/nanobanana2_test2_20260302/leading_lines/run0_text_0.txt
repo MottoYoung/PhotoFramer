@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "leading_lines",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图是一个充满市井气息和有趣光影（雨伞投影）的场景，但构图上人物排列较为平行，画面深度不足。为了应用‘引导线’技巧，我发现地面上有一道由于日落低角度光照形成的阴影边缘，以及水泥基座的直线。通过降低镜头角度并向左移动，我们可以强化这些线条，使其从画面的左下角和右下角（如水泥基座的边缘）汇聚，并直接指向主要主体——那位穿蓝色T恤的笑脸老伯。这样不仅突出了主体，还利用斜线增加了画面的深度感，引导观众的视线穿过地面的蔬菜摊位，最后落在老伯身上，强化了叙事结构。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "low-angle",
+        "guide_text": "将相机降低，更接近地面上的蔬菜，捕捉低角度视点。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "left",
+        "guide_text": "向左移动相机，使水泥基座的边缘（作为一条引导线）从画面的右下角延伸出来。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "zoom",
+        "direction": "in",
+        "guide_text": "轻微放大焦距，缩小视野，使原本在墙上的投影更清晰，并确保引导线（基座边缘和日落阴影）汇聚点精确指向老伯。"
+      }
+    ]
+  }
+}
+```
+

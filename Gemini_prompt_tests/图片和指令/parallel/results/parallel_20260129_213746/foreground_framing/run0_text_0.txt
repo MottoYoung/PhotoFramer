@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "foreground_framing",
+  "reasoning": "这张照片的场景非常开阔，缺乏合适的近景元素来构建前景框架。如果尝试在如此空旷的环境中强行添加前景，会显得不自然。",
+  "composition_data": null
+}
+```

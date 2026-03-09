@@ -1,0 +1,4 @@
+{"id":1,"reason":"利用三分法突出中间人物，使其成为焦点。","steps":[{"action":"Shift Right 10%","guide":"向右平移"},{"action":"Zoom In 15%","guide":"拉近焦距"}]}
+{"id":2,"reason":"通过拉近聚焦前景，同时保留背景的叙事感。","steps":[{"action":"Zoom In 20%","guide":"拉近焦距"},{"action":"Shift Up 5%","guide":"向上平移"}]}
+{"id":3,"reason":"聚焦左侧人物，以呈现更亲密的肖像，同时展现他手中的物品。","steps":[{"action":"Shift Left 20%","guide":"向左平移"},{"action":"Zoom In 30%","guide":"拉近焦距"}]}
+{"id":4,"reason":"通过捕捉整个场景，强调人物与背景的互动和整体氛围。","steps":[{"action":"Zoom Out 10%","guide":"拉远焦距"},{"action":"Shift Down 5%","guide":"向下平移"}]}

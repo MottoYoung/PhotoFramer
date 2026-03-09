@@ -1,0 +1,18 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "reasoning": "主体（树和骑马的人）目前位于画面中央，如果将其移至井字构图的右侧垂直线上，将能更好地引导视线并增加画面的动态感。",
+  "composition_data": {
+    "aesthetic_desc": "将主体（树和骑马的人）放置在井字构图的右侧垂直线上，使得画面更具平衡感和视觉趣味性。天空和地面占据大约三分之二的画面，而地平线则位于下方三分之一处，营造出广阔而深远的意境。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右平移相机，直到树和骑马的人的轮廓位于画面右侧的垂直三分线上。"
+      }
+    ]
+  }
+}
+```

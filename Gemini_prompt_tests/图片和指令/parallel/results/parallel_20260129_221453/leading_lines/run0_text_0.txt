@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "leading_lines",
+  "reasoning": "此场景中没有明显的线条或图案可以作为引导线将观众的视线引向主体。画面主要由天空、地平线和树组成，缺乏可以利用的视觉路径。",
+  "composition_data": null
+}
+```

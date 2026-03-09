@@ -1,0 +1,71 @@
+```json
+{
+  "layout": "2x2_grid_with_green_separators",
+  "compositions": [
+    {
+      "position": "top_left",
+      "technique": "rule_of_thirds",
+      "is_applicable": true,
+      "aesthetic_desc": "将主要人物置于三分线交点，使画面更具动态感和视觉吸引力。中心人物（穿蓝色T恤的男子）位于右侧垂直三分线，头部接近上方水平三分线交点。",
+      "steps": [
+        {
+          "action": "调整相机位置或裁剪",
+          "guide": "将图像主体（蓝色T恤的男子）放置在画面的右侧三分之一处，使他的眼睛或面部特征与上方三分之一的水平线相交。"
+        },
+        {
+          "action": "考虑背景元素",
+          "guide": "确保背景中的其他人物和物品也能在三分法构图下保持平衡，不要过度集中在画面中央。"
+        }
+      ]
+    },
+    {
+      "position": "top_right",
+      "technique": "center_composition",
+      "is_applicable": true,
+      "aesthetic_desc": "将画面中最引人注目的人物置于正中央，突出其重要性和直接的视觉冲击力。穿蓝色T恤的男子被清晰地放置在画面中心。",
+      "steps": [
+        {
+          "action": "聚焦并居中",
+          "guide": "将穿蓝色T恤的男子精确地放置在画面的中央，使他的身体大致位于图像的正中心。"
+        },
+        {
+          "action": "确保清晰度",
+          "guide": "确保中心人物清晰对焦，背景可适当虚化以进一步突出主体。"
+        }
+      ]
+    },
+    {
+      "position": "bottom_left",
+      "technique": "leading_lines",
+      "is_applicable": false,
+      "aesthetic_desc": "原图中没有明显的自然引导线，但通过调整视角和焦点，仍能创造出引导视觉的效果。这里通过地面的线条将视线引向人物。",
+      "steps": [
+        {
+          "action": "寻找或创造引导线",
+          "guide": "利用地面上的阴影或地面的边缘线，使其指向画面中的人物，引导观众视线。"
+        },
+        {
+          "action": "调整角度",
+          "guide": "略微降低拍摄角度，使地面的线条或边缘在画面中更显眼，形成引导效果。"
+        }
+      ]
+    },
+    {
+      "position": "bottom_right",
+      "technique": "foreground_framing",
+      "is_applicable": false,
+      "aesthetic_desc": "原图中没有现成的前景元素可用于构图，因此通过靠近拍摄，将人物头部和上半身作为主体，营造出亲近感，并利用光影作为非传统前景。也可通过虚化前景模拟框架。",
+      "steps": [
+        {
+          "action": "靠近主体",
+          "guide": "将相机移近画面中的人物，以他的肩膀或头顶作为前景，或利用其他模糊的近景物体虚化前景来框住人物。"
+        },
+        {
+          "action": "选择性对焦",
+          "guide": "确保主体清晰，前景和背景适当虚化，以突出被框住的人物。"
+        }
+      ]
+    }
+  ]
+}
+```

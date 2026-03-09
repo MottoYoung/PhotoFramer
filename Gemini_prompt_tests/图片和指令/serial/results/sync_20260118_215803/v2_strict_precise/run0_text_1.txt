@@ -1,0 +1,1 @@
+{"id":1,"reason":"通过裁剪和放大，突出人物，增强视觉冲击力。","steps":[{"action":"Shift Left 15%","guide":"向左平移"},{"action":"Zoom In 20%","guide":"拉近焦距"}]}`

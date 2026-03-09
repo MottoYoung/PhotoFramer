@@ -1,0 +1,27 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "利用强烈的侧逆光，将人物剪影化，营造出戏剧性的光影效果，突出日常生活的诗意。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使画面主要展现左侧的两个人物以及他们的影子。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "稍微拉近镜头，将主要人物剪影化，增强光影对比。"
+    },
+    {
+      "step_order": 3,
+      "action_type": "View-change",
+      "direction": "Low-angle",
+      "guide_text": "稍微降低拍摄角度，让人物显得更加高大，同时将天空纳入画面，增加空间感。"
+    }
+  ]
+}
+```

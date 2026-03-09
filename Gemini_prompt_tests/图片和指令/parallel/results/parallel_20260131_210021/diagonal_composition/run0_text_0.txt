@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "diagonal_composition",
+  "reasoning": "此场景中没有明显的对角线引导元素，如道路、围栏或建筑边缘。画面主要由垂直和水平线条构成，强制使用倾斜构图（荷兰角）会显得不自然。因此，不适用于对角线构图。",
+  "composition_data": null
+}
+```

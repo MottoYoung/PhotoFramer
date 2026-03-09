@@ -1,0 +1,192 @@
+{
+  "timestamp": "20260130_165637",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/input.jpg",
+  "total_runs": 1,
+  "techniques": [
+    "rule_of_thirds",
+    "center_composition",
+    "leading_lines",
+    "foreground_framing",
+    "diagonal_composition"
+  ],
+  "runs": [
+    {
+      "run_index": 0,
+      "timestamp": "2026-01-30T16:56:37.114126",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 2,
+      "total_time_ms": 12728.840999996464,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-01-30T16:56:37.114165",
+          "end_time": "2026-01-30T16:56:48.612459",
+          "response_time_ms": 11498.371874997247,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"reasoning\": \"该照片中的主体（树和马背上的骑手）目前位于画面中央，应用三分法可以将主体移至画面右侧三分之一的垂直线上，使构图更具动态感和视觉吸引力。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将地平线置于下三分之一处，树和马背上的骑手置于画面右侧三分之一的垂直线上，天空占据大部分画面，营造出广阔而平衡的意境。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"将相机向左平移，使树和马背上的骑手整体向画面右侧移动。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Down\",\n        \"guide_text\": \"略微向下平移相机，使地平线大致位于画面下三分之一处。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260130_165637/rule_of_thirds/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "reasoning": "该照片中的主体（树和马背上的骑手）目前位于画面中央，应用三分法可以将主体移至画面右侧三分之一的垂直线上，使构图更具动态感和视觉吸引力。",
+            "composition_data": {
+              "aesthetic_desc": "将地平线置于下三分之一处，树和马背上的骑手置于画面右侧三分之一的垂直线上，天空占据大部分画面，营造出广阔而平衡的意境。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "将相机向左平移，使树和马背上的骑手整体向画面右侧移动。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Down",
+                  "guide_text": "略微向下平移相机，使地平线大致位于画面下三分之一处。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 811,
+            "candidates_tokens": 1571,
+            "total_tokens": 2382
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-01-30T16:56:37.124147",
+          "end_time": "2026-01-30T16:56:49.840664",
+          "response_time_ms": 12716.601500000252,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"reasoning\": \"这张照片的主体是单独的树和马，非常适合采用中心构图来突出其独立性和视觉冲击力。将它们置于画面中心能增强稳定感和形式美。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将孤独的树和马匹置于画面的正中心，天空与地面形成简洁的背景，强调其遗世独立的氛围和剪影的张力。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"向左稍微移动相机，使树和马匹的剪影组合更接近画面的垂直中心线。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"向上稍微移动相机，将树和马匹的组合提升至画面的水平中心线，确保上下空间大致平衡。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"稍微拉近焦距，让树和马匹在画面中占据更显著的位置，进一步强调其中心主体性。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260130_165637/center_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "reasoning": "这张照片的主体是单独的树和马，非常适合采用中心构图来突出其独立性和视觉冲击力。将它们置于画面中心能增强稳定感和形式美。",
+            "composition_data": {
+              "aesthetic_desc": "将孤独的树和马匹置于画面的正中心，天空与地面形成简洁的背景，强调其遗世独立的氛围和剪影的张力。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "向左稍微移动相机，使树和马匹的剪影组合更接近画面的垂直中心线。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "向上稍微移动相机，将树和马匹的组合提升至画面的水平中心线，确保上下空间大致平衡。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "稍微拉近焦距，让树和马匹在画面中占据更显著的位置，进一步强调其中心主体性。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 815,
+            "candidates_tokens": 1630,
+            "total_tokens": 2445
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-01-30T16:56:37.124720",
+          "end_time": "2026-01-30T16:56:40.711803",
+          "response_time_ms": 3587.102874997072,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"leading_lines\",\n  \"reasoning\": \"此场景中没有明显的引导线元素，如道路、围栏、河流或建筑边缘，因此不适用于引导线构图技术。照片的重点是剪影和广阔的天空，缺乏可以将视线引向主体的线性特征。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "leading_lines",
+            "reasoning": "此场景中没有明显的引导线元素，如道路、围栏、河流或建筑边缘，因此不适用于引导线构图技术。照片的重点是剪影和广阔的天空，缺乏可以将视线引向主体的线性特征。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 831,
+            "candidates_tokens": 95,
+            "total_tokens": 926
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-01-30T16:56:37.124985",
+          "end_time": "2026-01-30T16:56:40.933851",
+          "response_time_ms": 3808.8896250010293,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"foreground_framing\",\n  \"reasoning\": \"这张照片的场景非常开阔，前景中没有可以用来进行前景构图的元素，因此无法应用前景构图技术。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "foreground_framing",
+            "reasoning": "这张照片的场景非常开阔，前景中没有可以用来进行前景构图的元素，因此无法应用前景构图技术。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 831,
+            "candidates_tokens": 72,
+            "total_tokens": 903
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-01-30T16:56:37.125297",
+          "end_time": "2026-01-30T16:56:41.336318",
+          "response_time_ms": 4211.047417000373,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"diagonal_composition\",\n  \"reasoning\": \"此场景中没有明显的对角线引导元素。主体（树和骑马人）是垂直的，而地平线是水平的，画面缺乏可以用于对角线构图的自然线条。简单地倾斜相机（荷兰式角度）会使画面看起来不自然。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "diagonal_composition",
+            "reasoning": "此场景中没有明显的对角线引导元素。主体（树和骑马人）是垂直的，而地平线是水平的，画面缺乏可以用于对角线构图的自然线条。简单地倾斜相机（荷兰式角度）会使画面看起来不自然。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 896,
+            "candidates_tokens": 104,
+            "total_tokens": 1000
+          }
+        }
+      ]
+    }
+  ]
+}

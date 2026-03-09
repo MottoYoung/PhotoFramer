@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "diagonal_composition",
+  "reasoning": "原始场景以水平和垂直元素为主（墙壁、人物站姿、地面）。没有强有力的、自然的物理线条（如道路或栅栏）可以通过改变视角来重新排列成对角线构图。强行倾斜相机以制造对角线会显得不自然且违反规则。当前的水平构图更适合这个场景。",
+  "composition_data": null
+}
+```

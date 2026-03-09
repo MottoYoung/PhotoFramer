@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 # ==================== API 配置 ==================== #
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyC_KWWzdi39-TDTOhNRMZmlvFj8IwwH9u4")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # ==================== 模型配置 ==================== #
 MODEL_NAME = "gemini-2.5-flash-image"

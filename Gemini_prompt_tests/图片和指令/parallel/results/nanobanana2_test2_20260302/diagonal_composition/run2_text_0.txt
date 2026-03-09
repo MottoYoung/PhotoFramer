@@ -1,0 +1,28 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "diagonal_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "将场景中的关键物理元素（路缘石、人物、影子的光边界、蔬菜摊位）重新组织，使其沿着画面斜对角线排列。这种构图利用了现有的线性元素，将视线从画面左下角自然引向右上角，打破了原始构图中由于垂直墙壁造成的静态感，增加了画面的动感和深度，同时更好地强调了人物与光影的互动。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "View-change",
+        "direction": "Lower and Right",
+        "guide_text": "降低相机高度，并向右移动，以获得一个更偏、更低的角度，利用透视关系将原本平行的路缘石对角线化。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Up",
+        "guide_text": "略微向上移动镜头，使斜对角的路缘石从画面左下角切入，并延伸向右上角。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "适度拉近镜头，聚焦于人物与光影，减少无关背景。确保主要人物、影子的光边界以及路上的蔬菜摊位都能够沿着这条斜对角线分布。"
+      }
+    ]
+  }
+}

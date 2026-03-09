@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "diagonal_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "该场景中存在明确的线性元素——墙根台阶和地面边缘。通过改变拍摄角度，我们可以将这些物理线条转换为对角线，从而创造出一种动态的、深度更强的构图。新的构图将引导观众的视线沿着台阶从左下角的蔬菜篮和人，穿过中间的男子，一直移向右上方持伞女子的头部和伞。这不仅增强了场景的戏剧性，还利用了现有的环境特征，而不是简单地倾斜相机（这种做法不专业）。保留所有原始人物、阴影和物品，但它们的相对位置现在遵循这条对角线。黄金时刻的金色光线将继续强调这些线条和阴影。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "down",
+        "guide_text": "将相机降低到接近地面的高度（例如，蹲下或将相机放在地面上）。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "left",
+        "guide_text": "向左移动相机，直到台阶的边缘从取景器的左下角对角线延伸到右上角。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "zoom",
+        "direction": "out",
+        "guide_text": "稍微向后移动或使用较广的焦距，以确保左侧的蔬菜篮和右侧的持伞女子（包括伞）都保留在画面内，并完美地对齐在这条对角线上。"
+      }
+    ]
+  }
+}
+```
+

@@ -1,0 +1,50 @@
+{
+  "timestamp": "20260131_211137",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 1,
+  "prompts_config": {
+    "parallel_v2": {
+      "description": "通过拼接多张图片来达到并行化的目的",
+      "system_instruction": "# Role: AI Photography Layout Editor & Composition Expert\n# Task: Analyze the user's input image and create a single \"Composition Contact Sheet\".\n# Output Requirement: You must generate EXACTLY TWO parts in your response:\n#   PART 1: A strictly formatted JSON object (Text Part).\n#   PART 2: A single 2x2 grid collage image (Image Part).\n\n# === IMAGE GENERATION RULES (Crucial Visual Constraints) ===\n1.  **Layout**: The final image MUST be a **2x2 Grid**.\n    * Top-Left Panel\n    * Top-Right Panel\n    * Bottom-Left Panel\n    * Bottom-Right Panel\n2.  **Separators**: You MUST draw thick, bright **NEON GREEN lines** (纯亮绿色线条) to separate the 4 panels. There should be one vertical green line down the center and one horizontal green line across the middle, forming a green cross.\n3.  **Content Content Assignment (Strict mapping)**:\n    * **Top-Left Panel**: Apply **\"Rule of Thirds\"** (三分构图). Place main subjects on grid intersections.\n    * **Top-Right Panel**: Apply **\"Center Composition\"** (中心构图). Place main subject perfectly in the middle.\n    * **Bottom-Left Panel**: Apply **\"Leading Lines\"** (引导线构图). Utilize lines pointing to the subject. (If none exist, create the best possible balanced shot).\n    * **Bottom-Right Panel**: Apply **\"Foreground Framing\"** (前景框架). Use foreground elements to frame the subject. (If none exist, use a tight close-up or focus-stacking effect to simulate depth).\n4.  **Realism**: Each panel must be a photorealistic re-composition of the original scene.\n\n# === JSON STRUCTURE RULES (Data Mapping) ===\nThe JSON must contain an array of 4 objects, strictly corresponding to the 2x2 grid order: [Top-Left, Top-Right, Bottom-Left, Bottom-Right].\n\n# JSON Schema definition:\n{\n  \"layout\": \"2x2_grid_with_green_separators\",\n  \"compositions\": [\n    // Array Index 0 -> Maps to Top-Left Image Panel\n    {\n      \"position\": \"top_left\",\n      \"technique\": \"rule_of_thirds\",\n      \"is_applicable\": true, // Set to false if this technique looks terrible for the scene, but still generate the image panel.\n      \"aesthetic_desc\": \"Chinese description...\",\n      \"steps\": [{ \"action\": \"...\", \"guide\": \"Chinese instruction...\" }]\n    },\n    // Array Index 1 -> Maps to Top-Right Image Panel\n    {\n      \"position\": \"top_right\",\n      \"technique\": \"center_composition\",\n      // ... same structure\n    },\n    // Array Index 2 -> Maps to Bottom-Left Image Panel\n    {\n      \"position\": \"bottom_left\",\n      \"technique\": \"leading_lines\",\n      // ... same structure\n    },\n    // Array Index 3 -> Maps to Bottom-Right Image Panel\n    {\n      \"position\": \"bottom_right\",\n      \"technique\": \"foreground_framing\",\n      // ... same structure\n    }\n  ]\n}\n\n# General Constraints:\n1. All instruction text must be in **Chinese (中文)**.\n2. The JSON MUST come before the Image generation.\n",
+      "user_prompt": "# Task Request\nPlease generate the 2x2 Composition Contact Sheet based on the attached image, following all layout and green separator rules defined in the system instructions.\n"
+    }
+  },
+  "results": [
+    {
+      "case_id": "parallel_v2_default",
+      "prompt_id": "parallel_v2",
+      "model_config_id": "default",
+      "total_runs": 1,
+      "successful_runs": 1,
+      "failed_runs": 0,
+      "avg_response_time_ms": 14939.368792001915,
+      "min_response_time_ms": 14939.368792001915,
+      "max_response_time_ms": 14939.368792001915,
+      "std_response_time_ms": 0,
+      "all_timings": [
+        {
+          "case_id": "parallel_v2_default",
+          "run_index": 0,
+          "start_time": "2026-01-31T21:11:37.410137",
+          "end_time": "2026-01-31T21:11:52.349397",
+          "response_time_ms": 14939.368792001915,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"layout\": \"2x2_grid_with_green_separators\",\n  \"compositions\": [\n    {\n      \"position\": \"top_left\",\n      \"technique\": \"rule_of_thirds\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"主要人物被放置在三分线的交叉点上，创造出更具吸引力的构图。\",\n      \"steps\": [\n        {\n          \"action\": \"重新构图\",\n          \"guide\": \"将中间微笑的男子放置在画面右侧三分线的交点上，左侧的男子则放置在左侧三分线的交点附近。\"\n        },\n        {\n          \"action\": \"调整背景\",\n          \"guide\": \"确保背景墙壁的线条不干扰主体，并利用光影增加深度。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"top_right\",\n      \"technique\": \"center_composition\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"画面中心突出主要人物，直接吸引观众的注意力。\",\n      \"steps\": [\n        {\n          \"action\": \"重新构图\",\n          \"guide\": \"将中间微笑的男子居中放置在画面中央，使其成为视觉焦点。\"\n        },\n        {\n          \"action\": \"背景虚化\",\n          \"guide\": \"可适当虚化背景，使主体人物更加突出。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"bottom_left\",\n      \"technique\": \"leading_lines\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"利用地面和墙壁的线条将观众的视线引向画面中的人物。\",\n      \"steps\": [\n        {\n          \"action\": \"寻找引导线\",\n          \"guide\": \"利用地面上自然的线条或光影形成的路径，将其指向人物。\"\n        },\n        {\n          \"action\": \"调整角度\",\n          \"guide\": \"略微降低拍摄角度，强调地面的延伸感，增强引导效果。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"bottom_right\",\n      \"technique\": \"foreground_framing\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"利用前景的元素（如摊位上的商品）作为框架，突出画面中的人物。\",\n      \"steps\": [\n        {\n          \"action\": \"前景选择\",\n          \"guide\": \"利用摊位上的蔬菜和水果作为前景，形成一个自然的框架，将视线引向人物。\"\n        },\n        {\n          \"action\": \"景深控制\",\n          \"guide\": \"使用较浅的景深，使前景略微虚化，同时保持人物清晰，增强画面的层次感。\"\n        }\n      ]\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_p_t_pinjie/results/sync_20260131_211137/parallel_v2_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 1050,
+            "candidates_tokens": 1940,
+            "total_tokens": 2990
+          }
+        }
+      ]
+    }
+  ]
+}

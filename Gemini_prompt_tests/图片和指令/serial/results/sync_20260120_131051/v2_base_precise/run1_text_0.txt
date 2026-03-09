@@ -1,0 +1,2 @@
+
+{"id":1,"reason":"聚焦中心人物，增强画面故事感","steps":[{"action":"Shift Left 10%","guide":"向左平移"},{"action":"Zoom In 20%","guide":"拉近焦距"}]}

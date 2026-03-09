@@ -1,0 +1,22 @@
+
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "通过放大和向下平移，将重点放在前景的交易场景，同时保留人物的互动，增强生活气息。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，使画面更聚焦于前景的交易场景和人物。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Down",
+      "guide_text": "向下平移，将前景的货物和人物的下半身置于画面底部，突出交易的细节。"
+    }
+  ]
+}
+```

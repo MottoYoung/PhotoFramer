@@ -1,0 +1,2 @@
+.
+{"id":1,"reason":"利用三分法突出主体，同时裁切掉右侧不相关人物。","steps":[{"action":"Shift Left 10%","guide":"向左平移"},{"action":"Zoom In 20%","guide":"拉近焦距"}]}

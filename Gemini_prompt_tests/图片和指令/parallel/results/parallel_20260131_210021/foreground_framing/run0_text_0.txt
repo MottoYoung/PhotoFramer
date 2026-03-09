@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "foreground_framing",
+  "reasoning": "这张照片的右上角有一个阴影，可以用作前景元素来框住画面中的人物，增加照片的层次感和神秘感。",
+  "composition_data": {
+    "aesthetic_desc": "利用右上角的阴影作为前景，巧妙地虚化边缘，突出下方在阳光下的人物，营造出一种观察与被观察的氛围，画面更具故事性。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Up",
+        "guide_text": "将相机稍微向上移动，让右上角的墙壁阴影占据更多的画面空间。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Left",
+        "guide_text": "同时向左移动，使阴影更好地覆盖画面一角，形成自然的画框效果。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "Out",
+        "guide_text": "稍微缩小焦距，以确保前景阴影能够完全覆盖并有效框住下方主要人物，使其在画面中显得更加突出。"
+      }
+    ]
+  }
+}
+```

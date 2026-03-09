@@ -1,0 +1,28 @@
+```json
+{
+  "type": "header",
+  "total_count": 2,
+  "analysis": "原始照片捕捉到了有趣的日常场景和人物互动，光影效果也不错。然而，构图上可以进一步优化，使主体更加突出，画面更具故事感。"
+}
+```
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "通过向右平移并稍微放大，将穿着蓝色T恤的男士置于画面中心，突出其面部表情，并利用背景光影和虚化，增强画面的纵深感和主体的突出性。右侧的伞和人物作为前景，为画面增添层次。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移相机，使穿蓝色T恤的男士更靠近画面中心。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "稍微放大画面，使穿蓝色T恤的男士的面部表情更清晰，占据画面更重要的位置。"
+    }
+  ]
+}
+```

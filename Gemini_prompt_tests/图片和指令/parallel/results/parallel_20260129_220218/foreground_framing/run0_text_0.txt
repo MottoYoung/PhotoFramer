@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "foreground_framing",
+  "reasoning": "这张照片的场景非常开阔，前景中没有可以用来进行前景构图的元素（如树叶、窗框、物体等），因此不适用于前景构图技术。如果强制使用，会与原图的意境和构图风格相悖。",
+  "composition_data": null
+}
+```

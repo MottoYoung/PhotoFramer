@@ -1,0 +1,28 @@
+```json
+{
+  "type": "header",
+  "total_count": 2,
+  "analysis": "原图光线很好，但人物构图有些杂乱，背景墙面占比过大。"
+}
+```
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "拉近镜头，突出前景人物，让画面更简洁，并利用光影引导视线。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，截取右侧打伞的摊贩，突出前景。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使打伞人物位于画面右侧，并将伞的边缘与画面顶部对齐。"
+    }
+  ]
+}
+```

@@ -1,0 +1,48 @@
+{
+  "timestamp": "20260309_105612",
+  "model_name": "gemini-2.5-flash",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/shift/origin/217386_x4_16x9_hltw_box-213-199-981-655_mos1.14_orig.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 1,
+  "prompts_config": {
+    "v_unified": {
+      "description": "统一格式版本，输出与并行版相同的 JSON Schema（纯文本）",
+      "system_instruction": "# Role: AI Photography Director\n# Goal: Analyze the user's input image and provide composition guidance (TEXT ONLY, NO IMAGE GENERATION).\n\n# Action Definitions:\n* `Shift`: Moving camera (Left, Right, Up, Down).\n* `Zoom`: Adjusting focal length/distance (In, Out).\n* `View-change`: Changing angle (High-angle, Low-angle, Side-view).\n\n# JSON Schema (Strict):\nYou must return a JSON object with this exact structure for EACH composition:\n{\n  \"is_applicable\": true,\n  \"technique\": \"string\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"string\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"string\",\n        \"direction\": \"string\",\n        \"guide_text\": \"string\"\n      }\n    ]\n  }\n}\n\n# Constraints:\n1. Language: All text must be in Chinese (中文).\n2. Output 1-5 compositions, each as a separate JSON object.\n3. NO IMAGE GENERATION: Only output JSON text.\n",
+      "user_prompt": "请分析这张照片，针对不同构图技术（如三分法、中心构图、引导线、前景框架、对角线）提供构图改进方案。\n每种方案请输出一个 JSON 对象（包含 is_applicable, technique, composition_data）。\n"
+    }
+  },
+  "results": [
+    {
+      "case_id": "v_unified_default",
+      "prompt_id": "v_unified",
+      "model_config_id": "default",
+      "total_runs": 1,
+      "successful_runs": 1,
+      "failed_runs": 0,
+      "avg_response_time_ms": 20938.129458008916,
+      "min_response_time_ms": 20938.129458008916,
+      "max_response_time_ms": 20938.129458008916,
+      "std_response_time_ms": 0,
+      "all_timings": [
+        {
+          "case_id": "v_unified_default",
+          "run_index": 0,
+          "start_time": "2026-03-09T10:56:12.504131",
+          "end_time": "2026-03-09T10:56:33.442176",
+          "response_time_ms": 20938.129458008916,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n[\n  {\n    \"is_applicable\": true,\n    \"technique\": \"三分法\",\n    \"composition_data\": {\n      \"aesthetic_desc_and_resoning\": \"将白色的房子作为画面主体，通过三分法将其放置在画面右侧的视觉兴趣点上，同时调整地平线到下三分之一处，以突出前景广阔的草地，使画面更具平衡感和纵深感。\",\n      \"steps\": [\n        {\n          \"step_order\": 1,\n          \"action_type\": \"Shift\",\n          \"direction\": \"左\",\n          \"guide_text\": \"将相机向左平移，使白房子从目前偏右的位置向左微调，使其大致落在画面右侧垂直三分线上，或右侧上方三分交叉点附近。\"\n        },\n        {\n          \"step_order\": 2,\n          \"action_type\": \"Shift\",\n          \"direction\": \"下\",\n          \"guide_text\": \"将相机向下平移，使草地与树林交界的地平线落在画面的水平下三分线上，为前景的绿色草地留出更多空间，增强画面的层次感。\"\n        }\n      ]\n    }\n  },\n  {\n    \"is_applicable\": true,\n    \"technique\": \"中心构图\",\n    \"composition_data\": {\n      \"aesthetic_desc_and_resoning\": \"将白色的房子作为单一且明确的视觉焦点，通过将其置于画面中心，营造出稳定、对称且强调主题的视觉效果，让观者的视线直接锁定在建筑物上。\",\n      \"steps\": [\n        {\n          \"step_order\": 1,\n          \"action_type\": \"Shift\",\n          \"direction\": \"左\",\n          \"guide_text\": \"将相机向左平移，使画面中的白房子精确地对准画面的中心位置。\"\n        },\n        {\n          \"step_order\": 2,\n          \"action_type\": \"Zoom\",\n          \"direction\": \"缩小\",\n          \"guide_text\": \"轻微拉远焦距，或向后退一步，以包含白房子周围更广阔的草地和树林，避免主体过于拥挤，同时保持白房子的中心地位。\"\n        }\n      ]\n    }\n  },\n  {\n    \"is_applicable\": true,\n    \"technique\": \"引导线\",\n    \"composition_data\": {\n      \"aesthetic_desc_and_resoning\": \"利用草地上细微的行进方向和光影形成的线条作为引导线，将观者的视线自然地从前景引向远处的白房子或树林，增强画面的深度和方向感。\",\n      \"steps\": [\n        {\n          \"step_order\": 1,\n          \"action_type\": \"View-change\",\n          \"direction\": \"低角度\",\n          \"guide_text\": \"稍微降低拍摄角度（低角度），并调整相机朝向，以更强调草地上的自然纹理和光影，使其形成由近及远的视觉引导线。\"\n        },\n        {\n          \"step_order\": 2,\n          \"action_type\": \"Shift\",\n          \"direction\": \"左/右\",\n          \"guide_text\": \"微调相机位置，使这些引导线能够自然地指向远处的白房子或其他有趣的元素，如左侧的黑色土堆，引导观者视线。\"\n        }\n      ]\n    }\n  },\n  {\n    \"is_applicable\": true,\n    \"technique\": \"对角线\",\n    \"composition_data\": {\n      \"aesthetic_desc_and_resoning\": \"通过强调画面中由草地纹理、光影或前景与中景的交界线形成的对角线，为画面注入活力和动感，打破水平和垂直构图的静态感，同时增强景深和画面的延伸感。\",\n      \"steps\": [\n        {\n          \"step_order\": 1,\n          \"action_type\": \"Shift\",\n          \"direction\": \"左/右\",\n          \"guide_text\": \"调整相机位置，使前景茂盛草地与后方较稀疏草地之间的交界线，或光影落在草地上形成的斜线，能够以对角线的形式穿越画面。\"\n        },\n        {\n          \"step_order\": 2,\n          \"action_type\": \"View-change\",\n          \"direction\": \"侧视\",\n          \"guide_text\": \"尝试从稍微倾斜的角度进行拍摄，以更好地捕捉和突出草地纹理或树林边缘所形成的自然对角线，使其从画面一角延伸至另一角。\"\n        }\n      ]\n    }\n  }\n]\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 578,
+            "candidates_tokens": 1080,
+            "total_tokens": 3962
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "foreground_framing",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原始图像展示了一个热闹的露天市场场景，有几个主要人物和许多细节（如蔬菜摊、竹篮、伞和背景墙）。为了应用‘前景构图’（Foreground Framing）技术，我们可以利用场景中已有的元素来创造一个框架，将观众的注意力更集中地引向核心人物（中间穿蓝衣的老人）。通过寻找一个能让前景物体自然‘包围’主体的视角，我们可以增加画面的深度感，使普通的街头快照变得更具艺术感和故事感。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "low-angle",
+        "guide_text": "将相机稍微降低（采用低角度），并靠近右侧的蔬菜摊位和竹篮。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "right",
+        "guide_text": "将相机向右移动，寻找一个视角，使右侧持伞的女人的伞边缘和她的身体能占据画面的右侧和上部边缘。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "shift",
+        "direction": "down",
+        "guide_text": "让画面底部的蔬菜摊（如那一堆黄瓜和竹篮）占据画面的底部边缘，作为一个‘地基’框架。"
+      },
+      {
+        "step_order": 4,
+        "action_type": "shift",
+        "direction": "left",
+        "guide_text": "将左侧穿衬衫的男人的轮廓和背景墙的一部分作为左侧的‘墙壁’框架，确保他们不会遮挡主体的脸，而是形成一个通道。"
+      }
+    ]
+  }
+}
+```
+

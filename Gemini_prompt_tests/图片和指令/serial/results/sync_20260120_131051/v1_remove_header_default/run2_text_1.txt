@@ -1,0 +1,15 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "拉近镜头，突出主要人物的表情和互动。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，使中间人物占据画面主体，突出其表情。"
+    }
+  ]
+}
+```

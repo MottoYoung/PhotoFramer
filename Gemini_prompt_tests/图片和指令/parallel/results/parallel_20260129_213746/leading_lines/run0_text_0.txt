@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "leading_lines",
+  "reasoning": "此场景中没有明显的引导线元素（例如道路、围栏、河流或建筑边缘）可以用来将观众的视线引向主体（树和马）。画面主要由天空和雪地组成，缺乏可利用的线条。",
+  "composition_data": null
+}
+```

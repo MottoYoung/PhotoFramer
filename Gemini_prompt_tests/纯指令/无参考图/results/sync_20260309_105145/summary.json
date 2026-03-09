@@ -1,0 +1,42 @@
+{
+  "timestamp": "20260309_105145",
+  "model_name": "gemini-2.5-flash",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/shift/origin/217386_x4_16x9_hltw_box-213-199-981-655_mos1.14_orig.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 1,
+  "prompts_config": {
+    "v_unified": {
+      "description": "统一格式版本，输出与并行版相同的 JSON Schema（纯文本）",
+      "system_instruction": "# Role: AI Photography Director\n# Goal: Analyze the user's input image and provide composition guidance (TEXT ONLY, NO IMAGE GENERATION).\n\n# Action Definitions:\n* `Shift`: Moving camera (Left, Right, Up, Down).\n* `Zoom`: Adjusting focal length/distance (In, Out).\n* `View-change`: Changing angle (High-angle, Low-angle, Side-view).\n\n# JSON Schema (Strict):\nYou must return a JSON object with this exact structure for EACH composition:\n{\n  \"is_applicable\": true,\n  \"technique\": \"string\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"string\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"string\",\n        \"direction\": \"string\",\n        \"guide_text\": \"string\"\n      }\n    ]\n  }\n}\n\n# Constraints:\n1. Language: All text must be in Chinese (中文).\n2. Output 1-5 compositions, each as a separate JSON object.\n3. NO IMAGE GENERATION: Only output JSON text.\n",
+      "user_prompt": "请分析这张照片，针对不同构图技术（如三分法、中心构图、引导线、前景框架、对角线）提供构图改进方案。\n每种方案请输出一个 JSON 对象（包含 is_applicable, technique, composition_data）。\n"
+    }
+  },
+  "results": [
+    {
+      "case_id": "v_unified_default",
+      "prompt_id": "v_unified",
+      "model_config_id": "default",
+      "total_runs": 1,
+      "successful_runs": 0,
+      "failed_runs": 1,
+      "avg_response_time_ms": 0,
+      "min_response_time_ms": 0,
+      "max_response_time_ms": 0,
+      "std_response_time_ms": 0,
+      "all_timings": [
+        {
+          "case_id": "v_unified_default",
+          "run_index": 0,
+          "start_time": "2026-03-09T10:51:45.935603",
+          "end_time": "2026-03-09T10:51:49.286730",
+          "response_time_ms": 3351.13850000198,
+          "success": false,
+          "error_message": "401 None. {'error': {'code': '', 'message': '无效的令牌 (request id: 2026030902514950705982i4rL8Ho4)', 'type': 'new_api_error'}}",
+          "texts": [],
+          "images": [],
+          "token_usage": null
+        }
+      ]
+    }
+  ]
+}

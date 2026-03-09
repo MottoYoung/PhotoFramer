@@ -1,0 +1,22 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "将主体精确放置于画面中心可以创造出一种极度的稳定感和庄严感，非常适合这张剪影作品。原图中孤树和昂首的马匹位于右侧，虽然灵动，但通过居中对齐，我们可以将这个强大的剪影组合转化为画面的精神内核。通过裁切并重新平移，让孤树和昂首马匹的组合（作为一个整体主体）精确对准水平和垂直中轴线。这种构图将强调主体的孤寂与力量，使其成为广阔天地的绝对焦点，营造出一种近乎宗教仪式的庄重感。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "将镜头向右平移，使孤树和昂首马匹的整体剪影组合移至画面的正中央。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "适当放大（或在后期进行裁切），去除两侧过多的空白天空和雪地，使主体在画面中更加突出，并确保其精确居中。"
+      }
+    ]
+  }
+}

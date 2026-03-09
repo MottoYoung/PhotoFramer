@@ -1,0 +1,71 @@
+```json
+{
+  "layout": "2x2_grid_with_green_separators",
+  "compositions": [
+    {
+      "position": "top_left",
+      "technique": "rule_of_thirds",
+      "is_applicable": true,
+      "aesthetic_desc": "主要人物被放置在三分线的交叉点上，创造出更具吸引力的构图。",
+      "steps": [
+        {
+          "action": "重新构图",
+          "guide": "将中间微笑的男子放置在画面右侧三分线的交点上，左侧的男子则放置在左侧三分线的交点附近。"
+        },
+        {
+          "action": "调整背景",
+          "guide": "确保背景墙壁的线条不干扰主体，并利用光影增加深度。"
+        }
+      ]
+    },
+    {
+      "position": "top_right",
+      "technique": "center_composition",
+      "is_applicable": true,
+      "aesthetic_desc": "画面中心突出主要人物，直接吸引观众的注意力。",
+      "steps": [
+        {
+          "action": "重新构图",
+          "guide": "将中间微笑的男子居中放置在画面中央，使其成为视觉焦点。"
+        },
+        {
+          "action": "背景虚化",
+          "guide": "可适当虚化背景，使主体人物更加突出。"
+        }
+      ]
+    },
+    {
+      "position": "bottom_left",
+      "technique": "leading_lines",
+      "is_applicable": true,
+      "aesthetic_desc": "利用地面和墙壁的线条将观众的视线引向画面中的人物。",
+      "steps": [
+        {
+          "action": "寻找引导线",
+          "guide": "利用地面上自然的线条或光影形成的路径，将其指向人物。"
+        },
+        {
+          "action": "调整角度",
+          "guide": "略微降低拍摄角度，强调地面的延伸感，增强引导效果。"
+        }
+      ]
+    },
+    {
+      "position": "bottom_right",
+      "technique": "foreground_framing",
+      "is_applicable": true,
+      "aesthetic_desc": "利用前景的元素（如摊位上的商品）作为框架，突出画面中的人物。",
+      "steps": [
+        {
+          "action": "前景选择",
+          "guide": "利用摊位上的蔬菜和水果作为前景，形成一个自然的框架，将视线引向人物。"
+        },
+        {
+          "action": "景深控制",
+          "guide": "使用较浅的景深，使前景略微虚化，同时保持人物清晰，增强画面的层次感。"
+        }
+      ]
+    }
+  ]
+}
+```

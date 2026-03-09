@@ -1,0 +1,416 @@
+{
+  "timestamp": "20260120_220203",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 6,
+  "repeats_per_case": 3,
+  "results": [
+    {
+      "case_id": "v1_pure_image_default",
+      "prompt_id": "v1_pure_image",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 18219.166874992272,
+      "min_response_time_ms": 18102.500582986977,
+      "max_response_time_ms": 18367.402499978198,
+      "std_response_time_ms": 135.24320128951862,
+      "all_timings": [
+        {
+          "case_id": "v1_pure_image_default",
+          "run_index": 0,
+          "start_time": "2026-01-20T22:02:03.691246",
+          "end_time": "2026-01-20T22:02:21.793621",
+          "response_time_ms": 18102.500582986977,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v1_pure_image_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 392,
+            "candidates_tokens": 1290,
+            "total_tokens": 1682
+          }
+        },
+        {
+          "case_id": "v1_pure_image_default",
+          "run_index": 1,
+          "start_time": "2026-01-20T22:02:26.801827",
+          "end_time": "2026-01-20T22:02:45.169114",
+          "response_time_ms": 18367.402499978198,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v1_pure_image_default/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 392,
+            "candidates_tokens": 1290,
+            "total_tokens": 1682
+          }
+        },
+        {
+          "case_id": "v1_pure_image_default",
+          "run_index": 2,
+          "start_time": "2026-01-20T22:02:50.180749",
+          "end_time": "2026-01-20T22:03:08.368229",
+          "response_time_ms": 18187.597542011645,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v1_pure_image_default/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 392,
+            "candidates_tokens": 1290,
+            "total_tokens": 1682
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v1_pure_image_precise",
+      "prompt_id": "v1_pure_image",
+      "model_config_id": "precise",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 12458.205166321326,
+      "min_response_time_ms": 10803.537790983682,
+      "max_response_time_ms": 14339.21945799375,
+      "std_response_time_ms": 1778.6753238037768,
+      "all_timings": [
+        {
+          "case_id": "v1_pure_image_precise",
+          "run_index": 0,
+          "start_time": "2026-01-20T22:03:08.375773",
+          "end_time": "2026-01-20T22:03:19.179243",
+          "response_time_ms": 10803.537790983682,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v1_pure_image_precise/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 392,
+            "candidates_tokens": 1290,
+            "total_tokens": 1682
+          }
+        },
+        {
+          "case_id": "v1_pure_image_precise",
+          "run_index": 1,
+          "start_time": "2026-01-20T22:03:24.187461",
+          "end_time": "2026-01-20T22:03:36.419245",
+          "response_time_ms": 12231.858249986544,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v1_pure_image_precise/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 392,
+            "candidates_tokens": 1290,
+            "total_tokens": 1682
+          }
+        },
+        {
+          "case_id": "v1_pure_image_precise",
+          "run_index": 2,
+          "start_time": "2026-01-20T22:03:41.429861",
+          "end_time": "2026-01-20T22:03:55.768993",
+          "response_time_ms": 14339.21945799375,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v1_pure_image_precise/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 392,
+            "candidates_tokens": 1290,
+            "total_tokens": 1682
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v2_pure_image_cn_default",
+      "prompt_id": "v2_pure_image_cn",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 14900.247791646203,
+      "min_response_time_ms": 10728.26012497535,
+      "max_response_time_ms": 18447.06787497853,
+      "std_response_time_ms": 3897.194394794836,
+      "all_timings": [
+        {
+          "case_id": "v2_pure_image_cn_default",
+          "run_index": 0,
+          "start_time": "2026-01-20T22:03:55.773148",
+          "end_time": "2026-01-20T22:04:06.501340",
+          "response_time_ms": 10728.26012497535,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v2_pure_image_cn_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 360,
+            "candidates_tokens": 1290,
+            "total_tokens": 1650
+          }
+        },
+        {
+          "case_id": "v2_pure_image_cn_default",
+          "run_index": 1,
+          "start_time": "2026-01-20T22:04:11.508504",
+          "end_time": "2026-01-20T22:04:29.955451",
+          "response_time_ms": 18447.06787497853,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v2_pure_image_cn_default/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 360,
+            "candidates_tokens": 1290,
+            "total_tokens": 1650
+          }
+        },
+        {
+          "case_id": "v2_pure_image_cn_default",
+          "run_index": 2,
+          "start_time": "2026-01-20T22:04:34.962192",
+          "end_time": "2026-01-20T22:04:50.487508",
+          "response_time_ms": 15525.415374984732,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v2_pure_image_cn_default/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 360,
+            "candidates_tokens": 1290,
+            "total_tokens": 1650
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v2_pure_image_cn_precise",
+      "prompt_id": "v2_pure_image_cn",
+      "model_config_id": "precise",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 14483.147402342487,
+      "min_response_time_ms": 11877.560124994488,
+      "max_response_time_ms": 16482.545666018268,
+      "std_response_time_ms": 2361.582477594672,
+      "all_timings": [
+        {
+          "case_id": "v2_pure_image_cn_precise",
+          "run_index": 0,
+          "start_time": "2026-01-20T22:04:50.499393",
+          "end_time": "2026-01-20T22:05:02.376890",
+          "response_time_ms": 11877.560124994488,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v2_pure_image_cn_precise/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 360,
+            "candidates_tokens": 1290,
+            "total_tokens": 1650
+          }
+        },
+        {
+          "case_id": "v2_pure_image_cn_precise",
+          "run_index": 1,
+          "start_time": "2026-01-20T22:05:07.383251",
+          "end_time": "2026-01-20T22:05:22.472482",
+          "response_time_ms": 15089.336416014703,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v2_pure_image_cn_precise/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 360,
+            "candidates_tokens": 1290,
+            "total_tokens": 1650
+          }
+        },
+        {
+          "case_id": "v2_pure_image_cn_precise",
+          "run_index": 2,
+          "start_time": "2026-01-20T22:05:27.480582",
+          "end_time": "2026-01-20T22:05:43.963021",
+          "response_time_ms": 16482.545666018268,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v2_pure_image_cn_precise/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 360,
+            "candidates_tokens": 1290,
+            "total_tokens": 1650
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v3_pure_image_minimal_default",
+      "prompt_id": "v3_pure_image_minimal",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 18968.004792007076,
+      "min_response_time_ms": 13465.94904200174,
+      "max_response_time_ms": 24447.3730000027,
+      "std_response_time_ms": 5490.747133110503,
+      "all_timings": [
+        {
+          "case_id": "v3_pure_image_minimal_default",
+          "run_index": 0,
+          "start_time": "2026-01-20T22:05:43.964583",
+          "end_time": "2026-01-20T22:05:57.430438",
+          "response_time_ms": 13465.94904200174,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v3_pure_image_minimal_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 290,
+            "candidates_tokens": 1290,
+            "total_tokens": 1580
+          }
+        },
+        {
+          "case_id": "v3_pure_image_minimal_default",
+          "run_index": 1,
+          "start_time": "2026-01-20T22:06:02.439352",
+          "end_time": "2026-01-20T22:06:26.886568",
+          "response_time_ms": 24447.3730000027,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v3_pure_image_minimal_default/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 290,
+            "candidates_tokens": 1290,
+            "total_tokens": 1580
+          }
+        },
+        {
+          "case_id": "v3_pure_image_minimal_default",
+          "run_index": 2,
+          "start_time": "2026-01-20T22:06:31.898411",
+          "end_time": "2026-01-20T22:06:50.888978",
+          "response_time_ms": 18990.692334016785,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v3_pure_image_minimal_default/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 290,
+            "candidates_tokens": 1290,
+            "total_tokens": 1580
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v3_pure_image_minimal_precise",
+      "prompt_id": "v3_pure_image_minimal",
+      "model_config_id": "precise",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 14047.412527987035,
+      "min_response_time_ms": 12194.558249990223,
+      "max_response_time_ms": 15661.347333982121,
+      "std_response_time_ms": 1745.700009680224,
+      "all_timings": [
+        {
+          "case_id": "v3_pure_image_minimal_precise",
+          "run_index": 0,
+          "start_time": "2026-01-20T22:06:50.890193",
+          "end_time": "2026-01-20T22:07:03.084672",
+          "response_time_ms": 12194.558249990223,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v3_pure_image_minimal_precise/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 290,
+            "candidates_tokens": 1290,
+            "total_tokens": 1580
+          }
+        },
+        {
+          "case_id": "v3_pure_image_minimal_precise",
+          "run_index": 1,
+          "start_time": "2026-01-20T22:07:08.093623",
+          "end_time": "2026-01-20T22:07:22.379858",
+          "response_time_ms": 14286.33199998876,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v3_pure_image_minimal_precise/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 290,
+            "candidates_tokens": 1290,
+            "total_tokens": 1580
+          }
+        },
+        {
+          "case_id": "v3_pure_image_minimal_precise",
+          "run_index": 2,
+          "start_time": "2026-01-20T22:07:27.388818",
+          "end_time": "2026-01-20T22:07:43.050077",
+          "response_time_ms": 15661.347333982121,
+          "success": true,
+          "error_message": null,
+          "texts": [],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment_pure_image/results/sync_20260120_220203/v3_pure_image_minimal_precise/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 290,
+            "candidates_tokens": 1290,
+            "total_tokens": 1580
+          }
+        }
+      ]
+    }
+  ]
+}

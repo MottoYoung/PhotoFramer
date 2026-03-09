@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "foreground_framing",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "使用前景构图（框架构图）可以有效地增加图像的深度感，将观众的视线直接引导至主体。在这个场景中，原始图像的右侧有一把花伞。通过将相机稍微向右移动，并利用这把伞的边缘作为前景元素，可以形成一个自然而独特的‘画框’。这个画框将中心的主体（笑着的男子和远处的男子）包围起来，不仅突出了他们的互动，还增加了场景的故事感和层次。柔和的金色光线将使前景伞的质地更加迷人，形成虚实对比。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "右侧，低角度",
+        "guide_text": "向右移动相机，让右侧的伞更靠近镜头，占据画面右侧的显著位置，并尝试稍微降低角度。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "zoom",
+        "direction": "拉远",
+        "guide_text": "如果需要，稍微拉远镜头或使用更广角，以确保能同时捕捉到伞的边缘和完整的中心主体（笑着的男子和远处的男子）。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "focus-adjustment",
+        "direction": "主体清晰",
+        "guide_text": "将焦点精确对准中心笑着的男子（穿蓝色T恤）。让前景的伞稍微失焦，形成虚化，作为框架。"
+      }
+    ]
+  }
+}
+```
+

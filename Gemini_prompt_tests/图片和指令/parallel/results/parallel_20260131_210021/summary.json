@@ -1,0 +1,210 @@
+{
+  "timestamp": "20260131_210021",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_runs": 1,
+  "techniques": [
+    "rule_of_thirds",
+    "center_composition",
+    "leading_lines",
+    "foreground_framing",
+    "diagonal_composition"
+  ],
+  "runs": [
+    {
+      "run_index": 0,
+      "timestamp": "2026-01-31T21:00:21.419066",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 3,
+      "total_time_ms": 13590.5277080019,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-01-31T21:00:21.419109",
+          "end_time": "2026-01-31T21:00:35.006574",
+          "response_time_ms": 13587.565707995964,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"reasoning\": \"主体人物目前位于画面中央，通过三分法构图，将主要人物放置在三分线的交点或线上，可以增强画面的视觉吸引力和平衡感。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将中间微笑的男士置于右侧垂直三分线上，让画面更具动态感和空间感，同时保留其他人物作为环境元素。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"向右平移相机，使画面中间的微笑男士位于右侧三分线上。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"稍微拉近焦距，让微笑男士在画面中占据更重要的位置，同时避免裁剪掉其他重要元素。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260131_210021/rule_of_thirds/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "reasoning": "主体人物目前位于画面中央，通过三分法构图，将主要人物放置在三分线的交点或线上，可以增强画面的视觉吸引力和平衡感。",
+            "composition_data": {
+              "aesthetic_desc": "将中间微笑的男士置于右侧垂直三分线上，让画面更具动态感和空间感，同时保留其他人物作为环境元素。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "向右平移相机，使画面中间的微笑男士位于右侧三分线上。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "稍微拉近焦距，让微笑男士在画面中占据更重要的位置，同时避免裁剪掉其他重要元素。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 811,
+            "candidates_tokens": 1552,
+            "total_tokens": 2363
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-01-31T21:00:21.431510",
+          "end_time": "2026-01-31T21:00:32.665328",
+          "response_time_ms": 11233.895625002333,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"reasoning\": \"这张照片的主体是中间这位男士。通过居中构图，可以更好地突出他，使观众的注意力集中在他身上。居中构图能带出稳定和平衡感，非常适合这个场景。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将主要人物置于画面中心，利用左右对称的墙面和地面的阴影形成稳定感，突出人物的对话与互动。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"向右平移相机，将画面中心的男士向右移动，使其更靠近画面中心。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"稍微拉近焦距，使男士占据画面更大部分，减少背景的干扰。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260131_210021/center_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "reasoning": "这张照片的主体是中间这位男士。通过居中构图，可以更好地突出他，使观众的注意力集中在他身上。居中构图能带出稳定和平衡感，非常适合这个场景。",
+            "composition_data": {
+              "aesthetic_desc": "将主要人物置于画面中心，利用左右对称的墙面和地面的阴影形成稳定感，突出人物的对话与互动。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "向右平移相机，将画面中心的男士向右移动，使其更靠近画面中心。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "稍微拉近焦距，使男士占据画面更大部分，减少背景的干扰。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 815,
+            "candidates_tokens": 1554,
+            "total_tokens": 2369
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-01-31T21:00:21.432054",
+          "end_time": "2026-01-31T21:00:25.120148",
+          "response_time_ms": 3688.1179999982123,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"leading_lines\",\n  \"reasoning\": \"此场景中没有明显的引导线元素，如道路、围栏、河流或建筑边缘，因此不适用于引导线构图法。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "leading_lines",
+            "reasoning": "此场景中没有明显的引导线元素，如道路、围栏、河流或建筑边缘，因此不适用于引导线构图法。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 831,
+            "candidates_tokens": 72,
+            "total_tokens": 903
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-01-31T21:00:21.432279",
+          "end_time": "2026-01-31T21:00:33.247588",
+          "response_time_ms": 11815.398083002947,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"foreground_framing\",\n  \"reasoning\": \"这张照片的右上角有一个阴影，可以用作前景元素来框住画面中的人物，增加照片的层次感和神秘感。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"利用右上角的阴影作为前景，巧妙地虚化边缘，突出下方在阳光下的人物，营造出一种观察与被观察的氛围，画面更具故事性。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"将相机稍微向上移动，让右上角的墙壁阴影占据更多的画面空间。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"同时向左移动，使阴影更好地覆盖画面一角，形成自然的画框效果。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"Out\",\n        \"guide_text\": \"稍微缩小焦距，以确保前景阴影能够完全覆盖并有效框住下方主要人物，使其在画面中显得更加突出。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260131_210021/foreground_framing/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "foreground_framing",
+            "reasoning": "这张照片的右上角有一个阴影，可以用作前景元素来框住画面中的人物，增加照片的层次感和神秘感。",
+            "composition_data": {
+              "aesthetic_desc": "利用右上角的阴影作为前景，巧妙地虚化边缘，突出下方在阳光下的人物，营造出一种观察与被观察的氛围，画面更具故事性。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "将相机稍微向上移动，让右上角的墙壁阴影占据更多的画面空间。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "同时向左移动，使阴影更好地覆盖画面一角，形成自然的画框效果。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Zoom",
+                  "direction": "Out",
+                  "guide_text": "稍微缩小焦距，以确保前景阴影能够完全覆盖并有效框住下方主要人物，使其在画面中显得更加突出。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 831,
+            "candidates_tokens": 1614,
+            "total_tokens": 2445
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-01-31T21:00:21.432820",
+          "end_time": "2026-01-31T21:00:25.441228",
+          "response_time_ms": 4008.433959003014,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"diagonal_composition\",\n  \"reasoning\": \"此场景中没有明显的对角线引导元素，如道路、围栏或建筑边缘。画面主要由垂直和水平线条构成，强制使用倾斜构图（荷兰角）会显得不自然。因此，不适用于对角线构图。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "diagonal_composition",
+            "reasoning": "此场景中没有明显的对角线引导元素，如道路、围栏或建筑边缘。画面主要由垂直和水平线条构成，强制使用倾斜构图（荷兰角）会显得不自然。因此，不适用于对角线构图。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 896,
+            "candidates_tokens": 97,
+            "total_tokens": 993
+          }
+        }
+      ]
+    }
+  ]
+}

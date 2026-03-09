@@ -1,0 +1,4 @@
+{"id":1,"reason":"利用三分法突出人物，避免杂乱背景","steps":[{"action":"Shift Right 20%","guide":"向右平移"},{"action":"Zoom In 15%","guide":"拉近焦距"}]}
+{"id":2,"reason":"聚焦中心人物，利用光影对比增强视觉冲击","steps":[{"action":"Shift Right 10%","guide":"向右平移"},{"action":"Zoom In 25%","guide":"拉近焦距"}]}
+{"id":3,"reason":"裁切多余空间，使人物更突出，画面更紧凑","steps":[{"action":"Shift Left 10%","guide":"向左平移"},{"action":"Zoom In 20%","guide":"拉近焦距"}]}
+{"id":4,"reason":"低角度仰视，增强人物的立体感和存在感","steps":[{"action":"LowAngle","guide":"采用低角度拍摄"},{"action":"Shift Right 5%","guide":"向右平移"},{"action":"Zoom In 10%","guide":"拉近焦距"}]}

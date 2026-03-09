@@ -1,0 +1,23 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "将画面中的主要人物（中间的男人）置于中心，可以更好地突出他的重要性和表情，营造出更稳定、直接的视觉效果。原图中的光线和背景墙壁简洁，非常适合这种突出主体的构图方式。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Left",
+        "guide_text": "向左平移相机，将中心人物移到画面中央。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "稍微拉近焦距，以更好地聚焦并突出中心人物。"
+      }
+    ]
+  }
+}
+```

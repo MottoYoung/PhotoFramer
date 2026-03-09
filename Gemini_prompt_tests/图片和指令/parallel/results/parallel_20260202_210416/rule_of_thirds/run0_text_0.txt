@@ -1,0 +1,23 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "将主体人物移动到三分之一线上，能够增强画面的平衡感和视觉趣味性。通过改变构图，将中间的男性置于右侧的三分线交叉点附近，使画面更具吸引力，避免了主体过于居中造成的呆板。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右移动相机，使画面中间的男性人物移动到右侧垂直三分线上。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "Out",
+        "guide_text": "稍微缩小焦距，以容纳更多的环境，并确保主体人物头部上方留有足够的空间，符合三分法构图的平衡感。"
+      }
+    ]
+  }
+}
+```

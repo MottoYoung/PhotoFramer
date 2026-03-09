@@ -21,9 +21,6 @@ build/
 .coverage
 htmlcov/
 
-# 后端临时目录
-pc_demo_v2/backend/temp/
-pc_demo_v3.1/backend/temp/
 
 # 旧的完整代码
 pc_demo_v1
@@ -82,9 +79,18 @@ Thumbs.db
 *.iws
 
 # ==================== 测试输出 ==================== #
-Gemini_prompt_tests/*/outputs/
-Gemini_prompt_tests/*/reports/
-Gemini_prompt_tests/*/results/
+# 覆盖新多级目录结构：图片和指令/*/results/, 纯指令/有参考图/results/ 等
+**/results/
+**/outputs/
+**/reports/
+
+# Batch API 临时文件
+*.jsonl
+
+# 后端临时目录
+**/temp/
+
+# 测试图片（体积大，不入库）
 test_images/
 
 # ==================== 敏感信息 ==================== #

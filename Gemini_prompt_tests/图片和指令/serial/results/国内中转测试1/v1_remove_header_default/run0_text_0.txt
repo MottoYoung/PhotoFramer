@@ -1,0 +1,15 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "向左平移，裁剪右侧人物，减少画面杂乱感，突出主要人物的互动，增强视觉焦点。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，将画面主要人物置于构图中心偏左，并裁剪掉右侧背对镜头的人物。"
+    }
+  ]
+}
+```

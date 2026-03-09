@@ -1,0 +1,28 @@
+```json
+{
+  "type": "header",
+  "total_count": 2,
+  "analysis": "原始照片捕捉了有趣的瞬间，但构图可以更紧凑，避免背景中不必要的元素干扰，并更好地突出主体。"
+}
+```
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "通过平移和变焦，使画面更聚焦在两个主要人物的互动上，去除右侧过曝的杂物，并利用黄金分割点构图。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使画面右侧的伞和人物移出构图，将重心放在画面中央的两位人物。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，进一步聚焦于两位主要人物，裁切掉不必要的背景。"
+    }
+  ]
+}
+```

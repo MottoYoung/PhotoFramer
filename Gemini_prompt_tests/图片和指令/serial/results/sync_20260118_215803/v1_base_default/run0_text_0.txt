@@ -1,0 +1,28 @@
+```json
+{
+  "type": "header",
+  "total_count": 2,
+  "analysis": "原图光线很好，人物表情自然，但构图略显拥挤，右侧人物背影占据了过多画面。左侧的人物与中间人物之间有不必要的空隙，整体画面不够紧凑。"
+}
+```
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "通过向右平移并缩放，突出中间的交流场景，使画面更聚焦，避免右侧人物背影过于抢镜。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，将中间两位主要人物置于画面中央偏左三分线位置。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，聚焦中间两位人物，裁剪掉部分左侧和右侧的背景，使构图更紧凑。"
+    }
+  ]
+}
+```

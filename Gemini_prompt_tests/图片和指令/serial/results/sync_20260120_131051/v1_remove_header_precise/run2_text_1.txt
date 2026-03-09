@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "拉近镜头，聚焦于左侧人物，利用光影形成对比。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，将焦点放在左侧人物上，突出其动作和表情。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使人物位于画面黄金分割点，增强视觉平衡。"
+    }
+  ]
+}
+```

@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "向右平移并拉近，突出中间人物，利用光影分割画面。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，使画面更聚焦于中间的人物。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，减少背景干扰，突出主体。"
+    }
+  ]
+}
+```

@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "leading_lines",
+  "reasoning": "此图像中没有明显的引导线元素（如道路、围栏、河流或建筑边缘）可以用来引导视线指向主体。场景主要由天空、地平线和孤立的树木组成，缺乏可以利用的线条。",
+  "composition_data": null
+}
+```

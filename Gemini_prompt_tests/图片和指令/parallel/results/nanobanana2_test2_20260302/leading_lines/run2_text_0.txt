@@ -1,0 +1,29 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "leading_lines",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图中，背景墙根的水平线和地面蔬菜的边缘在视觉上并不强烈，且指向不明。通过调整相机角度，可以利用这两个元素形成强烈的引导线，将观众的目光引向画面的主体（站立的老人和撑伞的人）。我们将降低相机高度，让墙根线（墙与地面的交界处）和地面上蔬菜摆放的边缘（如黄瓜堆和绿叶菜堆）以斜线的形式，从前景延伸至主体附近。这种构图不仅突出了人物，还增强了画面的空间深度感，使其更具视觉冲击力。阳光洒在引导线和主体上，进一步强化了这一视觉路径。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "low-angle",
+        "guide_text": "蹲下拍摄，将相机高度降至接近地面。这可以显著放大墙根线和地面物体（如黄瓜和绿叶菜）的斜向视觉长度。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "left",
+        "guide_text": "向左稍微移动，让画面左侧的墙根线和黄瓜堆的边缘形成更清晰的斜线，指向画面的中心区域（站立的老人）。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "shift",
+        "direction": "right",
+        "guide_text": "同时，利用画面右侧撑伞人的身影和地面的阴影边缘作为次要的引导斜线，与左侧的引导线形成一种视觉上的交汇，共同强化对主体的聚焦。"
+      }
+    ]
+  }
+}
+```

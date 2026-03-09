@@ -1,0 +1,28 @@
+```json
+{
+  "type": "header",
+  "total_count": 2,
+  "analysis": "原图光线很好，但人物构图有些杂乱，背景墙面有些空旷。可以尝试突出主体或利用光影进行构图。"
+}
+```
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "将焦点放在中间的人物上，利用阴影营造空间感，使画面更加简洁突出。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，将中间的人物置于画面中心。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，聚焦在人物的上半身，减少背景的干扰。"
+    }
+  ]
+}
+```

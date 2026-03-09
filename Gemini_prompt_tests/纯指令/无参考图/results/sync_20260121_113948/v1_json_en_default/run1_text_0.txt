@@ -1,0 +1,87 @@
+```json
+{
+  "header": {
+    "analysis_summary": "The current frame captures a candid street scene with three individuals, well-lit by golden hour sun. However, it's a bit wide, with ample empty wall space above and some clutter at the bottom. The composition could be improved by focusing more tightly on the subjects and their interactions, or by balancing all three figures more effectively within the frame."
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "微笑交谈特写",
+      "image_gen_prompt": "Close-up portrait of an older man smiling and another person with an umbrella, golden hour lighting, street market scene, shallow depth of field, natural expression, warm tones.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Forward",
+          "magnitude_val": 1.0,
+          "magnitude_unit": "steps",
+          "text_cn": "向前走约 1 大步，靠近拍摄对象"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Left",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向左移动约 0.5 步，将正在微笑的男士移至画面左侧三分之一处"
+        },
+        {
+          "step": 3,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.8,
+          "magnitude_unit": "x",
+          "text_cn": "将画面放大至 1.8 倍，突出微笑的男士和撑伞的人物"
+        },
+        {
+          "step": 4,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5.0,
+          "magnitude_unit": "degrees",
+          "text_cn": "将手机稍微向下倾斜约 5 度，减少上方空白墙面，多包含人物身体"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "市井生活捕捉",
+      "image_gen_prompt": "Candid medium shot of three older people interacting at a street market stall during golden hour, natural light, some market goods visible, warm and inviting atmosphere.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Forward",
+          "magnitude_val": 0.75,
+          "magnitude_unit": "steps",
+          "text_cn": "向前走约 0.75 步，稍微靠近拍摄对象"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向右移动约 0.5 步，将三位人物更均匀地分布在画面中"
+        },
+        {
+          "step": 3,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.3,
+          "magnitude_unit": "x",
+          "text_cn": "将画面放大至 1.3 倍，使人物更清晰，同时保留部分环境信息"
+        },
+        {
+          "step": 4,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5.0,
+          "magnitude_unit": "degrees",
+          "text_cn": "将手机稍微向下倾斜约 5 度，优化人物与背景的比例"
+        }
+      ]
+    }
+  ]
+}
+```

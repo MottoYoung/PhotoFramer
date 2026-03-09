@@ -1,0 +1,15 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "向左平移，将人物置于三分线处，使画面更具平衡感。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，将人物置于三分线处。"
+    }
+  ]
+}
+```

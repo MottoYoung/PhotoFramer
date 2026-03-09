@@ -1,0 +1,144 @@
+{
+  "timestamp": "20260121_115128",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 2,
+  "repeats_per_case": 3,
+  "results": [
+    {
+      "case_id": "v1_json_text_default",
+      "prompt_id": "v1_json_text",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 18400.877138987806,
+      "min_response_time_ms": 15190.366875001928,
+      "max_response_time_ms": 24619.195207982557,
+      "std_response_time_ms": 5386.1750600132555,
+      "all_timings": [
+        {
+          "case_id": "v1_json_text_default",
+          "run_index": 0,
+          "start_time": "2026-01-21T11:51:28.233764",
+          "end_time": "2026-01-21T11:51:43.424080",
+          "response_time_ms": 15190.366875001928,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"The current frame has excessive empty wall space above the subjects and feels a bit wide, dispersing focus. The lighting creates interesting shadows but also leaves parts of the scene less defined. Two distinct compositional approaches can improve the narrative and visual appeal.\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"特写笑容与市场一角\",\n      \"image_gen_prompt\": \"Close-up portrait of an elderly man smiling at a market, with a distinctive patterned umbrella partially visible in the background, warm afternoon light and shadows, a glimpse of market goods.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 0.75,\n          \"magnitude_unit\": \"meters\",\n          \"text_cn\": \"向右移动相机约 0.75 米，将笑容老人置于画面中心偏左\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.8,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 1.8 倍，突出老人面部表情和身旁细节，减少多余背景\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"市场氛围与特色伞\",\n      \"image_gen_prompt\": \"Medium shot of three people at a vibrant outdoor market stall during golden hour, one person holding a patterned umbrella prominent on the left, another smiling man in the center, and a third person to the far left. Focus on market activity, warm light, and strong diagonal shadows.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Left\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"meters\",\n          \"text_cn\": \"向左移动相机约 0.5 米，将带有特色伞的顾客更好地纳入画面左侧\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.3,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 1.3 倍，使三位人物和市场商品更紧凑地组合\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"稍微向下倾斜相机约 5 度，纳入更多地面上的市场商品，减少顶部空墙\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 942,
+            "candidates_tokens": 689,
+            "total_tokens": 3003
+          }
+        },
+        {
+          "case_id": "v1_json_text_default",
+          "run_index": 1,
+          "start_time": "2026-01-21T11:51:48.433110",
+          "end_time": "2026-01-21T11:52:13.052229",
+          "response_time_ms": 24619.195207982557,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"The frame includes three subjects in a market setting, with strong directional light creating interesting shadows. However, there's excessive empty space at the top, and the composition could be tightened to focus more effectively on the subjects or the market interaction.\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"聚焦微笑与市集互动\",\n      \"image_gen_prompt\": \"Street photography portrait of a smiling older man in a market, with another person holding an umbrella next to him, warm golden hour light, tight composition, shallow depth of field.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.8,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 1.8 倍，突出画面中央的两位主要人物\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向右移动半步，使微笑男子和伞下人物在画面中获得更好的平衡\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"市集全景，优化构图\",\n      \"image_gen_prompt\": \"Wide street photography shot of three people at a market stall, natural interaction, golden hour light, focus on the market environment and people, less empty space at the top, dynamic composition.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.3,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 1.3 倍，减少顶部空白并拉近所有人物\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Left\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向左移动半步，将左侧人物更好地纳入画面，使三人形成一个更紧密的群组\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"稍微向下倾斜 5 度，纳入更多地面物品以增加场景感，同时减少不必要的墙壁空间\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 942,
+            "candidates_tokens": 663,
+            "total_tokens": 5128
+          }
+        },
+        {
+          "case_id": "v1_json_text_default",
+          "run_index": 2,
+          "start_time": "2026-01-21T11:52:18.066400",
+          "end_time": "2026-01-21T11:52:33.459444",
+          "response_time_ms": 15393.069333978929,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"Multiple interesting subjects are present, but the wide framing includes excessive empty space and ground clutter, diluting the focus.\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"人像特写：温暖笑容\",\n      \"image_gen_prompt\": \"Close-up portrait of an elderly Asian man smiling genuinely, wearing a blue polo shirt. The background is a clean, sunlit beige wall. Golden hour lighting. Focused on the man's expression.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向右移动相机 0.5 步，将中央的笑容老人移至画面中心\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 2.0,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面 2 倍，聚焦于老人的笑容，取其上半身\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"稍向下倾斜 5 度，减少墙壁的空白区域，更突出人物\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"市场小景：雨伞与互动\",\n      \"image_gen_prompt\": \"Street market scene capturing three individuals in interaction during golden hour. An elderly Asian man smiles in the center, another man is on the left, and a person holds a decorative umbrella on the right. Market produce is visible on the ground, creating an authentic atmosphere.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Forward\",\n          \"magnitude_val\": 1.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向前移动相机 1.5 步，更接近场景，增加沉浸感\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向右移动相机 0.5 步，确保右侧的伞和人物完整入画\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 10,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"向下倾斜 10 度，包含更多地面的市场商品，展现生活气息\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 942,
+            "candidates_tokens": 733,
+            "total_tokens": 3129
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v1_simplified_default",
+      "prompt_id": "v1_simplified",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 15020.3157083403,
+      "min_response_time_ms": 9943.240499997046,
+      "max_response_time_ms": 19384.83512500534,
+      "std_response_time_ms": 4760.958840710241,
+      "all_timings": [
+        {
+          "case_id": "v1_simplified_default",
+          "run_index": 0,
+          "start_time": "2026-01-21T11:52:33.473626",
+          "end_time": "2026-01-21T11:52:43.416842",
+          "response_time_ms": 9943.240499997046,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"opts\": [\n    {\n      \"id\": 1,\n      \"ti\": \"微笑男子特写\",\n      \"tags\": \"rule of thirds, smiling man, right vertical line, clean background, golden light\",\n      \"steps\": [\n        {\n          \"act\": \"S\",\n          \"dir\": \"Left\",\n          \"val\": 0.5,\n          \"unit\": \"step\",\n          \"txt\": \"向左移动半步\"\n        },\n        {\n          \"act\": \"Z\",\n          \"dir\": \"In\",\n          \"val\": 1.5,\n          \"unit\": \"x\",\n          \"txt\": \"放大画面\"\n        },\n        {\n          \"act\": \"V\",\n          \"dir\": \"Up\",\n          \"val\": 5.0,\n          \"unit\": \"deg\",\n          \"txt\": \"稍向上倾斜\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"ti\": \"伞下故事\",\n      \"tags\": \"umbrella frame, two figures, natural interaction, warm light, diagonal shadows\",\n      \"steps\": [\n        {\n          \"act\": \"S\",\n          \"dir\": \"Back\",\n          \"val\": 1.0,\n          \"unit\": \"step\",\n          \"txt\": \"向后退一步\"\n        },\n        {\n          \"act\": \"S\",\n          \"dir\": \"Right\",\n          \"val\": 0.5,\n          \"unit\": \"step\",\n          \"txt\": \"向右移动半步\"\n        },\n        {\n          \"act\": \"V\",\n          \"dir\": \"Down\",\n          \"val\": 5.0,\n          \"unit\": \"deg\",\n          \"txt\": \"稍向下倾斜\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 564,
+            "candidates_tokens": 434,
+            "total_tokens": 2266
+          }
+        },
+        {
+          "case_id": "v1_simplified_default",
+          "run_index": 1,
+          "start_time": "2026-01-21T11:52:48.425580",
+          "end_time": "2026-01-21T11:53:04.158407",
+          "response_time_ms": 15732.871500018518,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"opts\": [\n    {\n      \"id\": 1,\n      \"ti\": \"微笑特写\",\n      \"tags\": \"微笑老人, 黄金光线, 三分法构图, 简洁背景\",\n      \"steps\": [\n        {\n          \"act\": \"S\",\n          \"dir\": \"RIGHT\",\n          \"val\": 0.5,\n          \"unit\": \"step\",\n          \"txt\": \"向右移动半步\"\n        },\n        {\n          \"act\": \"Z\",\n          \"dir\": \"IN\",\n          \"val\": 1.5,\n          \"unit\": \"x\",\n          \"txt\": \"放大1.5倍\"\n        },\n        {\n          \"act\": \"V\",\n          \"dir\": \"UP\",\n          \"val\": 5.0,\n          \"unit\": \"deg\",\n          \"txt\": \"稍微向上倾斜\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"ti\": \"市场氛围\",\n      \"tags\": \"人物互动, 街头市场, 伞, 阴影, 黄金光线\",\n      \"steps\": [\n        {\n          \"act\": \"S\",\n          \"dir\": \"BACK\",\n          \"val\": 1.0,\n          \"unit\": \"step\",\n          \"txt\": \"向后退一步\"\n        },\n        {\n          \"act\": \"S\",\n          \"dir\": \"RIGHT\",\n          \"val\": 0.5,\n          \"unit\": \"step\",\n          \"txt\": \"向右移动半步\"\n        },\n        {\n          \"act\": \"V\",\n          \"dir\": \"DOWN\",\n          \"val\": 10.0,\n          \"unit\": \"deg\",\n          \"txt\": \"向下倾斜10度\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 564,
+            "candidates_tokens": 444,
+            "total_tokens": 2774
+          }
+        },
+        {
+          "case_id": "v1_simplified_default",
+          "run_index": 2,
+          "start_time": "2026-01-21T11:53:09.169964",
+          "end_time": "2026-01-21T11:53:28.554787",
+          "response_time_ms": 19384.83512500534,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"opts\": [\n    {\n      \"id\": 1,\n      \"ti\": \"阳光笑脸特写\",\n      \"tags\": \"人物特写, 灿烂笑容, 黄金光线, 简洁背景\",\n      \"steps\": [\n        {\n          \"act\": \"S\",\n          \"dir\": \"左\",\n          \"val\": 0.5,\n          \"unit\": \"step\",\n          \"txt\": \"向左走半步\"\n        },\n        {\n          \"act\": \"Z\",\n          \"dir\": \"放大\",\n          \"val\": 2.0,\n          \"unit\": \"x\",\n          \"txt\": \"拉近拍摄\"\n        },\n        {\n          \"act\": \"V\",\n          \"dir\": \"下倾\",\n          \"val\": 10.0,\n          \"unit\": \"deg\",\n          \"txt\": \"向下倾斜\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"ti\": \"市场人物互动\",\n      \"tags\": \"两人构图, 互动场景, 三分法, 光影对比\",\n      \"steps\": [\n        {\n          \"act\": \"S\",\n          \"dir\": \"右\",\n          \"val\": 0.5,\n          \"unit\": \"step\",\n          \"txt\": \"向右走半步\"\n        },\n        {\n          \"act\": \"Z\",\n          \"dir\": \"放大\",\n          \"val\": 1.2,\n          \"unit\": \"x\",\n          \"txt\": \"放大画面\"\n        },\n        {\n          \"act\": \"V\",\n          \"dir\": \"上倾\",\n          \"val\": 5.0,\n          \"unit\": \"deg\",\n          \"txt\": \"稍向上倾\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 564,
+            "candidates_tokens": 437,
+            "total_tokens": 3436
+          }
+        }
+      ]
+    }
+  ]
+}

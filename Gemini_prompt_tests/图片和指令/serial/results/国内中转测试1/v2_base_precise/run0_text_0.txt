@@ -1,0 +1,1 @@
+{"id":1,"reason":"聚焦中心人物，利用阴影增加画面深度","steps":[{"action":"Shift Right 10%","guide":"向右平移"},{"action":"Zoom In 15%","guide":"拉近焦距"}]}

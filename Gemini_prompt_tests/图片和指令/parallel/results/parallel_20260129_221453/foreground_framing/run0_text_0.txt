@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "foreground_framing",
+  "reasoning": "这张照片的场景非常开阔，缺乏近景元素可用于前景构图。画面中唯一的近景是地面，但它没有提供可以用来形成框架的物体或结构。",
+  "composition_data": null
+}
+```

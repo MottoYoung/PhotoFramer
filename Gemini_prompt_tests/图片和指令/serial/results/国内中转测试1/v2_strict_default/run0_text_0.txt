@@ -1,0 +1,1 @@
+1:{"id":1,"reason":"利用三分法突出主体，引导视线，避免杂乱背景干扰。","steps":[{"action":"Shift Left 10%","guide":"向左平移"},{"action":"Zoom In 20%","guide":"拉近焦距"}]}

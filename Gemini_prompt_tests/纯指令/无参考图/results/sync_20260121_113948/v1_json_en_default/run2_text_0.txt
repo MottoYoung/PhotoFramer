@@ -1,0 +1,71 @@
+```json
+{
+  "header": {
+    "analysis_summary": "The current frame includes a distracted person on the left and excessive empty space above the subjects. The central man's engaging smile and the unique umbrella offer strong focal points for improved compositions."
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "聚焦微笑特写",
+      "image_gen_prompt": "Close-up portrait of an older Chinese man smiling, standing in a market, with soft side lighting and a plain wall background, an umbrella visible in the background, candid street photography.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 1.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向右移动 1.5 步，将左侧人物移出画面"
+        },
+        {
+          "step": 2,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 2.0,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 2 倍，突出笑容特写"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5,
+          "magnitude_unit": "degrees",
+          "text_cn": "轻微向下倾斜 5 度，减少上方空白墙壁"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "伞下市集全景",
+      "image_gen_prompt": "Wider shot of an outdoor market stall, featuring an ornate white umbrella, two older Chinese individuals interacting, with produce laid out on the ground, warm natural light casting shadows on a simple wall background, street photography.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Out",
+          "magnitude_val": 1.0,
+          "magnitude_unit": "meter",
+          "text_cn": "向后退 1 米，以捕捉更广阔的场景"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Left",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "steps",
+          "text_cn": "向左移动 0.5 步，使伞和人物居中"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-up",
+          "magnitude_val": 5,
+          "magnitude_unit": "degrees",
+          "text_cn": "轻微向上倾斜 5 度，确保伞的顶部完整入画"
+        }
+      ]
+    }
+  ]
+}
+```

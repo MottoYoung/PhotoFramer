@@ -1,0 +1,28 @@
+```json
+{
+  "type": "header",
+  "total_count": 2,
+  "analysis": "原图光线很好，捕捉到了人物的互动，但构图上可以更紧凑，突出主体。"
+}
+```
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "通过放大和向右平移，使画面更聚焦于中间两位人物的互动，同时利用阴影增加层次感。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，使画面更聚焦于中间两位人物。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，将左侧人物置于画面左侧三分线附近，右侧人物置于画面右侧三分线附近，利用阴影作为背景。"
+    }
+  ]
+}
+```

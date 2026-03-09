@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "reasoning": "这张照片的主体——孤独的树和骑马的人剪影——非常适合中心构图。将它们置于画面中央可以强调它们的独立性、力量感，并与广阔的天空和大地形成平衡，营造出一种宁静而有力的对称美。",
+  "composition_data": {
+    "aesthetic_desc": "将孤独的树和骑马人完美地置于画面中心，突出其在广阔天地间的存在感，并利用日落的光线勾勒出清晰的轮廓，增强视觉冲击力。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "将相机向右轻微移动，使树和骑马人的剪影整体居中。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Up",
+        "guide_text": "稍微抬高相机，确保地平线大致位于画面下三分之一处，为天空留出更多空间，同时保持主体居中。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "Out",
+        "guide_text": "稍微拉远焦距，或后退一步，以包含更多的天空和地面，但仍保持树和骑马人在画面中心，使其不显得拥挤。"
+      }
+    ]
+  }
+}
+```

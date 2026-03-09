@@ -1,0 +1,186 @@
+{
+  "timestamp": "20260129_215723",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/input.jpg",
+  "total_runs": 1,
+  "techniques": [
+    "rule_of_thirds",
+    "center_composition",
+    "leading_lines",
+    "foreground_framing",
+    "diagonal_composition"
+  ],
+  "runs": [
+    {
+      "run_index": 0,
+      "timestamp": "2026-01-29T21:57:23.183032",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 2,
+      "total_time_ms": 13645.60708299905,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-01-29T21:57:23.183070",
+          "end_time": "2026-01-29T21:57:36.826776",
+          "response_time_ms": 13643.790041000102,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"reasoning\": \"主体（树和骑马的人）可以根据三分法构图进行重新定位，使其落在井字格的交点或线上，以增强画面的平衡感和视觉趣味。当前画面中，主体略居中，通过调整能更好地利用三分法。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将孤独的树和马的剪影放置在画面的黄金分割点上，使天空和地平线分别占据画面的三分之一，创造出一种更加和谐且引人注目的视觉平衡，突出主体的静谧与力量。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将相机向右平移，使树和骑马的人位于画面右侧的垂直三分线上，并尝试让地平线落在画面下方的水平三分线上。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260129_215723/rule_of_thirds/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "reasoning": "主体（树和骑马的人）可以根据三分法构图进行重新定位，使其落在井字格的交点或线上，以增强画面的平衡感和视觉趣味。当前画面中，主体略居中，通过调整能更好地利用三分法。",
+            "composition_data": {
+              "aesthetic_desc": "将孤独的树和马的剪影放置在画面的黄金分割点上，使天空和地平线分别占据画面的三分之一，创造出一种更加和谐且引人注目的视觉平衡，突出主体的静谧与力量。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "将相机向右平移，使树和骑马的人位于画面右侧的垂直三分线上，并尝试让地平线落在画面下方的水平三分线上。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 811,
+            "candidates_tokens": 1542,
+            "total_tokens": 2353
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-01-29T21:57:23.192841",
+          "end_time": "2026-01-29T21:57:36.706120",
+          "response_time_ms": 13513.358000000153,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"reasoning\": \"这张照片的主体是剪影中的树和马。将它们置于画面中心可以增强其视觉冲击力，突出其独立性和力量感，尤其是在这种广阔的背景下。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将树和马的剪影完美地置于画面中心，强调其作为独立主体的力量和存在感，同时保持日出或日落时分的宁静与广阔。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"将相机稍微向左平移，使树和马的组合体更靠近画面中心。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"略微向上平移相机，确保地平线位于画面下三分之一处，给予天空更多空间，同时将主要剪影置于垂直中心。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"Out\",\n        \"guide_text\": \"稍微缩小焦距（或向后移动），以捕捉更多周围环境，同时仍保持树和马在中心的突出地位，营造更广阔的视觉效果。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260129_215723/center_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "reasoning": "这张照片的主体是剪影中的树和马。将它们置于画面中心可以增强其视觉冲击力，突出其独立性和力量感，尤其是在这种广阔的背景下。",
+            "composition_data": {
+              "aesthetic_desc": "将树和马的剪影完美地置于画面中心，强调其作为独立主体的力量和存在感，同时保持日出或日落时分的宁静与广阔。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "将相机稍微向左平移，使树和马的组合体更靠近画面中心。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "略微向上平移相机，确保地平线位于画面下三分之一处，给予天空更多空间，同时将主要剪影置于垂直中心。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Zoom",
+                  "direction": "Out",
+                  "guide_text": "稍微缩小焦距（或向后移动），以捕捉更多周围环境，同时仍保持树和马在中心的突出地位，营造更广阔的视觉效果。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 815,
+            "candidates_tokens": 1649,
+            "total_tokens": 2464
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-01-29T21:57:23.193208",
+          "end_time": "2026-01-29T21:57:27.747298",
+          "response_time_ms": 4554.115458000524,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"leading_lines\",\n  \"reasoning\": \"此场景中缺乏明显的引导线（例如道路、围栏、河流边缘等），无法应用引导线构图技术。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "leading_lines",
+            "reasoning": "此场景中缺乏明显的引导线（例如道路、围栏、河流边缘等），无法应用引导线构图技术。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 831,
+            "candidates_tokens": 69,
+            "total_tokens": 900
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-01-29T21:57:23.193408",
+          "end_time": "2026-01-29T21:57:27.743960",
+          "response_time_ms": 4550.573582999277,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"foreground_framing\",\n  \"reasoning\": \"这张照片的场景非常开阔，没有可用的前景元素来构建画框，因此前景构图技术不适用。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "foreground_framing",
+            "reasoning": "这张照片的场景非常开阔，没有可用的前景元素来构建画框，因此前景构图技术不适用。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 831,
+            "candidates_tokens": 70,
+            "total_tokens": 901
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-01-29T21:57:23.193590",
+          "end_time": "2026-01-29T21:57:27.658036",
+          "response_time_ms": 4464.469041000484,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"diagonal_composition\",\n  \"reasoning\": \"此场景中没有明显的对角线条或引导线可以用来进行对角线构图。照片中的地平线和树木都是水平或垂直的，不适合通过简单的构图调整来创建自然的对角线效果。如果强行制造对角线，可能会导致画面不自然或失衡。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "diagonal_composition",
+            "reasoning": "此场景中没有明显的对角线条或引导线可以用来进行对角线构图。照片中的地平线和树木都是水平或垂直的，不适合通过简单的构图调整来创建自然的对角线效果。如果强行制造对角线，可能会导致画面不自然或失衡。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 896,
+            "candidates_tokens": 109,
+            "total_tokens": 1005
+          }
+        }
+      ]
+    }
+  ]
+}

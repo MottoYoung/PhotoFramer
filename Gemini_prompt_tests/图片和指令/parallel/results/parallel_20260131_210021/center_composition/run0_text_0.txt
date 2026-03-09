@@ -1,0 +1,24 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "reasoning": "这张照片的主体是中间这位男士。通过居中构图，可以更好地突出他，使观众的注意力集中在他身上。居中构图能带出稳定和平衡感，非常适合这个场景。",
+  "composition_data": {
+    "aesthetic_desc": "将主要人物置于画面中心，利用左右对称的墙面和地面的阴影形成稳定感，突出人物的对话与互动。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右平移相机，将画面中心的男士向右移动，使其更靠近画面中心。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "稍微拉近焦距，使男士占据画面更大部分，减少背景的干扰。"
+      }
+    ]
+  }
+}
+```

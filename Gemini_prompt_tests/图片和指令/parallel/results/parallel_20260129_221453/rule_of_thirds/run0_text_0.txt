@@ -1,0 +1,18 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "reasoning": "主体（树和骑马的人）当前位于画面中心，可将其向右移动以符合三分法构图，使画面更具动感和视觉平衡。",
+  "composition_data": {
+    "aesthetic_desc": "将树和骑马的人置于画面右侧三分之一处，地平线保持在下三分之一处，营造出广阔而富有张力的视觉效果。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右平移相机，将树和骑马的人移动到画面右侧三分之一的垂直线上。"
+      }
+    ]
+  }
+}
+```

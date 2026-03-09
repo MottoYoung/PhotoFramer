@@ -1,0 +1,202 @@
+{
+  "timestamp": "20260129_213908",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/input.jpg",
+  "total_runs": 1,
+  "techniques": [
+    "rule_of_thirds",
+    "center_composition",
+    "leading_lines",
+    "foreground_framing",
+    "diagonal_composition"
+  ],
+  "runs": [
+    {
+      "run_index": 0,
+      "timestamp": "2026-01-29T21:39:08.341568",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 3,
+      "total_time_ms": 23844.263667000632,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-01-29T21:39:08.341606",
+          "end_time": "2026-01-29T21:39:25.774045",
+          "response_time_ms": 17432.545208999727,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"reasoning\": \"主体（树和骑马的人）目前位于画面中央，如果将其移至井字构图的右侧垂直线上，将能更好地引导视线并增加画面的动态感。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将主体（树和骑马的人）放置在井字构图的右侧垂直线上，使得画面更具平衡感和视觉趣味性。天空和地面占据大约三分之二的画面，而地平线则位于下方三分之一处，营造出广阔而深远的意境。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"向右平移相机，直到树和骑马的人的轮廓位于画面右侧的垂直三分线上。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260129_213908/rule_of_thirds/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "reasoning": "主体（树和骑马的人）目前位于画面中央，如果将其移至井字构图的右侧垂直线上，将能更好地引导视线并增加画面的动态感。",
+            "composition_data": {
+              "aesthetic_desc": "将主体（树和骑马的人）放置在井字构图的右侧垂直线上，使得画面更具平衡感和视觉趣味性。天空和地面占据大约三分之二的画面，而地平线则位于下方三分之一处，营造出广阔而深远的意境。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "向右平移相机，直到树和骑马的人的轮廓位于画面右侧的垂直三分线上。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 811,
+            "candidates_tokens": 1526,
+            "total_tokens": 2337
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-01-29T21:39:08.350244",
+          "end_time": "2026-01-29T21:39:14.695277",
+          "response_time_ms": 6345.067750000453,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"reasoning\": \"这张照片的主体是单独的树和马，非常适合采用中心构图来突出其独立性和视觉冲击力。将它们置于画面中央可以更好地强调它们在空旷背景下的存在感。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将前景的树和后方的马匹剪影完美地置于画面中央，强调其独立与力量，地平线保持平衡。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将相机向右轻微移动，直到树和马的组合体大致位于画面中心。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"略微抬高相机，确保地平线大致在画面下半部分的中央，使主体更居中。\"\n      }\n    ]\n  }\n}\n```\n`"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "reasoning": "这张照片的主体是单独的树和马，非常适合采用中心构图来突出其独立性和视觉冲击力。将它们置于画面中央可以更好地强调它们在空旷背景下的存在感。",
+            "composition_data": {
+              "aesthetic_desc": "将前景的树和后方的马匹剪影完美地置于画面中央，强调其独立与力量，地平线保持平衡。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "将相机向右轻微移动，直到树和马的组合体大致位于画面中心。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "略微抬高相机，确保地平线大致在画面下半部分的中央，使主体更居中。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 815,
+            "candidates_tokens": 267,
+            "total_tokens": 1082
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-01-29T21:39:08.350621",
+          "end_time": "2026-01-29T21:39:12.815417",
+          "response_time_ms": 4464.820041999701,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"leading_lines\",\n  \"reasoning\": \"此图像场景中缺少清晰的引导线元素（如道路、围栏、河流或建筑边缘），无法有效地应用引导线构图技巧来指向主体。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "leading_lines",
+            "reasoning": "此图像场景中缺少清晰的引导线元素（如道路、围栏、河流或建筑边缘），无法有效地应用引导线构图技巧来指向主体。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 831,
+            "candidates_tokens": 77,
+            "total_tokens": 908
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-01-29T21:39:08.350829",
+          "end_time": "2026-01-29T21:39:12.802663",
+          "response_time_ms": 4451.856208999743,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"foreground_framing\",\n  \"reasoning\": \"这张照片的场景非常开阔，缺乏可以作为前景构图的元素（例如树叶、窗框或近距离的物体）。前景构图技术不适用于此。\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "foreground_framing",
+            "reasoning": "这张照片的场景非常开阔，缺乏可以作为前景构图的元素（例如树叶、窗框或近距离的物体）。前景构图技术不适用于此。",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 831,
+            "candidates_tokens": 81,
+            "total_tokens": 912
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-01-29T21:39:08.351022",
+          "end_time": "2026-01-29T21:39:32.183772",
+          "response_time_ms": 23832.89679200061,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"diagonal_composition\",\n  \"reasoning\": \"这张照片的拍摄场景包含地平线和树木剪影，通过调整视角和构图，可以利用地平线和马的动感姿态形成对角线构图，增加画面的动态感和视觉引导。\",\n  \"composition_data\": {\n    \"aesthetic_desc\": \"将地平线从画面一角延伸至对角，并让马匹的剪影以动感的姿态跨越画面对角线，增强视觉冲击力和深度。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"向左稍微移动，让画面左下角出现更多的前景地面。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Low-angle\",\n        \"guide_text\": \"稍微降低拍摄角度，使得地平线在画面中呈现出更明显的对角趋势。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"稍微向上移动相机，使树木和马的剪影与地平线形成更好的对角线布局，强调天空与地面的交界。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260129_213908/diagonal_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "diagonal_composition",
+            "reasoning": "这张照片的拍摄场景包含地平线和树木剪影，通过调整视角和构图，可以利用地平线和马的动感姿态形成对角线构图，增加画面的动态感和视觉引导。",
+            "composition_data": {
+              "aesthetic_desc": "将地平线从画面一角延伸至对角，并让马匹的剪影以动感的姿态跨越画面对角线，增强视觉冲击力和深度。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "向左稍微移动，让画面左下角出现更多的前景地面。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "View-change",
+                  "direction": "Low-angle",
+                  "guide_text": "稍微降低拍摄角度，使得地平线在画面中呈现出更明显的对角趋势。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "稍微向上移动相机，使树木和马的剪影与地平线形成更好的对角线布局，强调天空与地面的交界。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 872,
+            "candidates_tokens": 1639,
+            "total_tokens": 2511
+          }
+        }
+      ]
+    }
+  ]
+}

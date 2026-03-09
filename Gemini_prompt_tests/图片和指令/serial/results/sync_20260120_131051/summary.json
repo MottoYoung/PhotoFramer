@@ -1,0 +1,458 @@
+{
+  "timestamp": "20260120_131051",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 6,
+  "repeats_per_case": 3,
+  "results": [
+    {
+      "case_id": "v1_remove_header_default",
+      "prompt_id": "v1_remove_header",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 15231.436874998812,
+      "min_response_time_ms": 11201.812082988909,
+      "max_response_time_ms": 18524.21125001274,
+      "std_response_time_ms": 3716.3952686814923,
+      "all_timings": [
+        {
+          "case_id": "v1_remove_header_default",
+          "run_index": 0,
+          "start_time": "2026-01-20T13:10:51.130160",
+          "end_time": "2026-01-20T13:11:02.331915",
+          "response_time_ms": 11201.812082988909,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"向左平移，裁剪掉右侧杂乱区域，让人物更突出，画面更简洁。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，裁掉右侧无关元素。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"适当拉近，突出人物主体，强化互动感。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 1462,
+            "total_tokens": 2169
+          }
+        },
+        {
+          "case_id": "v1_remove_header_default",
+          "run_index": 1,
+          "start_time": "2026-01-20T13:11:07.341375",
+          "end_time": "2026-01-20T13:11:25.865500",
+          "response_time_ms": 18524.21125001274,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"向右平移，纳入更多人物，丰富画面内容和故事感。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Right\",\n      \"guide_text\": \"向右平移，将画面右侧的人物完全纳入构图，使画面更完整。\"\n    }\n  ]\n}\n```\n`",
+            "```\n```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"拉近镜头，突出中心人物，虚化背景，强化主体。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，聚焦中心人物，裁切多余背景，使画面更简洁。\"\n    }\n  ]\n}\n```\n`"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_default/run1_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_default/run1_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 2822,
+            "total_tokens": 3529
+          }
+        },
+        {
+          "case_id": "v1_remove_header_default",
+          "run_index": 2,
+          "start_time": "2026-01-20T13:11:30.876540",
+          "end_time": "2026-01-20T13:11:46.844754",
+          "response_time_ms": 15968.287291994784,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"向左平移，裁剪多余顶部空间，突出人物。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，让画面更聚焦于中间人物。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"放大，裁切掉顶部多余墙面，使构图更紧凑。\"\n    }\n  ]\n}\n```\n",
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"拉近镜头，突出主要人物的表情和互动。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，使中间人物占据画面主体，突出其表情。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_default/run2_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_default/run2_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 2862,
+            "total_tokens": 3569
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v1_remove_header_precise",
+      "prompt_id": "v1_remove_header",
+      "model_config_id": "precise",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 14525.258055664986,
+      "min_response_time_ms": 10170.799499988789,
+      "max_response_time_ms": 18581.288374989526,
+      "std_response_time_ms": 4213.178768853366,
+      "all_timings": [
+        {
+          "case_id": "v1_remove_header_precise",
+          "run_index": 0,
+          "start_time": "2026-01-20T13:11:46.866817",
+          "end_time": "2026-01-20T13:12:01.690431",
+          "response_time_ms": 14823.686292016646,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"向左平移，将人物置于三分线处，使画面更具平衡感。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，将人物置于三分线处。\"\n    }\n  ]\n}\n```\n",
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"放大画面，突出人物，同时利用光影增强视觉冲击力。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"放大画面，突出中间的人物。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_precise/run0_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_precise/run0_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 2803,
+            "total_tokens": 3510
+          }
+        },
+        {
+          "case_id": "v1_remove_header_precise",
+          "run_index": 1,
+          "start_time": "2026-01-20T13:12:06.699435",
+          "end_time": "2026-01-20T13:12:16.870194",
+          "response_time_ms": 10170.799499988789,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"向右平移并稍微拉近，聚焦于两位主要人物，减少环境干扰，使画面更紧凑。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Right\",\n      \"guide_text\": \"向右平移，将画面中心移至两位主要人物。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"稍微拉近，使人物占据画面更大比例，减少背景杂物。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_precise/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 1471,
+            "total_tokens": 2178
+          }
+        },
+        {
+          "case_id": "v1_remove_header_precise",
+          "run_index": 2,
+          "start_time": "2026-01-20T13:12:21.880364",
+          "end_time": "2026-01-20T13:12:40.461563",
+          "response_time_ms": 18581.288374989526,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"向右平移并拉近，突出中间人物，利用光影分割画面。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Right\",\n      \"guide_text\": \"向右平移，使画面更聚焦于中间的人物。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，减少背景干扰，突出主体。\"\n    }\n  ]\n}\n```\n",
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"拉近镜头，聚焦于左侧人物，利用光影形成对比。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，将焦点放在左侧人物上，突出其动作和表情。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，使人物位于画面黄金分割点，增强视觉平衡。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_precise/run2_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v1_remove_header_precise/run2_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 2925,
+            "total_tokens": 3632
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v2_base_default",
+      "prompt_id": "v2_base",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 9762.169083328141,
+      "min_response_time_ms": 8505.89212498744,
+      "max_response_time_ms": 10475.936375005404,
+      "std_response_time_ms": 1091.332277802992,
+      "all_timings": [
+        {
+          "case_id": "v2_base_default",
+          "run_index": 0,
+          "start_time": "2026-01-20T13:12:40.466041",
+          "end_time": "2026-01-20T13:12:48.971893",
+          "response_time_ms": 8505.89212498744,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"裁剪多余元素，突出人物神态\",\"steps\":[{\"action\":\"Shift Left 20%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_base_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 1340,
+            "total_tokens": 1893
+          }
+        },
+        {
+          "case_id": "v2_base_default",
+          "run_index": 1,
+          "start_time": "2026-01-20T13:12:53.978739",
+          "end_time": "2026-01-20T13:13:04.283379",
+          "response_time_ms": 10304.67874999158,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "。\n{\"id\":1,\"reason\":\"裁剪以突出人物和背景，增强故事性\",\"steps\":[{\"action\":\"Shift Right 10%\",\"guide\":\"向右平移\"},{\"action\":\"Zoom In 15%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_base_default/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 1343,
+            "total_tokens": 1896
+          }
+        },
+        {
+          "case_id": "v2_base_default",
+          "run_index": 2,
+          "start_time": "2026-01-20T13:13:09.292538",
+          "end_time": "2026-01-20T13:13:19.768431",
+          "response_time_ms": 10475.936375005404,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"裁剪多余空间，突出人物对话场景。\",\"steps\":[{\"action\":\"Shift Left 10%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 15%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_base_default/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 1341,
+            "total_tokens": 1894
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v2_base_precise",
+      "prompt_id": "v2_base",
+      "model_config_id": "precise",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 7325.6626663302695,
+      "min_response_time_ms": 2361.1533750081435,
+      "max_response_time_ms": 10180.651582981227,
+      "std_response_time_ms": 4315.517954369806,
+      "all_timings": [
+        {
+          "case_id": "v2_base_precise",
+          "run_index": 0,
+          "start_time": "2026-01-20T13:13:19.770801",
+          "end_time": "2026-01-20T13:13:22.131949",
+          "response_time_ms": 2361.1533750081435,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"利用三分法突出人物，避免杂乱背景\",\"steps\":[{\"action\":\"Shift Right 20%\",\"guide\":\"向右平移\"},{\"action\":\"Zoom In 15%\",\"guide\":\"拉近焦距\"}]}\n{\"id\":2,\"reason\":\"聚焦中心人物，利用光影对比增强视觉冲击\",\"steps\":[{\"action\":\"Shift Right 10%\",\"guide\":\"向右平移\"},{\"action\":\"Zoom In 25%\",\"guide\":\"拉近焦距\"}]}\n{\"id\":3,\"reason\":\"裁切多余空间，使人物更突出，画面更紧凑\",\"steps\":[{\"action\":\"Shift Left 10%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}\n{\"id\":4,\"reason\":\"低角度仰视，增强人物的立体感和存在感\",\"steps\":[{\"action\":\"LowAngle\",\"guide\":\"采用低角度拍摄\"},{\"action\":\"Shift Right 5%\",\"guide\":\"向右平移\"},{\"action\":\"Zoom In 10%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 227,
+            "total_tokens": 780
+          }
+        },
+        {
+          "case_id": "v2_base_precise",
+          "run_index": 1,
+          "start_time": "2026-01-20T13:13:27.140021",
+          "end_time": "2026-01-20T13:13:36.575170",
+          "response_time_ms": 9435.183041001437,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "\n{\"id\":1,\"reason\":\"聚焦中心人物，增强画面故事感\",\"steps\":[{\"action\":\"Shift Left 10%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_base_precise/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 1340,
+            "total_tokens": 1893
+          }
+        },
+        {
+          "case_id": "v2_base_precise",
+          "run_index": 2,
+          "start_time": "2026-01-20T13:13:41.582561",
+          "end_time": "2026-01-20T13:13:51.763173",
+          "response_time_ms": 10180.651582981227,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"通过平移聚焦主体，利用阴影和光线形成对比\",\"steps\":[{\"action\":\"Shift Left 10%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 5%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_base_precise/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 1344,
+            "total_tokens": 1897
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v2_strict_default",
+      "prompt_id": "v2_strict",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 9978.649986005621,
+      "min_response_time_ms": 7188.8735000102315,
+      "max_response_time_ms": 12166.250750015024,
+      "std_response_time_ms": 2542.7411925574193,
+      "all_timings": [
+        {
+          "case_id": "v2_strict_default",
+          "run_index": 0,
+          "start_time": "2026-01-20T13:13:51.767129",
+          "end_time": "2026-01-20T13:13:58.955967",
+          "response_time_ms": 7188.8735000102315,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"突显人物表情，增强画面表现力\",\"steps\":[{\"action\":\"Shift Left 15%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_strict_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 559,
+            "candidates_tokens": 1340,
+            "total_tokens": 1899
+          }
+        },
+        {
+          "case_id": "v2_strict_default",
+          "run_index": 1,
+          "start_time": "2026-01-20T13:14:03.967549",
+          "end_time": "2026-01-20T13:14:14.548340",
+          "response_time_ms": 10580.825707991607,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"将主体置于画面中心,突出人物表情和互动\",\"steps\":[{\"action\":\"Shift Left 15%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 10%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_strict_default/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 559,
+            "candidates_tokens": 1343,
+            "total_tokens": 1902
+          }
+        },
+        {
+          "case_id": "v2_strict_default",
+          "run_index": 2,
+          "start_time": "2026-01-20T13:14:19.556062",
+          "end_time": "2026-01-20T13:14:31.722262",
+          "response_time_ms": 12166.250750015024,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"利用三分法并聚焦主体\",\"steps\":[{\"action\":\"Shift Left 15%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_strict_default/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 559,
+            "candidates_tokens": 1337,
+            "total_tokens": 1896
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v2_strict_precise",
+      "prompt_id": "v2_strict",
+      "model_config_id": "precise",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 9387.195707997307,
+      "min_response_time_ms": 8583.315208001295,
+      "max_response_time_ms": 10208.365583006525,
+      "std_response_time_ms": 812.6631357410156,
+      "all_timings": [
+        {
+          "case_id": "v2_strict_precise",
+          "run_index": 0,
+          "start_time": "2026-01-20T13:14:31.728409",
+          "end_time": "2026-01-20T13:14:40.311690",
+          "response_time_ms": 8583.315208001295,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"突出人物主体，利用光影对比增加画面层次感。\",\"steps\":[{\"action\":\"Shift Right 10%\",\"guide\":\"向右平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_strict_precise/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 559,
+            "candidates_tokens": 1344,
+            "total_tokens": 1903
+          }
+        },
+        {
+          "case_id": "v2_strict_precise",
+          "run_index": 1,
+          "start_time": "2026-01-20T13:14:45.317419",
+          "end_time": "2026-01-20T13:14:54.687281",
+          "response_time_ms": 9369.906332984101,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"突出主要人物，利用光影增强氛围感\",\"steps\":[{\"action\":\"Shift Right 10%\",\"guide\":\"向右平移\"},{\"action\":\"Zoom In 15%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_strict_precise/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 559,
+            "candidates_tokens": 1341,
+            "total_tokens": 1900
+          }
+        },
+        {
+          "case_id": "v2_strict_precise",
+          "run_index": 2,
+          "start_time": "2026-01-20T13:14:59.696476",
+          "end_time": "2026-01-20T13:15:09.904802",
+          "response_time_ms": 10208.365583006525,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "\n{\"id\":1,\"reason\":\"聚焦中心人物，利用阴影增加画面层次感。\",\"steps\":[{\"action\":\"Shift Left 15%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/prompt_accessment/results/sync_20260120_131051/v2_strict_precise/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 559,
+            "candidates_tokens": 1344,
+            "total_tokens": 1903
+          }
+        }
+      ]
+    }
+  ]
+}

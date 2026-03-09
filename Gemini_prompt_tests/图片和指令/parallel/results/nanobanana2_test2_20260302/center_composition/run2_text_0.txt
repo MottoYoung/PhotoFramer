@@ -1,0 +1,28 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图中，三个人物分散在画面两侧，虽然捕捉了生活场景，但缺乏明确的视觉焦点。通过采用中心构图，我们可以将穿蓝色短袖的老人作为绝对的核心，把他放在画面正中央。这样处理能极大地强调这位老人的神态和状态，同时使左右两侧的元素（左侧的男子和右侧举伞的女子）形成一种环境叙事的平衡。中心构图不仅能使画面更加稳定、严谨，还能将观众的目光迅速吸引到老人的表情和他的生活气息上，突出他的主体地位。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右移动相机，将穿蓝色短袖的老人放置在画面的水平中心位置。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "适当放大画面，更紧凑地框取以老人为中心的场景，让他占据更大的画面比例。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "View-change",
+        "direction": "Lower angle",
+        "guide_text": "轻微降低拍摄角度，仰拍老人，进一步增强其中心主体的稳定感和气势。"
+      }
+    ]
+  }
+}

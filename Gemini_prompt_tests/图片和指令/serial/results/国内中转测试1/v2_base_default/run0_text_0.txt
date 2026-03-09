@@ -1,0 +1,1 @@
+{"id":1,"reason":"利用三分法突出中间人物，使其成为焦点","steps":[{"action":"Shift Left 10%","guide":"向左平移"},{"action":"Zoom In 20%","guide":"拉近焦距"}]}

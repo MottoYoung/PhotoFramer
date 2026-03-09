@@ -1,0 +1,88 @@
+```json
+[
+  {
+    "is_applicable": true,
+    "technique": "三分法",
+    "composition_data": {
+      "aesthetic_desc_and_resoning": "将白色的房子作为画面主体，通过三分法将其放置在画面右侧的视觉兴趣点上，同时调整地平线到下三分之一处，以突出前景广阔的草地，使画面更具平衡感和纵深感。",
+      "steps": [
+        {
+          "step_order": 1,
+          "action_type": "Shift",
+          "direction": "左",
+          "guide_text": "将相机向左平移，使白房子从目前偏右的位置向左微调，使其大致落在画面右侧垂直三分线上，或右侧上方三分交叉点附近。"
+        },
+        {
+          "step_order": 2,
+          "action_type": "Shift",
+          "direction": "下",
+          "guide_text": "将相机向下平移，使草地与树林交界的地平线落在画面的水平下三分线上，为前景的绿色草地留出更多空间，增强画面的层次感。"
+        }
+      ]
+    }
+  },
+  {
+    "is_applicable": true,
+    "technique": "中心构图",
+    "composition_data": {
+      "aesthetic_desc_and_resoning": "将白色的房子作为单一且明确的视觉焦点，通过将其置于画面中心，营造出稳定、对称且强调主题的视觉效果，让观者的视线直接锁定在建筑物上。",
+      "steps": [
+        {
+          "step_order": 1,
+          "action_type": "Shift",
+          "direction": "左",
+          "guide_text": "将相机向左平移，使画面中的白房子精确地对准画面的中心位置。"
+        },
+        {
+          "step_order": 2,
+          "action_type": "Zoom",
+          "direction": "缩小",
+          "guide_text": "轻微拉远焦距，或向后退一步，以包含白房子周围更广阔的草地和树林，避免主体过于拥挤，同时保持白房子的中心地位。"
+        }
+      ]
+    }
+  },
+  {
+    "is_applicable": true,
+    "technique": "引导线",
+    "composition_data": {
+      "aesthetic_desc_and_resoning": "利用草地上细微的行进方向和光影形成的线条作为引导线，将观者的视线自然地从前景引向远处的白房子或树林，增强画面的深度和方向感。",
+      "steps": [
+        {
+          "step_order": 1,
+          "action_type": "View-change",
+          "direction": "低角度",
+          "guide_text": "稍微降低拍摄角度（低角度），并调整相机朝向，以更强调草地上的自然纹理和光影，使其形成由近及远的视觉引导线。"
+        },
+        {
+          "step_order": 2,
+          "action_type": "Shift",
+          "direction": "左/右",
+          "guide_text": "微调相机位置，使这些引导线能够自然地指向远处的白房子或其他有趣的元素，如左侧的黑色土堆，引导观者视线。"
+        }
+      ]
+    }
+  },
+  {
+    "is_applicable": true,
+    "technique": "对角线",
+    "composition_data": {
+      "aesthetic_desc_and_resoning": "通过强调画面中由草地纹理、光影或前景与中景的交界线形成的对角线，为画面注入活力和动感，打破水平和垂直构图的静态感，同时增强景深和画面的延伸感。",
+      "steps": [
+        {
+          "step_order": 1,
+          "action_type": "Shift",
+          "direction": "左/右",
+          "guide_text": "调整相机位置，使前景茂盛草地与后方较稀疏草地之间的交界线，或光影落在草地上形成的斜线，能够以对角线的形式穿越画面。"
+        },
+        {
+          "step_order": 2,
+          "action_type": "View-change",
+          "direction": "侧视",
+          "guide_text": "尝试从稍微倾斜的角度进行拍摄，以更好地捕捉和突出草地纹理或树林边缘所形成的自然对角线，使其从画面一角延伸至另一角。"
+        }
+      ]
+    }
+  }
+]
+```

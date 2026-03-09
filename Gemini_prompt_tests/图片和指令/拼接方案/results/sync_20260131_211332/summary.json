@@ -1,0 +1,50 @@
+{
+  "timestamp": "20260131_211332",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 1,
+  "prompts_config": {
+    "parallel_v2": {
+      "description": "通过拼接多张图片来达到并行化的目的",
+      "system_instruction": "# Role: AI Photography Layout Editor & Composition Expert\n# Task: Analyze the user's input image and create a single \"Composition Contact Sheet\".\n# Output Requirement: You must generate EXACTLY TWO parts in your response:\n#   PART 1: A strictly formatted JSON object (Text Part).\n#   PART 2: A single 2x2 grid collage image (Image Part).\n\n# === IMAGE GENERATION RULES (Crucial Visual Constraints) ===\n1.  **Layout**: The final image MUST be a **2x2 Grid**.\n    * Top-Left Panel\n    * Top-Right Panel\n    * Bottom-Left Panel\n    * Bottom-Right Panel\n2.  **Separators**: You MUST draw  bright **NEON GREEN lines with thickness of 5 pixels** (纯亮绿色线条) to separate the 4 panels. There should be one vertical green line down the center and one horizontal green line across the middle, forming a green cross.\n3.  **Content Content Assignment (Strict mapping)**:\n    * **Top-Left Panel**: Apply **\"Rule of Thirds\"** (三分构图). Place main subjects on grid intersections.\n    * **Top-Right Panel**: Apply **\"Center Composition\"** (中心构图). Place main subject perfectly in the middle.\n    * **Bottom-Left Panel**: Apply **\"Leading Lines\"** (引导线构图). Utilize lines pointing to the subject. (If none exist, create the best possible balanced shot).\n    * **Bottom-Right Panel**: Apply **\"Foreground Framing\"** (前景框架). Use foreground elements to frame the subject. (If none exist, use a tight close-up or focus-stacking effect to simulate depth).\n4.  **Realism**: Each panel must be a photorealistic re-composition of the original scene.\n\n# === JSON STRUCTURE RULES (Data Mapping) ===\nThe JSON must contain an array of 4 objects, strictly corresponding to the 2x2 grid order: [Top-Left, Top-Right, Bottom-Left, Bottom-Right].\n\n# JSON Schema definition:\n{\n  \"layout\": \"2x2_grid_with_green_separators\",\n  \"compositions\": [\n    // Array Index 0 -> Maps to Top-Left Image Panel\n    {\n      \"position\": \"top_left\",\n      \"technique\": \"rule_of_thirds\",\n      \"is_applicable\": true, // Set to false if this technique looks terrible for the scene, but still generate the image panel.\n      \"aesthetic_desc\": \"Chinese description...\",\n      \"steps\": [{ \"action\": \"...\", \"guide\": \"Chinese instruction...\" }]\n    },\n    // Array Index 1 -> Maps to Top-Right Image Panel\n    {\n      \"position\": \"top_right\",\n      \"technique\": \"center_composition\",\n      // ... same structure\n    },\n    // Array Index 2 -> Maps to Bottom-Left Image Panel\n    {\n      \"position\": \"bottom_left\",\n      \"technique\": \"leading_lines\",\n      // ... same structure\n    },\n    // Array Index 3 -> Maps to Bottom-Right Image Panel\n    {\n      \"position\": \"bottom_right\",\n      \"technique\": \"foreground_framing\",\n      // ... same structure\n    }\n  ]\n}\n\n# General Constraints:\n1. All instruction text must be in **Chinese (中文)**.\n2. The JSON MUST come before the Image generation.\n",
+      "user_prompt": "# Task Request\nPlease generate the 2x2 Composition Contact Sheet based on the attached image, following all layout and green separator rules defined in the system instructions.\n"
+    }
+  },
+  "results": [
+    {
+      "case_id": "parallel_v2_default",
+      "prompt_id": "parallel_v2",
+      "model_config_id": "default",
+      "total_runs": 1,
+      "successful_runs": 1,
+      "failed_runs": 0,
+      "avg_response_time_ms": 16951.436458002718,
+      "min_response_time_ms": 16951.436458002718,
+      "max_response_time_ms": 16951.436458002718,
+      "std_response_time_ms": 0,
+      "all_timings": [
+        {
+          "case_id": "parallel_v2_default",
+          "run_index": 0,
+          "start_time": "2026-01-31T21:13:32.449766",
+          "end_time": "2026-01-31T21:13:49.401076",
+          "response_time_ms": 16951.436458002718,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"layout\": \"2x2_grid_with_green_separators\",\n  \"compositions\": [\n    {\n      \"position\": \"top_left\",\n      \"technique\": \"rule_of_thirds\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"将主要人物（身穿蓝色T恤的男子）放置在井字构图的右侧垂直线上，使其面部朝向画面中心，形成引导视线的效果。前景中的蔬菜和地面元素构成画面下方的支撑，而高墙的阴影则提供了背景的深度和对比。\",\n      \"steps\": [\n        {\n          \"action\": \"重新构图\",\n          \"guide\": \"将身穿蓝色T恤的男子移至画面右侧三分之一处，使他的眼睛大致落在上三分之一的交叉点上。\"\n        },\n        {\n          \"action\": \"调整景深\",\n          \"guide\": \"保持合适的景深，使人物清晰，背景和前景有一定的虚化以突出主体。\"\n        },\n        {\n          \"action\": \"利用光线\",\n          \"guide\": \"利用夕阳的侧光勾勒出人物轮廓，并加强阴影的对比，增加画面的戏剧性。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"top_right\",\n      \"technique\": \"center_composition\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"将身穿蓝色T恤的男子精确地置于画面中心，强调其作为场景焦点的地位。背景的墙壁和地面的简单纹理确保了观众的注意力完全集中在人物本身。\",\n      \"steps\": [\n        {\n          \"action\": \"重新构图\",\n          \"guide\": \"移动相机，使身穿蓝色T恤的男子位于画面的正中央。\"\n        },\n        {\n          \"action\": \"简洁背景\",\n          \"guide\": \"确保背景尽可能简洁，避免分散对中心人物的注意力。利用墙壁和地面的自然纹理作为背景。\"\n        },\n        {\n          \"action\": \"眼神交流\",\n          \"guide\": \"捕捉人物与画框的中心关系，使其表情和姿态自然，增强中心构图的视觉冲击力。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"bottom_left\",\n      \"technique\": \"leading_lines\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"利用地面上的光影界限和地砖的隐约线条作为引导线，将观众的视线引向画面右侧正在遮阳伞下的人物。阴影的延伸也自然地将前景与背景连接起来。\",\n      \"steps\": [\n        {\n          \"action\": \"寻找引导线\",\n          \"guide\": \"利用地面上光线与阴影的分界线，以及可能存在的地砖缝隙，将视线引向遮阳伞下的人物。\"\n        },\n        {\n          \"action\": \"调整视角\",\n          \"guide\": \"稍微降低拍摄角度，增强引导线的透视感和延伸感。\"\n        },\n        {\n          \"action\": \"突出终点\",\n          \"guide\": \"确保引导线的终点是画面中关键的视觉元素，如遮阳伞下的人或他们的商品。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"bottom_right\",\n      \"technique\": \"foreground_framing\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"使用前景的蔬菜和地面的物品作为自然的框架，将观众的视线聚焦到背景中进行交易或交谈的几个人物身上。这种构图增加了画面的深度和层次感，使场景更具沉浸感。\",\n      \"steps\": [\n        {\n          \"action\": \"选择前景元素\",\n          \"guide\": \"利用画面底部和两侧的蔬菜、竹篮或地面上的物品作为前景元素，创造一个自然的框架。\"\n        },\n        {\n          \"action\": \"虚化前景\",\n          \"guide\": \"通过大光圈或后期处理，适度虚化前景，以突出中景和远景中的主要人物。\"\n        },\n        {\n          \"action\": \"突出主体\",\n          \"guide\": \"确保被前景框住的人物是画面中最重要的视觉焦点，吸引观众的注意力。\"\n        }\n      ]\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t_pinjie/results/sync_20260131_211332/parallel_v2_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 1055,
+            "candidates_tokens": 2288,
+            "total_tokens": 3343
+          }
+        }
+      ]
+    }
+  ]
+}

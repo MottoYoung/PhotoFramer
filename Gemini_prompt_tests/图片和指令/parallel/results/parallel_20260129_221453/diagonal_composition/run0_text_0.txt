@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "diagonal_composition",
+  "reasoning": "这张照片的场景中缺乏明显的对角线元素，主要是水平的天际线和地面，以及垂直的树木和人物剪影。强行通过倾斜相机来制造对角线构图会显得不自然和不专业，因此对角线构图不适用于此场景。",
+  "composition_data": null
+}
+```

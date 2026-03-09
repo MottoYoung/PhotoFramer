@@ -1,0 +1,36 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "diagonal_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "将相机高度大幅降低，并将拍摄位置向左移动（靠近左侧小贩）。通过极低角度和侧向透视，将原本水平的混凝土路缘石转换为一条从画面左下角有力延伸至右上角的对角线。这条对角线不仅分割画面，还引导视线穿越场景，连接左侧的小贩和右侧撑伞妇女的背影。低角度使得站立的人物和他们的影子与对角线产生垂直交错，增强动态感和空间透视，而撑伞妇女的背影和伞的边缘将成为对角线的终点焦点。夕阳金光依然是主基调。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "low-angle",
+        "guide_text": "蹲下并将相机贴近地面。通过极低角度，让路缘石看起来更陡峭。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "left",
+        "guide_text": "向左移动，使你的视角更靠近左侧的小贩和他的菜筐，使路缘石在透视中自然形成对角线。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "view-change",
+        "direction": "side-view",
+        "guide_text": "稍微向右转动相机，捕捉路缘石一直延伸到画面右上角的画面。"
+      },
+      {
+        "step_order": 4,
+        "action_type": "zoom",
+        "direction": "in",
+        "guide_text": "轻微放大，确保画面紧凑，左下角对角线起点清晰，右上角对角线终点（伞和妇女）突出。"
+      }
+    ]
+  }
+}
+```
+

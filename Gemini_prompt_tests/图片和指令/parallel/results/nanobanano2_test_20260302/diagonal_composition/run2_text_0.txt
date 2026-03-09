@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "diagonal_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图是一个非常平衡且静止的剪影。孤独的树和起伏的山丘主导了画面，主体（树和人马）垂直且居中，虽然构图经典，但缺乏动态引导。对角线构图在此场景中完全适用，可以利用雪地山丘的边缘和地面的纹理作为引导线。通过改变视角和取景，我们可以将原本接近水平的山脊线转化为引导视线的动态对角线，同时利用雪地本身的起伏纹理强化这种对角感。新的构图将利用这些物理线条，将观众的视线从前景（左下角）引导至背景的主体（右上角），极大地增加画面的动感和深度。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "down-left",
+        "guide_text": "将相机视角显著移向左下方，并适当降低。目标是捕捉更长的山脊线斜坡和前景雪地的纹理。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "right",
+        "guide_text": "在水平方向上向右移动相机，使主体（树和人马）在画面中偏移。让主体从原本的中心位置移向画面的右上部，成为对角线的终点。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "zoom",
+        "direction": "in",
+        "guide_text": "适当拉近镜头焦距，强化引导线的汇聚感。确保山丘的边缘从左下角斜着向上延伸，直指向右上角的树和人马剪影。"
+      }
+    ]
+  }
+}
+```
+

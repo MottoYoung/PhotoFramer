@@ -1,0 +1,34 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "leading_lines",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图是一个美丽的剪影场景，但由于地形和视角原因，缺乏清晰的视觉引导线将观众的视线引向主体（树和骑手）。场景中唯一的线条是远处的地平线，它切断了画面，而不是引导视线。通过稍微降低视角并寻找一个自然延伸到地平线的“视线走廊”（例如雪地中的自然冲刷或路径），我们可以利用这些线条将观众的目光直接引向树和骑手。这将大大增强画面的动态感和景深。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "down",
+        "guide_text": "将相机视角稍微降低，接近雪地表面。这将使前景中的雪地纹理更加突出。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "left",
+        "guide_text": "向左微调相机，寻找雪地中可能存在的自然融雪痕迹、风吹纹理或轻微的地形起伏，使其从画面前景的角落延伸出来。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "zoom",
+        "direction": "out",
+        "guide_text": "稍微向后移动或变焦至更广的角度。这有助于将更多前景线条纳入画面，使其更有深度。"
+      },
+      {
+        "step_order": 4,
+        "action_type": "shift",
+        "direction": "down",
+        "guide_text": "最终构图时，确保选定的“线条”从画面前景的下部角落（最好是左下角）出发，以对角线形式延伸，并最终在视觉上指向远处地平线上的树和骑手。保持树和骑手在三分线交叉点附近。"
+      }
+    ]
+  }
+}

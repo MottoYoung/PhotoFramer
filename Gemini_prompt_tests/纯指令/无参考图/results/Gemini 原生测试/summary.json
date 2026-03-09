@@ -1,0 +1,84 @@
+{
+  "timestamp": "20260122_115641",
+  "model_name": "gemini-2.5-flash",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 3,
+  "prompts_config": {
+    "test_prompt": {
+      "description": "",
+      "system_instruction": "you are a helpful assistant .\n",
+      "user_prompt": "分析当前图片的构图并给出20字以内的点评."
+    }
+  },
+  "results": [
+    {
+      "case_id": "test_prompt_default",
+      "prompt_id": "test_prompt",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 10786.492444662144,
+      "min_response_time_ms": 9523.12324999366,
+      "max_response_time_ms": 12296.861000009812,
+      "std_response_time_ms": 1403.2682529003894,
+      "all_timings": [
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 0,
+          "start_time": "2026-01-22T11:56:41.219869",
+          "end_time": "2026-01-22T11:56:50.742950",
+          "response_time_ms": 9523.12324999366,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "**构图分析:**\n画面采用多人物构图，三位人物大致分布在画面左右和中间，形成视觉焦点。低角度的斜射阳光（疑似黄金时段）在墙壁上投下长长的影子，这些影子本身也成为构图的几何元素，与人物的实体形成虚实对比。高对比度的光影效果是此构图的核心，将人物从背景中分离出来，营造出街头市井的真实感。背景的素色墙面简洁，凸显了前景人物的活动和表情。前景地面上的商品和水渍增加了生活气息和场景的真实性。\n\n**点评 (20字以内):**\n强光影勾勒市井日常，人物生动，生活气息浓郁。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 163,
+            "total_tokens": 1642
+          }
+        },
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 1,
+          "start_time": "2026-01-22T11:56:55.750780",
+          "end_time": "2026-01-22T11:57:06.290239",
+          "response_time_ms": 10539.493083982961,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "**构图分析：**\n画面采用横向构图，三个人物从左至右错落有致地分布在画面中，形成视觉上的引导和平衡。背景是简洁的素色墙面，将焦点集中在人物和前景的摊位上。低角度的阳光是构图的亮点，它在人物身上勾勒出暖调的轮廓光，并在墙面和地面投下长长的、形状各异的阴影，这些阴影本身也成为画面构成的一部分，增加了层次感和空间感。中心人物的笑容和右侧花伞的图案是显著的视觉焦点。\n\n**点评（20字以内）：**\n斜阳光影勾勒人物，市井画面生动自然。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 159,
+            "total_tokens": 1591
+          }
+        },
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 2,
+          "start_time": "2026-01-22T11:57:11.299431",
+          "end_time": "2026-01-22T11:57:23.599461",
+          "response_time_ms": 12296.861000009812,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "**构图分析:**\n\n1.  **主体排列与引导线:** 画面中三个人物呈横向分布，形成一个不规则的三角形构图。左侧人物低头，中间人物侧身与右侧人物（背对镜头）形成视觉上的互动，将观众的视线从左向右引导。\n2.  **光影运用:** 强烈的低角度阳光（可能是早晨或傍晚的金色光线）是构图的亮点。人物被暖光勾勒出轮廓，同时在墙壁和地面投下长长的、具有动态感的阴影，这些阴影本身也成为重要的构图元素，增加了画面的纵深感和戏剧性。\n3.  **背景处理:** 简洁的浅色墙壁作为背景，有效地突出了前景的人物和他们的影子，避免了杂乱，使画面重心集中。\n4.  **色彩与细节:** 中间人物的蓝色上衣、右侧人物的花伞（带有独特图案）和花纹上衣，以及地面的蔬菜等细节，为画面增添了生活气息和色彩层次。\n5.  **空间感:** 画面通过人物的前后错落和前景的地面物品，营造了一定的空间深度。顶部的墙面留白，给人以开阔感。\n\n**点评 (20字以内):**\n金黄光影下，人物生动，影调和谐，富生活气息。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 310,
+            "total_tokens": 1921
+          }
+        }
+      ]
+    }
+  ]
+}

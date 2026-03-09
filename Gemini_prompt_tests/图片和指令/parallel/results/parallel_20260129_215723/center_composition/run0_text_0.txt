@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "reasoning": "这张照片的主体是剪影中的树和马。将它们置于画面中心可以增强其视觉冲击力，突出其独立性和力量感，尤其是在这种广阔的背景下。",
+  "composition_data": {
+    "aesthetic_desc": "将树和马的剪影完美地置于画面中心，强调其作为独立主体的力量和存在感，同时保持日出或日落时分的宁静与广阔。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Left",
+        "guide_text": "将相机稍微向左平移，使树和马的组合体更靠近画面中心。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Up",
+        "guide_text": "略微向上平移相机，确保地平线位于画面下三分之一处，给予天空更多空间，同时将主要剪影置于垂直中心。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "Out",
+        "guide_text": "稍微缩小焦距（或向后移动），以捕捉更多周围环境，同时仍保持树和马在中心的突出地位，营造更广阔的视觉效果。"
+      }
+    ]
+  }
+}
+```

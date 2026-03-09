@@ -1,0 +1,63 @@
+```json
+{
+  "header": {
+    "analysis_summary": "The current frame has excessive empty wall space above the subjects and feels a bit wide, dispersing focus. The lighting creates interesting shadows but also leaves parts of the scene less defined. Two distinct compositional approaches can improve the narrative and visual appeal."
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "特写笑容与市场一角",
+      "image_gen_prompt": "Close-up portrait of an elderly man smiling at a market, with a distinctive patterned umbrella partially visible in the background, warm afternoon light and shadows, a glimpse of market goods.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 0.75,
+          "magnitude_unit": "meters",
+          "text_cn": "向右移动相机约 0.75 米，将笑容老人置于画面中心偏左"
+        },
+        {
+          "step": 2,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.8,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 1.8 倍，突出老人面部表情和身旁细节，减少多余背景"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "市场氛围与特色伞",
+      "image_gen_prompt": "Medium shot of three people at a vibrant outdoor market stall during golden hour, one person holding a patterned umbrella prominent on the left, another smiling man in the center, and a third person to the far left. Focus on market activity, warm light, and strong diagonal shadows.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Left",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "meters",
+          "text_cn": "向左移动相机约 0.5 米，将带有特色伞的顾客更好地纳入画面左侧"
+        },
+        {
+          "step": 2,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.3,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 1.3 倍，使三位人物和市场商品更紧凑地组合"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5,
+          "magnitude_unit": "degrees",
+          "text_cn": "稍微向下倾斜相机约 5 度，纳入更多地面上的市场商品，减少顶部空墙"
+        }
+      ]
+    }
+  ]
+}
+```

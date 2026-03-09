@@ -1,0 +1,24 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "reasoning": "主体人物目前位于画面中央，通过三分法构图，将主要人物放置在三分线的交点或线上，可以增强画面的视觉吸引力和平衡感。",
+  "composition_data": {
+    "aesthetic_desc": "将中间微笑的男士置于右侧垂直三分线上，让画面更具动态感和空间感，同时保留其他人物作为环境元素。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右平移相机，使画面中间的微笑男士位于右侧三分线上。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "稍微拉近焦距，让微笑男士在画面中占据更重要的位置，同时避免裁剪掉其他重要元素。"
+      }
+    ]
+  }
+}
+```

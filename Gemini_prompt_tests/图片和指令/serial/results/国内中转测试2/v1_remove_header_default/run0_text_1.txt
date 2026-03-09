@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "调整视角，以低角度仰拍，突出人物形象，避免地面杂物，使画面更简洁。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "View-change",
+      "direction": "Low-angle",
+      "guide_text": "将相机放低，从略低于人物视线的高度仰拍，使人物显得更高大，背景更开阔。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Up",
+      "guide_text": "略微向上平移，将画面下方的杂物排除，保持画面整洁。"
+    }
+  ]
+}
+```

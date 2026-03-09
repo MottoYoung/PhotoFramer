@@ -1,0 +1,17 @@
+```
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "拉近镜头，突出中心人物，虚化背景，强化主体。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，聚焦中心人物，裁切多余背景，使画面更简洁。"
+    }
+  ]
+}
+```
+`

@@ -1,0 +1,28 @@
+```json
+{
+  "type": "header",
+  "total_count": 2,
+  "analysis": "原图光线很好，但人物构图有些散乱，左侧人物被遮挡，右侧人物背对镜头，中间人物位置也略偏右，且背景过于空旷。"
+}
+```
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "将中间的两位人物移到画面中央，使构图更紧凑，同时去除右侧背对镜头的人物，简化画面，突出主体。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，将画面主要人物移至中心。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "适当拉近镜头，使人物在画面中更突出，同时裁切掉右侧多余的部分。"
+    }
+  ]
+}
+```

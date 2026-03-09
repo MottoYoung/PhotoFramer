@@ -1,0 +1,62 @@
+```json
+{
+  "opts": [
+    {
+      "id": 1,
+      "ti": "微笑男子特写",
+      "tags": "rule of thirds, smiling man, right vertical line, clean background, golden light",
+      "steps": [
+        {
+          "act": "S",
+          "dir": "Left",
+          "val": 0.5,
+          "unit": "step",
+          "txt": "向左移动半步"
+        },
+        {
+          "act": "Z",
+          "dir": "In",
+          "val": 1.5,
+          "unit": "x",
+          "txt": "放大画面"
+        },
+        {
+          "act": "V",
+          "dir": "Up",
+          "val": 5.0,
+          "unit": "deg",
+          "txt": "稍向上倾斜"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "ti": "伞下故事",
+      "tags": "umbrella frame, two figures, natural interaction, warm light, diagonal shadows",
+      "steps": [
+        {
+          "act": "S",
+          "dir": "Back",
+          "val": 1.0,
+          "unit": "step",
+          "txt": "向后退一步"
+        },
+        {
+          "act": "S",
+          "dir": "Right",
+          "val": 0.5,
+          "unit": "step",
+          "txt": "向右移动半步"
+        },
+        {
+          "act": "V",
+          "dir": "Down",
+          "val": 5.0,
+          "unit": "deg",
+          "txt": "稍向下倾斜"
+        }
+      ]
+    }
+  ]
+}
+```

@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "leading_lines",
+  "reasoning": "此场景中没有明显的引导线元素，如道路、围栏、河流或建筑边缘，因此不适用于引导线构图技术。照片的重点是剪影和广阔的天空，缺乏可以将视线引向主体的线性特征。",
+  "composition_data": null
+}
+```

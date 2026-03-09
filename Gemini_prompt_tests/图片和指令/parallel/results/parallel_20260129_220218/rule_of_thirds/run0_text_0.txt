@@ -1,0 +1,18 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "reasoning": "主体（树和骑马的人）可以向右移动，使其位于画面右侧三分之一的垂直线上，从而更好地平衡构图。",
+  "composition_data": {
+    "aesthetic_desc": "将树和骑马的人放置在右侧的垂直三分线上，地平线位于下三分之一的水平线上，使画面更加平衡和引人入胜。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右平移相机，直到树和骑马的人位于画面右侧三分之一的垂直线上。"
+      }
+    ]
+  }
+}
+```

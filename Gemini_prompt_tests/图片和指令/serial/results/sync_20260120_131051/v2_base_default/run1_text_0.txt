@@ -1,0 +1,2 @@
+。
+{"id":1,"reason":"裁剪以突出人物和背景，增强故事性","steps":[{"action":"Shift Right 10%","guide":"向右平移"},{"action":"Zoom In 15%","guide":"拉近焦距"}]}

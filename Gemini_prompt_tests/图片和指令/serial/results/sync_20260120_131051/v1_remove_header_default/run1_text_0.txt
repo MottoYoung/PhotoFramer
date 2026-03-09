@@ -1,0 +1,16 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "向右平移，纳入更多人物，丰富画面内容和故事感。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，将画面右侧的人物完全纳入构图，使画面更完整。"
+    }
+  ]
+}
+```
+`

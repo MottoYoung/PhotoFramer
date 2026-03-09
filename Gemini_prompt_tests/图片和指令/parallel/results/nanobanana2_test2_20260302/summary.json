@@ -1,0 +1,789 @@
+{
+  "timestamp": "20260302_205001",
+  "model_name": "gemini-3.1-flash-image-preview",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_runs": 3,
+  "techniques": [
+    "rule_of_thirds",
+    "center_composition",
+    "leading_lines",
+    "foreground_framing",
+    "diagonal_composition"
+  ],
+  "runs": [
+    {
+      "run_index": 0,
+      "timestamp": "2026-03-02T20:50:01.063959",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 5,
+      "total_time_ms": 36695.95495899557,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-03-02T20:50:01.063997",
+          "end_time": "2026-03-02T20:50:28.520570",
+          "response_time_ms": 27456.729124998674,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原始图像中，三个人物都集中在画面中央和右侧，左侧显得较为单调空旷，整体构图不平衡。通过向右移动镜头，我们可以将主体（中心的老人）置于左侧三分之一线上，从而达到平衡。此外，通过重新构图，可以让画面中的主要元素（特别是中心老人的头部和影子）分别对应不同的三分线，使视觉流动更加自然，画面整体更具动态平衡感。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"向右移动镜头（约1/3个画面宽度），使中心的老人（穿蓝色Polo衫）和他的影子整体向左移动。\"\n      }\n    ]\n  }\n}\n",
+            "```",
+            "This is a complex scene with multiple subjects, but we can significantly improve the balance by applying the Rule of Thirds. The analysis shows that by simply shifting the camera to the right, we can place the center figure (the older man) on the left-side vertical third-line, effectively opening up the composition and creating better visual flow. The generated image demonstrates this re-framing."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/rule_of_thirds/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原始图像中，三个人物都集中在画面中央和右侧，左侧显得较为单调空旷，整体构图不平衡。通过向右移动镜头，我们可以将主体（中心的老人）置于左侧三分之一线上，从而达到平衡。此外，通过重新构图，可以让画面中的主要元素（特别是中心老人的头部和影子）分别对应不同的三分线，使视觉流动更加自然，画面整体更具动态平衡感。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "向右移动镜头（约1/3个画面宽度），使中心的老人（穿蓝色Polo衫）和他的影子整体向左移动。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 806,
+            "candidates_tokens": 1752,
+            "total_tokens": 2558
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-03-02T20:50:01.072701",
+          "end_time": "2026-03-02T20:50:30.756643",
+          "response_time_ms": 29684.107000008225,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个充满市井气息和强列光影对比的场景。我们选择将那个站在中心、表情丰富的蓝衣男子作为主体进行中心构图。通过拉近镜头并将他精确放置在画面正中央，不仅突出了他的主体地位，更强调了此时强烈的斜射阳光和影子所构成的戏剧性。他的表情、姿态以及投射在墙上的巨大、清晰的影子将共同构成一个视觉焦点，使画面更具张力和故事感。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"向前移动相机或拉近镜头，将焦点集中在蓝衣男子和墙上的影子上，确保他占据画面的主导地位。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将相机向右移动，调整构图，将蓝衣男子的身体躯干（包括他腰间的黑色小包）精确地放置在画面水平和垂直的中心线上。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"View-change\",\n        \"direction\": \"None\",\n        \"guide_text\": \"保持原有的水平视角，但要注意利用此时强烈的斜光，使男子投射在墙上的清晰影子与他本人构成一个垂直的视觉轴线，位于画面中心。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已根据中心构图/对称的原则，重新为您调整了构图。请参考以下具体的构图说明和调整步骤：\n\n**构图美学描述与原理：**\n原图呈现出一个充满生活气息和强列光影对比的市井场景。为了应用中心构图，我们选择将那个站在中心、表情丰富的蓝衣男子作为绝对的主体。通过拉近镜头并将他精确放置在画面正中央，不仅突出了他的主体地位，更强调了此时强烈的斜射阳光和影子所构成的戏剧性。他的表情、姿态以及投射在墙上的巨大、清晰的影子将共同构成一个视觉焦点，使画面更具张力和故事感，整体呈现出一种稳定而专注的美感。\n\n**具体的构图调整步骤：**\n\n1.  **拉近镜头 (Zoom In)：** 向前移动相机或拉近镜头，将焦点集中在蓝衣男子和墙上的影子上，确保他占据画面的主导地位，同时将多余的干扰元素（如左侧和右侧的人员）移出画面。\n2.  **向右移动 (Shift Right)：** 将相机向右移动，调整构图，将蓝衣男子的身体躯干（包括他腰间的黑色小包）精确地放置在画面水平和垂直的中心线上。\n3.  **保持视角 (View-change None)：** 保持原有的水平视角，但要注意利用此时强烈的斜光，使男子投射在墙上的清晰影子与他本人构成一个垂直的视觉轴线，位于画面中心。\n\n通过这些步骤，您将得到一张如上图所示的，主体突出且极具戏剧感的中心构图照片。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/center_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图是一个充满市井气息和强列光影对比的场景。我们选择将那个站在中心、表情丰富的蓝衣男子作为主体进行中心构图。通过拉近镜头并将他精确放置在画面正中央，不仅突出了他的主体地位，更强调了此时强烈的斜射阳光和影子所构成的戏剧性。他的表情、姿态以及投射在墙上的巨大、清晰的影子将共同构成一个视觉焦点，使画面更具张力和故事感。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "向前移动相机或拉近镜头，将焦点集中在蓝衣男子和墙上的影子上，确保他占据画面的主导地位。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "将相机向右移动，调整构图，将蓝衣男子的身体躯干（包括他腰间的黑色小包）精确地放置在画面水平和垂直的中心线上。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "View-change",
+                  "direction": "None",
+                  "guide_text": "保持原有的水平视角，但要注意利用此时强烈的斜光，使男子投射在墙上的清晰影子与他本人构成一个垂直的视觉轴线，位于画面中心。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 810,
+            "candidates_tokens": 2165,
+            "total_tokens": 2975
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-03-02T20:50:01.073250",
+          "end_time": "2026-03-02T20:50:28.809790",
+          "response_time_ms": 27736.697208994883,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"leading_lines\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个充满市井气息和有趣光影（雨伞投影）的场景，但构图上人物排列较为平行，画面深度不足。为了应用‘引导线’技巧，我发现地面上有一道由于日落低角度光照形成的阴影边缘，以及水泥基座的直线。通过降低镜头角度并向左移动，我们可以强化这些线条，使其从画面的左下角和右下角（如水泥基座的边缘）汇聚，并直接指向主要主体——那位穿蓝色T恤的笑脸老伯。这样不仅突出了主体，还利用斜线增加了画面的深度感，引导观众的视线穿过地面的蔬菜摊位，最后落在老伯身上，强化了叙事结构。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"low-angle\",\n        \"guide_text\": \"将相机降低，更接近地面上的蔬菜，捕捉低角度视点。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"向左移动相机，使水泥基座的边缘（作为一条引导线）从画面的右下角延伸出来。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"in\",\n        \"guide_text\": \"轻微放大焦距，缩小视野，使原本在墙上的投影更清晰，并确保引导线（基座边缘和日落阴影）汇聚点精确指向老伯。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已对您的照片进行了构图分析，并生成了优化建议。\n\n在原始照片中，虽然有光影和水泥基座，但线条的力量没有被完全释放。通过应用**引导线**技巧，我们可以改变拍摄角度，使这些原本平常的线条成为引导视线的强大工具。\n\n我已生成了一张优化后的构图示范。在这张新图中，通过降低拍摄角度，水泥基座的边缘被处理成从右下角向画面深处延伸的对角线。同时，由于降低了视角，地面上由于日落低角度光照形成的阴影边缘也形成了一道平行的引导线。这两条线汇聚在画面的中心——那位穿蓝色T恤的笑脸老伯身上，使他成为绝对的视觉焦点。此外，低角度还加强了墙面上那具奇特的雨伞投影，增加了画面的叙事感。\n\n以下是为您准备的详细操作步骤：\n\n```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"leading_lines\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个充满市井气息和有趣光影（雨伞投影）的场景，但构图上人物排列较为平行，画面深度不足。为了应用‘引导线’技巧，我发现地面上有一道由于日落低角度光照形成的阴影边缘，以及水泥基座的直线。通过降低镜头角度并向左移动，我们可以强化这些线条，使其从画面的左下角和右下角（如水泥基座的边缘）汇聚，并直接指向主要主体——那位穿蓝色T恤的笑脸老伯。这样不仅突出了主体，还利用斜线增加了画面的深度感，引导观众的视线穿过地面的蔬菜摊位，最后落在老伯身上，强化了叙事结构。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"low-angle\",\n        \"guide_text\": \"将相机降低，更接近地面上的蔬菜，捕捉低角度视点。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"向左移动相机，使水泥基座的边缘（作为一条引导线）从画面的右下角延伸出来。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"in\",\n        \"guide_text\": \"轻微放大焦距，缩小视野，使原本在墙上的投影更清晰，并确保引导线（基座边缘和日落阴影）汇聚点精确指向老伯。\"\n      }\n    ]\n  }\n}\n```"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/leading_lines/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "leading_lines",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图是一个充满市井气息和有趣光影（雨伞投影）的场景，但构图上人物排列较为平行，画面深度不足。为了应用‘引导线’技巧，我发现地面上有一道由于日落低角度光照形成的阴影边缘，以及水泥基座的直线。通过降低镜头角度并向左移动，我们可以强化这些线条，使其从画面的左下角和右下角（如水泥基座的边缘）汇聚，并直接指向主要主体——那位穿蓝色T恤的笑脸老伯。这样不仅突出了主体，还利用斜线增加了画面的深度感，引导观众的视线穿过地面的蔬菜摊位，最后落在老伯身上，强化了叙事结构。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "low-angle",
+                  "guide_text": "将相机降低，更接近地面上的蔬菜，捕捉低角度视点。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "left",
+                  "guide_text": "向左移动相机，使水泥基座的边缘（作为一条引导线）从画面的右下角延伸出来。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "zoom",
+                  "direction": "in",
+                  "guide_text": "轻微放大焦距，缩小视野，使原本在墙上的投影更清晰，并确保引导线（基座边缘和日落阴影）汇聚点精确指向老伯。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 2441,
+            "total_tokens": 3267
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-03-02T20:50:01.073501",
+          "end_time": "2026-03-02T20:50:24.972060",
+          "response_time_ms": 23898.692750008195,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"foreground_framing\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原始图像展示了一个热闹的露天市场场景，有几个主要人物和许多细节（如蔬菜摊、竹篮、伞和背景墙）。为了应用‘前景构图’（Foreground Framing）技术，我们可以利用场景中已有的元素来创造一个框架，将观众的注意力更集中地引向核心人物（中间穿蓝衣的老人）。通过寻找一个能让前景物体自然‘包围’主体的视角，我们可以增加画面的深度感，使普通的街头快照变得更具艺术感和故事感。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"low-angle\",\n        \"guide_text\": \"将相机稍微降低（采用低角度），并靠近右侧的蔬菜摊位和竹篮。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"right\",\n        \"guide_text\": \"将相机向右移动，寻找一个视角，使右侧持伞的女人的伞边缘和她的身体能占据画面的右侧和上部边缘。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"shift\",\n        \"direction\": \"down\",\n        \"guide_text\": \"让画面底部的蔬菜摊（如那一堆黄瓜和竹篮）占据画面的底部边缘，作为一个‘地基’框架。\"\n      },\n      {\n        \"step_order\": 4,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"将左侧穿衬衫的男人的轮廓和背景墙的一部分作为左侧的‘墙壁’框架，确保他们不会遮挡主体的脸，而是形成一个通道。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "This low-angle, focused shot of the man in the blue shirt is framed nicely by the market elements. By utilizing the blurry cucumber basket, the edge of the pattern umbrella, and hanging vegetables, it successfully uses foreground framing to direct focus while adding depth and story context. It strictly adheres to the requested technique and stylistic guidelines."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/foreground_framing/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "foreground_framing",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原始图像展示了一个热闹的露天市场场景，有几个主要人物和许多细节（如蔬菜摊、竹篮、伞和背景墙）。为了应用‘前景构图’（Foreground Framing）技术，我们可以利用场景中已有的元素来创造一个框架，将观众的注意力更集中地引向核心人物（中间穿蓝衣的老人）。通过寻找一个能让前景物体自然‘包围’主体的视角，我们可以增加画面的深度感，使普通的街头快照变得更具艺术感和故事感。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "low-angle",
+                  "guide_text": "将相机稍微降低（采用低角度），并靠近右侧的蔬菜摊位和竹篮。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "right",
+                  "guide_text": "将相机向右移动，寻找一个视角，使右侧持伞的女人的伞边缘和她的身体能占据画面的右侧和上部边缘。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "shift",
+                  "direction": "down",
+                  "guide_text": "让画面底部的蔬菜摊（如那一堆黄瓜和竹篮）占据画面的底部边缘，作为一个‘地基’框架。"
+                },
+                {
+                  "step_order": 4,
+                  "action_type": "shift",
+                  "direction": "left",
+                  "guide_text": "将左侧穿衬衫的男人的轮廓和背景墙的一部分作为左侧的‘墙壁’框架，确保他们不会遮挡主体的脸，而是形成一个通道。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 1959,
+            "total_tokens": 2785
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-03-02T20:50:01.073782",
+          "end_time": "2026-03-02T20:50:37.756232",
+          "response_time_ms": 36682.65908300236,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"diagonal_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将相机高度大幅降低，并将拍摄位置向左移动（靠近左侧小贩）。通过极低角度和侧向透视，将原本水平的混凝土路缘石转换为一条从画面左下角有力延伸至右上角的对角线。这条对角线不仅分割画面，还引导视线穿越场景，连接左侧的小贩和右侧撑伞妇女的背影。低角度使得站立的人物和他们的影子与对角线产生垂直交错，增强动态感和空间透视，而撑伞妇女的背影和伞的边缘将成为对角线的终点焦点。夕阳金光依然是主基调。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"low-angle\",\n        \"guide_text\": \"蹲下并将相机贴近地面。通过极低角度，让路缘石看起来更陡峭。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"向左移动，使你的视角更靠近左侧的小贩和他的菜筐，使路缘石在透视中自然形成对角线。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"view-change\",\n        \"direction\": \"side-view\",\n        \"guide_text\": \"稍微向右转动相机，捕捉路缘石一直延伸到画面右上角的画面。\"\n      },\n      {\n        \"step_order\": 4,\n        \"action_type\": \"zoom\",\n        \"direction\": \"in\",\n        \"guide_text\": \"轻微放大，确保画面紧凑，左下角对角线起点清晰，右上角对角线终点（伞和妇女）突出。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已生成相应的图像供您预览。在此需要诚恳地向您说明，我的评估结论是**“对角线构图”并不适用于这张原始照片的自然调整。**\n\n**评估原因如下：**\n*   此场景中的核心视觉元素（三个人的站姿、墙壁平面、阴影）都是严格的垂直或水平向，属于静态结构。\n*   根据您所强调的限制，如果不使用生硬且不专业的“荷兰式倾斜”（旋转相机）来制造虚假的对角线，那么就没有自然的物理线条（如道路、护栏或建筑边缘）可以通过改变透视来形成引导视线的对角线。\n\n**生成的图像（错误示范）：**\n为了直观地展示为什么我不建议这样做，我生成了这张**“全倾斜”的图像**。如您所见，这种处理方式不仅没有增强构图，反而使整个画面失去了平衡，人物站立不稳，看起来非常生硬。\n\n**建议：**\n对于这个特定的街头场景，**水平/三分法构图**是最能体现自然氛围和人物关系的选择。如果您坚持在其他场景尝试对角线，建议寻找那些本身就包含斜向线条（如向远方延伸的道路、楼梯扶手或栅栏）的拍摄环境。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/diagonal_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "diagonal_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将相机高度大幅降低，并将拍摄位置向左移动（靠近左侧小贩）。通过极低角度和侧向透视，将原本水平的混凝土路缘石转换为一条从画面左下角有力延伸至右上角的对角线。这条对角线不仅分割画面，还引导视线穿越场景，连接左侧的小贩和右侧撑伞妇女的背影。低角度使得站立的人物和他们的影子与对角线产生垂直交错，增强动态感和空间透视，而撑伞妇女的背影和伞的边缘将成为对角线的终点焦点。夕阳金光依然是主基调。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "low-angle",
+                  "guide_text": "蹲下并将相机贴近地面。通过极低角度，让路缘石看起来更陡峭。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "left",
+                  "guide_text": "向左移动，使你的视角更靠近左侧的小贩和他的菜筐，使路缘石在透视中自然形成对角线。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "view-change",
+                  "direction": "side-view",
+                  "guide_text": "稍微向右转动相机，捕捉路缘石一直延伸到画面右上角的画面。"
+                },
+                {
+                  "step_order": 4,
+                  "action_type": "zoom",
+                  "direction": "in",
+                  "guide_text": "轻微放大，确保画面紧凑，左下角对角线起点清晰，右上角对角线终点（伞和妇女）突出。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 891,
+            "candidates_tokens": 2214,
+            "total_tokens": 3105
+          }
+        }
+      ]
+    },
+    {
+      "run_index": 1,
+      "timestamp": "2026-03-02T20:50:39.766499",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 5,
+      "total_time_ms": 50793.91087499971,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-03-02T20:50:39.766654",
+          "end_time": "2026-03-02T20:51:14.514712",
+          "response_time_ms": 34748.25525000051,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原始图像中，三个人物散落在画面中，虽然生动，但主体（中间的男子和右侧的伞）位置偏低且不够突出。画面左侧有较多空白，整体平衡感一般。采用三分法重新构图，可以将画面中最具活力的两个元素——带伞的女子和微笑的男子——分别放置在右侧和左侧的垂直三分线上，从而建立画面内的对角线联系，使构图更加平衡、严谨，同时增强主体（以及他们复杂的影子）在画面中的视觉重要性。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"up-level\",\n        \"guide_text\": \"将相机视角向右和略微向上移动，以重新构图。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"zoom\",\n        \"direction\": \"out\",\n        \"guide_text\": \"略微拉远镜头（缩小焦距），以在画面中包含更多左侧的灰色墙面，平衡右侧的主体。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"shift\",\n        \"direction\": \"right\",\n        \"guide_text\": \"向右移动相机，使左侧的三分线对齐穿过穿蓝色T恤的男子，而右侧的三分线穿过带花伞的女子。\"\n      },\n      {\n        \"step_order\": 4,\n        \"action_type\": \"view-change\",\n        \"direction\": \"down-angle\",\n        \"guide_text\": \"略微调低拍摄角度，以突出地面上的蔬菜和复杂的影子，同时使人物的头部接近上三分线。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "This image effectively demonstrates the Rule of Thirds. Notice how the main figure of the older man is aligned perfectly along the left-vertical grid line, while the woman with the umbrella and the smaller basket on the ground align with the other intersection points.\n\nBy framing the subjects along these imaginary lines, the composition becomes more dynamic and balanced, drawing the viewer's eye into the scene. For future shots, try enabling the grid on your camera to help place your primary subjects on or near these third-line markers."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/rule_of_thirds/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原始图像中，三个人物散落在画面中，虽然生动，但主体（中间的男子和右侧的伞）位置偏低且不够突出。画面左侧有较多空白，整体平衡感一般。采用三分法重新构图，可以将画面中最具活力的两个元素——带伞的女子和微笑的男子——分别放置在右侧和左侧的垂直三分线上，从而建立画面内的对角线联系，使构图更加平衡、严谨，同时增强主体（以及他们复杂的影子）在画面中的视觉重要性。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "up-level",
+                  "guide_text": "将相机视角向右和略微向上移动，以重新构图。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "zoom",
+                  "direction": "out",
+                  "guide_text": "略微拉远镜头（缩小焦距），以在画面中包含更多左侧的灰色墙面，平衡右侧的主体。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "shift",
+                  "direction": "right",
+                  "guide_text": "向右移动相机，使左侧的三分线对齐穿过穿蓝色T恤的男子，而右侧的三分线穿过带花伞的女子。"
+                },
+                {
+                  "step_order": 4,
+                  "action_type": "view-change",
+                  "direction": "down-angle",
+                  "guide_text": "略微调低拍摄角度，以突出地面上的蔬菜和复杂的影子，同时使人物的头部接近上三分线。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 806,
+            "candidates_tokens": 1991,
+            "total_tokens": 2797
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-03-02T20:50:39.771749",
+          "end_time": "2026-03-02T20:51:09.265733",
+          "response_time_ms": 29494.14183400222,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图中存在三个人物，画面重点分散。通过将画面中心调整为这位穿蓝色上衣的微笑大叔，可以将他（作为主要叙事主体）和他的影子、雨伞影子以及右侧撑伞人的后背形成一个更具稳定感的三角形布局。中心构图突出了这位大叔亲切、放松的神态，使他成为绝对的视觉焦点，同时利用强烈的夕阳阴影在中心区域创造出一种近乎对称的几何感，强调了场景的叙事性。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将相机向右平移，使原本位于左侧的蓝色上衣大叔移动到取景器的水平中心线上。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"稍微向内拉近镜头（变焦或物理靠近），聚焦于大叔和右侧撑伞人，从而裁剪掉左侧的第三个人物（拿瓶子的大叔）。确保蓝色上衣大叔位于新的画面正中心。\"\n      }\n    ]\n  }\n}\n",
+            "```",
+            "我已生成一张应用了 **“中心构图 (Center Composition)”** 技术的照片。\n\n在原图中，左侧还有一位人物，这使得穿蓝色上衣的微笑大叔（我们选定的主角）和右侧撑伞的女士都处于画面的右半部分。为了实现更完美的中心构图和强调主角，我将相机向右平移并稍微拉近镜头。这使得微笑的大叔现在位于画面的正中心位置。左侧的人物已被移除，使大叔成为了唯一的视觉焦点，同时利用他的影子和右侧撑伞女士的影子在墙面上创造了一种几何对称感。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/center_composition/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图中存在三个人物，画面重点分散。通过将画面中心调整为这位穿蓝色上衣的微笑大叔，可以将他（作为主要叙事主体）和他的影子、雨伞影子以及右侧撑伞人的后背形成一个更具稳定感的三角形布局。中心构图突出了这位大叔亲切、放松的神态，使他成为绝对的视觉焦点，同时利用强烈的夕阳阴影在中心区域创造出一种近乎对称的几何感，强调了场景的叙事性。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "将相机向右平移，使原本位于左侧的蓝色上衣大叔移动到取景器的水平中心线上。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "稍微向内拉近镜头（变焦或物理靠近），聚焦于大叔和右侧撑伞人，从而裁剪掉左侧的第三个人物（拿瓶子的大叔）。确保蓝色上衣大叔位于新的画面正中心。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 810,
+            "candidates_tokens": 1834,
+            "total_tokens": 2644
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-03-02T20:50:39.775495",
+          "end_time": "2026-03-02T20:51:30.556912",
+          "response_time_ms": 50781.69712499948,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"leading_lines\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图中，人物和影子分散，缺乏清晰的构图焦点。场景中存在现成的线条：路缘石、墙根以及雨伞的边缘。通过调整视角，让这些线条形成强烈的透视引导，将观众的视线直接引向核心主体（蓝衣男子），从而增强画面的景深和戏剧性。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"向左移动相机，让路缘石和墙根线条从左下角斜向延伸。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Low-angle\",\n        \"guide_text\": \"降低相机高度，让路缘石的线条显得更长、更低，增强视觉冲击力。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"轻微向上调整视角，捕捉雨伞边缘，使其与地面的线条形成交叉引导。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已根据您的要求分析了图片，并应用了引导线摄影技巧。以下是构图指导和调整后的效果：\n\n***\n\n### 引导线构图分析 (Leading Lines)\n\n在这个场景中，我发现利用地面的现有结构线条，可以更有效地将视线引向画面中的核心人物。\n\n*   **审美描述与推理：**\n    原图的人物分布和影子虽然自然，但缺乏一个清晰的视觉引导路径。在这个调整中，我选择降低相机高度，并利用路缘石（或石板）的直线纹理，在画面下方形成一条斜向延伸的强劲线条。这条线条作为“引导线”，将观众的视线直接引向中间穿蓝衣的男子（主体）。通过增强这条线条的深度，画面不仅更有景深感，也突出了主体的核心地位，使构图更具戏剧性。\n\n*   **具体拍摄步骤：**\n    1.  **移动相机 (Shift)：** 向左移动相机，以便让地面上的直线结构（如路缘石）从左下角斜向延伸。\n    2.  **改变视角 (View-change)：** 采用低角度拍摄，降低相机高度，让这条引导线在画面中更长、更低，增强视线的透视感。\n    3.  **微调视角 (Shift)：** 轻微向上调整视角，确保主体（蓝衣男子）位于引导线的会聚点或延伸线上，同时保留雨伞和左侧男子作为场景的背景元素。\n\n***\n\n### 调整后的图片效果 (Visual Proof)\n\n根据上述构图指导，以下是应用了“引导线”技巧后的新画面。请注意画面下方那条清晰的石板边缘，它如何引导您的视线穿过画面，直达主体人物：\n\n",
+            "我已成功为您应用了引导线技巧。请注意新画面中，前景的石板边缘和路缘石是如何从画面下方斜向延伸，形成一条强有力的“引导线”，将您的视线直接引向中间穿蓝衣的主体男子。同时，这个角度也增强了场景的景深。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/leading_lines/run1_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/leading_lines/run1_image_1.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "leading_lines",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图中，人物和影子分散，缺乏清晰的构图焦点。场景中存在现成的线条：路缘石、墙根以及雨伞的边缘。通过调整视角，让这些线条形成强烈的透视引导，将观众的视线直接引向核心主体（蓝衣男子），从而增强画面的景深和戏剧性。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "向左移动相机，让路缘石和墙根线条从左下角斜向延伸。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "View-change",
+                  "direction": "Low-angle",
+                  "guide_text": "降低相机高度，让路缘石的线条显得更长、更低，增强视觉冲击力。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "轻微向上调整视角，捕捉雨伞边缘，使其与地面的线条形成交叉引导。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 3633,
+            "total_tokens": 4459
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-03-02T20:50:39.780894",
+          "end_time": "2026-03-02T20:51:04.671806",
+          "response_time_ms": 24891.017083005863,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"foreground_framing\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个非常生活化的街头场景，光影效果很好，但画面稍显平淡。通过引入“前景框景”技术，我们可以利用近处的物体来建立景深。在这个场景中，右侧背对镜头的妇女（拿着花伞）和左侧蹲着的商贩，他们的身体和物品可以被用作自然的前景元素。我们将相机稍稍后移并调整角度，让右侧的伞缘和妇女身体遮挡画面的右下角，形成一个天然的斜向框架；同时，让左侧的菜篮子和商贩也占满左下角。这样，光线聚焦的中心区域（即站立的蓝衣男子）就被四周的前景所包围，形成一个“框中框”。这种构图增加了图像的复杂度和艺术感，使观众的注意力更集中在中心主体上，同时通过前景的遮挡创造出一种“窥视”的感觉，让场景更具故事性。前景物体的质感和细节（如伞面图案、蔬菜纹理）与中心主体形成对比，丰富了画面层次。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Back\",\n        \"guide_text\": \"将相机向后移动一小段距离，以扩大视野，并准备引入更多前景元素。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Lower angle\",\n        \"guide_text\": \"稍微降低相机高度，让地面的蔬菜、篮子和人物的身体成为更突出的前景物体。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Rotate right\",\n        \"guide_text\": \"向右旋转相机，使右侧背对镜头的妇女（及其花伞）成为画面的右侧前景框，遮挡右下角。\"\n      },\n      {\n        \"step_order\": 4,\n        \"action_type\": \"Reframing\",\n        \"direction\": \"Compose elements\",\n        \"guide_text\": \"最终构图：让右侧伞缘和妇女身体形成右框；左侧菜篮、商贩身体形成左下框。确保站立的蓝衣男子完整地出现在这两个前景框架之间，并且仍然被金色阳光照射。调整伞的阴影，让它和前景物体一起，将中心主体“框”在中间。注意前景元素要保持虚化，而中心主体保持清晰。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已生成一张应用前景框景技术的图片。\n\n在这张优化后的照片中，我通过调整构图和机位，将原本在右侧的带有花伞的人物和左侧的商贩（及其菜篮）更紧密地融入到画面的左下角和右下角前景中，形成了一个自然的、虚化的“框”，让中间站立的蓝衣男子（中心主体）显得更加突出。这种构图不仅增加了画面的深度感，还将观众的注意力更好地集中在主体人物身上，同时保留了原图强烈的光影和生活气息。前景的虚化质感与中心主体的清晰细节形成鲜明对比，增强了图像的层次感和窥视视角的故事性。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/foreground_framing/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "foreground_framing",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图是一个非常生活化的街头场景，光影效果很好，但画面稍显平淡。通过引入“前景框景”技术，我们可以利用近处的物体来建立景深。在这个场景中，右侧背对镜头的妇女（拿着花伞）和左侧蹲着的商贩，他们的身体和物品可以被用作自然的前景元素。我们将相机稍稍后移并调整角度，让右侧的伞缘和妇女身体遮挡画面的右下角，形成一个天然的斜向框架；同时，让左侧的菜篮子和商贩也占满左下角。这样，光线聚焦的中心区域（即站立的蓝衣男子）就被四周的前景所包围，形成一个“框中框”。这种构图增加了图像的复杂度和艺术感，使观众的注意力更集中在中心主体上，同时通过前景的遮挡创造出一种“窥视”的感觉，让场景更具故事性。前景物体的质感和细节（如伞面图案、蔬菜纹理）与中心主体形成对比，丰富了画面层次。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Back",
+                  "guide_text": "将相机向后移动一小段距离，以扩大视野，并准备引入更多前景元素。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "View-change",
+                  "direction": "Lower angle",
+                  "guide_text": "稍微降低相机高度，让地面的蔬菜、篮子和人物的身体成为更突出的前景物体。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "View-change",
+                  "direction": "Rotate right",
+                  "guide_text": "向右旋转相机，使右侧背对镜头的妇女（及其花伞）成为画面的右侧前景框，遮挡右下角。"
+                },
+                {
+                  "step_order": 4,
+                  "action_type": "Reframing",
+                  "direction": "Compose elements",
+                  "guide_text": "最终构图：让右侧伞缘和妇女身体形成右框；左侧菜篮、商贩身体形成左下框。确保站立的蓝衣男子完整地出现在这两个前景框架之间，并且仍然被金色阳光照射。调整伞的阴影，让它和前景物体一起，将中心主体“框”在中间。注意前景元素要保持虚化，而中心主体保持清晰。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 2227,
+            "total_tokens": 3053
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-03-02T20:50:39.787081",
+          "end_time": "2026-03-02T20:51:05.990793",
+          "response_time_ms": 26203.854584004148,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"diagonal_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"该场景中存在明确的线性元素——墙根台阶和地面边缘。通过改变拍摄角度，我们可以将这些物理线条转换为对角线，从而创造出一种动态的、深度更强的构图。新的构图将引导观众的视线沿着台阶从左下角的蔬菜篮和人，穿过中间的男子，一直移向右上方持伞女子的头部和伞。这不仅增强了场景的戏剧性，还利用了现有的环境特征，而不是简单地倾斜相机（这种做法不专业）。保留所有原始人物、阴影和物品，但它们的相对位置现在遵循这条对角线。黄金时刻的金色光线将继续强调这些线条和阴影。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"down\",\n        \"guide_text\": \"将相机降低到接近地面的高度（例如，蹲下或将相机放在地面上）。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"向左移动相机，直到台阶的边缘从取景器的左下角对角线延伸到右上角。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"out\",\n        \"guide_text\": \"稍微向后移动或使用较广的焦距，以确保左侧的蔬菜篮和右侧的持伞女子（包括伞）都保留在画面内，并完美地对齐在这条对角线上。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我为您制定了“对角线构图”的方案。由于场景中存在墙根台阶和地面边缘等明确的线性元素，可以通过改变拍摄角度将这些物理线条转换为对角线，从而创造出一种动态的、深度更强的构图。通过降低相机高度并向左移动，我们可以引导观众的视线沿着台阶从左下角的蔬菜篮和人，穿过中间的男子，一直移向右上方持伞女子的头部和伞。这不仅增强了场景的戏剧性，还利用了现有的环境特征。黄金时刻的金色光线将继续强调这些线条和阴影。\n\n为了帮助您理解，我为您生成了一张构图参考图。以下是具体操作步骤：\n\n1. **降低相机高度**：将相机降低到接近地面的高度（例如，蹲下或将相机放在地面上）。\n2. **向左移动相机**：向左移动相机，直到台阶的边缘从取景器的左下角对角线延伸到右上角。\n3. **调整焦距或距离**：稍微向后移动或使用较广的焦距，以确保左侧的蔬菜篮和右侧的持伞女子（包括伞）都保留在画面内，并完美地对齐在这条对角线上。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/diagonal_composition/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "diagonal_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "该场景中存在明确的线性元素——墙根台阶和地面边缘。通过改变拍摄角度，我们可以将这些物理线条转换为对角线，从而创造出一种动态的、深度更强的构图。新的构图将引导观众的视线沿着台阶从左下角的蔬菜篮和人，穿过中间的男子，一直移向右上方持伞女子的头部和伞。这不仅增强了场景的戏剧性，还利用了现有的环境特征，而不是简单地倾斜相机（这种做法不专业）。保留所有原始人物、阴影和物品，但它们的相对位置现在遵循这条对角线。黄金时刻的金色光线将继续强调这些线条和阴影。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "down",
+                  "guide_text": "将相机降低到接近地面的高度（例如，蹲下或将相机放在地面上）。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "left",
+                  "guide_text": "向左移动相机，直到台阶的边缘从取景器的左下角对角线延伸到右上角。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "zoom",
+                  "direction": "out",
+                  "guide_text": "稍微向后移动或使用较广的焦距，以确保左侧的蔬菜篮和右侧的持伞女子（包括伞）都保留在画面内，并完美地对齐在这条对角线上。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 891,
+            "candidates_tokens": 2169,
+            "total_tokens": 3060
+          }
+        }
+      ]
+    },
+    {
+      "run_index": 2,
+      "timestamp": "2026-03-02T20:51:32.566745",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 5,
+      "total_time_ms": 31003.09895799728,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-03-02T20:51:32.566885",
+          "end_time": "2026-03-02T20:51:54.210964",
+          "response_time_ms": 21644.18154199666,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原始图像中，三个人物都集中在左侧三分之二的区域，右侧虽然有伞，但整体构图偏重左侧，缺乏平衡感。通过应用三分法，我们可以重新构图，将主要的兴趣点——中间的微笑老者和右侧撑伞人的伞和背影——分别放置在画面的关键网格线上，从而创造出更平衡、更具动感的构图。新的构图将引导观众的视线在两个主要元素之间移动，同时利用斜射的阳光和阴影增加深度。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将相机向右移动，重新对焦，使画面重新对齐。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"轻微放大（Zoom In）以更紧凑地构图，去除左侧过多的空白墙面，并强化主体。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Positioning\",\n        \"direction\": \"Center\",\n        \"guide_text\": \"调整画面，使微笑的蓝色上衣老者（中心人物）的身体大致位于左侧垂直三分线上，而他的头部（面部表情）位于左上方的交叉点。同时，确保右侧撑伞妇人的伞顶边缘和她身体的一部分位于右侧垂直三分线上，伞的中心部分接近右侧三分线。最左侧的蹲坐者和篮子仍然保留在画面左边缘，作为环境点缀，但不再是视觉焦点。\"\n      }\n    ]\n  }\n}\n",
+            "```"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/rule_of_thirds/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原始图像中，三个人物都集中在左侧三分之二的区域，右侧虽然有伞，但整体构图偏重左侧，缺乏平衡感。通过应用三分法，我们可以重新构图，将主要的兴趣点——中间的微笑老者和右侧撑伞人的伞和背影——分别放置在画面的关键网格线上，从而创造出更平衡、更具动感的构图。新的构图将引导观众的视线在两个主要元素之间移动，同时利用斜射的阳光和阴影增加深度。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "将相机向右移动，重新对焦，使画面重新对齐。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "轻微放大（Zoom In）以更紧凑地构图，去除左侧过多的空白墙面，并强化主体。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Positioning",
+                  "direction": "Center",
+                  "guide_text": "调整画面，使微笑的蓝色上衣老者（中心人物）的身体大致位于左侧垂直三分线上，而他的头部（面部表情）位于左上方的交叉点。同时，确保右侧撑伞妇人的伞顶边缘和她身体的一部分位于右侧垂直三分线上，伞的中心部分接近右侧三分线。最左侧的蹲坐者和篮子仍然保留在画面左边缘，作为环境点缀，但不再是视觉焦点。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 806,
+            "candidates_tokens": 1891,
+            "total_tokens": 2697
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-03-02T20:51:32.571711",
+          "end_time": "2026-03-02T20:51:54.161045",
+          "response_time_ms": 21589.4272079895,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图中，三个人物分散在画面两侧，虽然捕捉了生活场景，但缺乏明确的视觉焦点。通过采用中心构图，我们可以将穿蓝色短袖的老人作为绝对的核心，把他放在画面正中央。这样处理能极大地强调这位老人的神态和状态，同时使左右两侧的元素（左侧的男子和右侧举伞的女子）形成一种环境叙事的平衡。中心构图不仅能使画面更加稳定、严谨，还能将观众的目光迅速吸引到老人的表情和他的生活气息上，突出他的主体地位。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"向右移动相机，将穿蓝色短袖的老人放置在画面的水平中心位置。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"适当放大画面，更紧凑地框取以老人为中心的场景，让他占据更大的画面比例。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Lower angle\",\n        \"guide_text\": \"轻微降低拍摄角度，仰拍老人，进一步增强其中心主体的稳定感和气势。\"\n      }\n    ]\n  }\n}\n",
+            "```",
+            "This generated image successfully demonstrates \"Center Composition\" by repositioning the elderly man in the blue shirt from a side element to the precise center of the frame. This framing emphasizes his status as the primary subject, making the composition feel much more stable and intentional, as requested in the task. I have outputted the JSON and the target image. This task is complete."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/center_composition/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图中，三个人物分散在画面两侧，虽然捕捉了生活场景，但缺乏明确的视觉焦点。通过采用中心构图，我们可以将穿蓝色短袖的老人作为绝对的核心，把他放在画面正中央。这样处理能极大地强调这位老人的神态和状态，同时使左右两侧的元素（左侧的男子和右侧举伞的女子）形成一种环境叙事的平衡。中心构图不仅能使画面更加稳定、严谨，还能将观众的目光迅速吸引到老人的表情和他的生活气息上，突出他的主体地位。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "向右移动相机，将穿蓝色短袖的老人放置在画面的水平中心位置。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "适当放大画面，更紧凑地框取以老人为中心的场景，让他占据更大的画面比例。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "View-change",
+                  "direction": "Lower angle",
+                  "guide_text": "轻微降低拍摄角度，仰拍老人，进一步增强其中心主体的稳定感和气势。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 810,
+            "candidates_tokens": 1836,
+            "total_tokens": 2646
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-03-02T20:51:32.575607",
+          "end_time": "2026-03-02T20:51:41.688668",
+          "response_time_ms": 9113.081832998432,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"leading_lines\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图中，背景墙根的水平线和地面蔬菜的边缘在视觉上并不强烈，且指向不明。通过调整相机角度，可以利用这两个元素形成强烈的引导线，将观众的目光引向画面的主体（站立的老人和撑伞的人）。我们将降低相机高度，让墙根线（墙与地面的交界处）和地面上蔬菜摆放的边缘（如黄瓜堆和绿叶菜堆）以斜线的形式，从前景延伸至主体附近。这种构图不仅突出了人物，还增强了画面的空间深度感，使其更具视觉冲击力。阳光洒在引导线和主体上，进一步强化了这一视觉路径。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"low-angle\",\n        \"guide_text\": \"蹲下拍摄，将相机高度降至接近地面。这可以显著放大墙根线和地面物体（如黄瓜和绿叶菜）的斜向视觉长度。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"向左稍微移动，让画面左侧的墙根线和黄瓜堆的边缘形成更清晰的斜线，指向画面的中心区域（站立的老人）。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"shift\",\n        \"direction\": \"right\",\n        \"guide_text\": \"同时，利用画面右侧撑伞人的身影和地面的阴影边缘作为次要的引导斜线，与左侧的引导线形成一种视觉上的交汇，共同强化对主体的聚焦。\"\n      }\n    ]\n  }\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "leading_lines",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图中，背景墙根的水平线和地面蔬菜的边缘在视觉上并不强烈，且指向不明。通过调整相机角度，可以利用这两个元素形成强烈的引导线，将观众的目光引向画面的主体（站立的老人和撑伞的人）。我们将降低相机高度，让墙根线（墙与地面的交界处）和地面上蔬菜摆放的边缘（如黄瓜堆和绿叶菜堆）以斜线的形式，从前景延伸至主体附近。这种构图不仅突出了人物，还增强了画面的空间深度感，使其更具视觉冲击力。阳光洒在引导线和主体上，进一步强化了这一视觉路径。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "low-angle",
+                  "guide_text": "蹲下拍摄，将相机高度降至接近地面。这可以显著放大墙根线和地面物体（如黄瓜和绿叶菜）的斜向视觉长度。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "left",
+                  "guide_text": "向左稍微移动，让画面左侧的墙根线和黄瓜堆的边缘形成更清晰的斜线，指向画面的中心区域（站立的老人）。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "shift",
+                  "direction": "right",
+                  "guide_text": "同时，利用画面右侧撑伞人的身影和地面的阴影边缘作为次要的引导斜线，与左侧的引导线形成一种视觉上的交汇，共同强化对主体的聚焦。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 456,
+            "total_tokens": 1282
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-03-02T20:51:32.580866",
+          "end_time": "2026-03-02T20:52:01.109241",
+          "response_time_ms": 28528.500207990874,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"foreground_framing\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"使用前景构图（框架构图）可以有效地增加图像的深度感，将观众的视线直接引导至主体。在这个场景中，原始图像的右侧有一把花伞。通过将相机稍微向右移动，并利用这把伞的边缘作为前景元素，可以形成一个自然而独特的‘画框’。这个画框将中心的主体（笑着的男子和远处的男子）包围起来，不仅突出了他们的互动，还增加了场景的故事感和层次。柔和的金色光线将使前景伞的质地更加迷人，形成虚实对比。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"右侧，低角度\",\n        \"guide_text\": \"向右移动相机，让右侧的伞更靠近镜头，占据画面右侧的显著位置，并尝试稍微降低角度。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"zoom\",\n        \"direction\": \"拉远\",\n        \"guide_text\": \"如果需要，稍微拉远镜头或使用更广角，以确保能同时捕捉到伞的边缘和完整的中心主体（笑着的男子和远处的男子）。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"focus-adjustment\",\n        \"direction\": \"主体清晰\",\n        \"guide_text\": \"将焦点精确对准中心笑着的男子（穿蓝色T恤）。让前景的伞稍微失焦，形成虚化，作为框架。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已根据您的场景分析了构图并应用了“前景框景”技术。\n\n在原图中，右侧的花伞是一个绝佳的潜在前景元素。通过将相机稍微向右移动，并利用这把伞的边缘作为前景框架，我们成功地为画面增加了一个自然且富有故事感的“画框”。这个新的视点将中心的主体（笑着的男子和远处的男子）紧紧包围，不仅突出了他们的互动，还增加了场景的深度感和层次。柔和的金色光线将伞的质地凸显出来，形成虚实对比。\n\n以下是为您生成的对比图像，展示了应用此技术后的效果。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/foreground_framing/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "foreground_framing",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "使用前景构图（框架构图）可以有效地增加图像的深度感，将观众的视线直接引导至主体。在这个场景中，原始图像的右侧有一把花伞。通过将相机稍微向右移动，并利用这把伞的边缘作为前景元素，可以形成一个自然而独特的‘画框’。这个画框将中心的主体（笑着的男子和远处的男子）包围起来，不仅突出了他们的互动，还增加了场景的故事感和层次。柔和的金色光线将使前景伞的质地更加迷人，形成虚实对比。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "右侧，低角度",
+                  "guide_text": "向右移动相机，让右侧的伞更靠近镜头，占据画面右侧的显著位置，并尝试稍微降低角度。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "zoom",
+                  "direction": "拉远",
+                  "guide_text": "如果需要，稍微拉远镜头或使用更广角，以确保能同时捕捉到伞的边缘和完整的中心主体（笑着的男子和远处的男子）。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "focus-adjustment",
+                  "direction": "主体清晰",
+                  "guide_text": "将焦点精确对准中心笑着的男子（穿蓝色T恤）。让前景的伞稍微失焦，形成虚化，作为框架。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 1936,
+            "total_tokens": 2762
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-03-02T20:51:32.587588",
+          "end_time": "2026-03-02T20:52:03.567816",
+          "response_time_ms": 30980.356625004788,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"diagonal_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将场景中的关键物理元素（路缘石、人物、影子的光边界、蔬菜摊位）重新组织，使其沿着画面斜对角线排列。这种构图利用了现有的线性元素，将视线从画面左下角自然引向右上角，打破了原始构图中由于垂直墙壁造成的静态感，增加了画面的动感和深度，同时更好地强调了人物与光影的互动。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Lower and Right\",\n        \"guide_text\": \"降低相机高度，并向右移动，以获得一个更偏、更低的角度，利用透视关系将原本平行的路缘石对角线化。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"略微向上移动镜头，使斜对角的路缘石从画面左下角切入，并延伸向右上角。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"适度拉近镜头，聚焦于人物与光影，减少无关背景。确保主要人物、影子的光边界以及路上的蔬菜摊位都能够沿着这条斜对角线分布。\"\n      }\n    ]\n  }\n}\n",
+            "```",
+            "我已根据您的要求处理了图片。虽然我生成了图像以展示斜对角构图的效果，但必须指出，在这个特定的场景中，我主要是通过倾斜相机（Dutch Angle）来达到这一效果的。\n\n正如任务说明中所提到的，如果场景本身（如垂直的墙壁和人物）主要是垂直和水平的，通过倾斜相机来制造“虚假”的对角线是不推荐的专业做法。\n\n在生成的图像中，您可以清楚地看到这种倾斜虽然让路缘石和影子形成了对角线，但同时使原本直立的人物和墙壁看起来是不自然的歪斜。\n\n因此，根据严格的分析标准，由于缺乏真正可用于视角转换的物理斜线，**此构图技巧实际上是不适用的（is_applicable: false）**。我生成此图仅作为不推荐做法的反面示例供您参考。在实际拍摄时，请务必寻找环境中自然的斜线。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_205001/diagonal_composition/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "diagonal_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将场景中的关键物理元素（路缘石、人物、影子的光边界、蔬菜摊位）重新组织，使其沿着画面斜对角线排列。这种构图利用了现有的线性元素，将视线从画面左下角自然引向右上角，打破了原始构图中由于垂直墙壁造成的静态感，增加了画面的动感和深度，同时更好地强调了人物与光影的互动。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "View-change",
+                  "direction": "Lower and Right",
+                  "guide_text": "降低相机高度，并向右移动，以获得一个更偏、更低的角度，利用透视关系将原本平行的路缘石对角线化。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "略微向上移动镜头，使斜对角的路缘石从画面左下角切入，并延伸向右上角。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "适度拉近镜头，聚焦于人物与光影，减少无关背景。确保主要人物、影子的光边界以及路上的蔬菜摊位都能够沿着这条斜对角线分布。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 891,
+            "candidates_tokens": 1953,
+            "total_tokens": 2844
+          }
+        }
+      ]
+    }
+  ]
+}

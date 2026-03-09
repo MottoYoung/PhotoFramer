@@ -1,0 +1,7 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "diagonal_composition",
+  "composition_data": null
+}
+```

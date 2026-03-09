@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "leading_lines",
+  "reasoning": "此场景中缺乏明显的引导线（例如道路、围栏、河流边缘等），无法应用引导线构图技术。",
+  "composition_data": null
+}
+```

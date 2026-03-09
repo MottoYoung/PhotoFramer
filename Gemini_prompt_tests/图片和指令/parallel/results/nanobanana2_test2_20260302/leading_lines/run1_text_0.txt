@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "leading_lines",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图中，人物和影子分散，缺乏清晰的构图焦点。场景中存在现成的线条：路缘石、墙根以及雨伞的边缘。通过调整视角，让这些线条形成强烈的透视引导，将观众的视线直接引向核心主体（蓝衣男子），从而增强画面的景深和戏剧性。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Left",
+        "guide_text": "向左移动相机，让路缘石和墙根线条从左下角斜向延伸。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "View-change",
+        "direction": "Low-angle",
+        "guide_text": "降低相机高度，让路缘石的线条显得更长、更低，增强视觉冲击力。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Shift",
+        "direction": "Up",
+        "guide_text": "轻微向上调整视角，捕捉雨伞边缘，使其与地面的线条形成交叉引导。"
+      }
+    ]
+  }
+}
+```
+

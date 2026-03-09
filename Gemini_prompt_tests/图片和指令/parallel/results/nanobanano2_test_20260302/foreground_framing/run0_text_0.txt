@@ -1,0 +1,28 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "foreground_framing",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "将原始的全景视角转换为通过前景元素‘框取’主体（树和骑士）的构图。这种方法通过引入深度层次，使画面看起来更像是在一个特定地点（如一个古老建筑或岩洞内）捕捉到的决定性瞬间。前景的深色几何框架不仅增加了视觉趣味，还将观众的注意力集中在远处的剪影上，使其更具戏剧性。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "back-and-down",
+        "guide_text": "将相机向后和向下移动，使镜头置于某种遮挡结构之后。可以是一个古老的窗框、城墙的豁口或洞穴的入口。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "left",
+        "guide_text": "微调位置，让前景结构（如一个拱门或一排树枝）形成一个自然的框架，将远处的树和骑士置于框架内。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "zoom",
+        "direction": "in",
+        "guide_text": "轻微放大镜头，使前景框架的边缘清晰可见，同时保持主体（树和骑士）在框内的比例，并保持远处的地平线在构图中心附近。"
+      }
+    ]
+  }
+}

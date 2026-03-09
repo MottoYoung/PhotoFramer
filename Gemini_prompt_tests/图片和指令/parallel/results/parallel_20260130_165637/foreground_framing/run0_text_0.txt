@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "foreground_framing",
+  "reasoning": "这张照片的场景非常开阔，前景中没有可以用来进行前景构图的元素，因此无法应用前景构图技术。",
+  "composition_data": null
+}
+```

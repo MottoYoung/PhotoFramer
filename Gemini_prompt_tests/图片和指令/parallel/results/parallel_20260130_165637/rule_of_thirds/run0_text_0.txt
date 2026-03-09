@@ -1,0 +1,24 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "reasoning": "该照片中的主体（树和马背上的骑手）目前位于画面中央，应用三分法可以将主体移至画面右侧三分之一的垂直线上，使构图更具动态感和视觉吸引力。",
+  "composition_data": {
+    "aesthetic_desc": "将地平线置于下三分之一处，树和马背上的骑手置于画面右侧三分之一的垂直线上，天空占据大部分画面，营造出广阔而平衡的意境。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Left",
+        "guide_text": "将相机向左平移，使树和马背上的骑手整体向画面右侧移动。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Down",
+        "guide_text": "略微向下平移相机，使地平线大致位于画面下三分之一处。"
+      }
+    ]
+  }
+}
+```

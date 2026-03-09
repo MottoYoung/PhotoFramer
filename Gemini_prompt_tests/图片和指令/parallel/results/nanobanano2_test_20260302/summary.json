@@ -1,0 +1,766 @@
+{
+  "timestamp": "20260302_204706",
+  "model_name": "gemini-3.1-flash-image-preview",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/input.jpg",
+  "total_runs": 3,
+  "techniques": [
+    "rule_of_thirds",
+    "center_composition",
+    "leading_lines",
+    "foreground_framing",
+    "diagonal_composition"
+  ],
+  "runs": [
+    {
+      "run_index": 0,
+      "timestamp": "2026-03-02T20:47:06.338329",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 5,
+      "total_time_ms": 50889.56987501297,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-03-02T20:47:06.338367",
+          "end_time": "2026-03-02T20:47:32.606608",
+          "response_time_ms": 26268.38866599428,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原始图像中，孤树和 rearing 骑手（主要主体）位于画面正中央。虽然这种中央构图具有稳定感，但缺乏动感，且上方和下方的大片空白区域（天空和雪地）显得有些单调，导致视觉重心不够集中。通过应用三分法，我们将主体（树和骑手）移动到画面的右侧三分之一线上。这样做不仅能够打破构图的单调，还能利用左侧的大片天空和雪地（留白）来强调主体的存在，并为 rearing 的马匹所代表的动作方向（向右）提供延伸空间。同时，我们将地平线（雪地边缘）也对齐到下方的三分之一线上，从而获得更完美的平衡，减少顶部和底部不必要的空白，使画面更具电影感和动感。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"向内拉近镜头。我们需要稍微放大主体（树和骑手），以减少画面顶部和底部过多的空白，并使主体在画面中占据更重要的比例。保持原始图像的宽高比。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将构图框向右移动。将孤树和 rearing 的骑手对齐到右侧的垂直三分之一线上。这将使主体的动作方向（马匹向右 rearing）在左侧拥有更多的“视线空间”或“动作空间”。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"稍微将构图框向上移动，将雪地和天空交界的地平线精确对齐到下方的水平三分之一线上。这样可以完美平衡前景的雪地、中景的主体以及背景的天空，创造一个更具平衡感的画面。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "This is a successful example of applying the \"Rule of Thirds\" to create a more dynamic and balanced landscape. The main subjects (the tree and the rider) have been relocated from the center of the frame to the right-hand third intersection points. Notice how this shift leaves a wider expanse of sky and field on the left, which adds depth and balance to the entire image."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/rule_of_thirds/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原始图像中，孤树和 rearing 骑手（主要主体）位于画面正中央。虽然这种中央构图具有稳定感，但缺乏动感，且上方和下方的大片空白区域（天空和雪地）显得有些单调，导致视觉重心不够集中。通过应用三分法，我们将主体（树和骑手）移动到画面的右侧三分之一线上。这样做不仅能够打破构图的单调，还能利用左侧的大片天空和雪地（留白）来强调主体的存在，并为 rearing 的马匹所代表的动作方向（向右）提供延伸空间。同时，我们将地平线（雪地边缘）也对齐到下方的三分之一线上，从而获得更完美的平衡，减少顶部和底部不必要的空白，使画面更具电影感和动感。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "向内拉近镜头。我们需要稍微放大主体（树和骑手），以减少画面顶部和底部过多的空白，并使主体在画面中占据更重要的比例。保持原始图像的宽高比。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "将构图框向右移动。将孤树和 rearing 的骑手对齐到右侧的垂直三分之一线上。这将使主体的动作方向（马匹向右 rearing）在左侧拥有更多的“视线空间”或“动作空间”。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "稍微将构图框向上移动，将雪地和天空交界的地平线精确对齐到下方的水平三分之一线上。这样可以完美平衡前景的雪地、中景的主体以及背景的天空，创造一个更具平衡感的画面。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 806,
+            "candidates_tokens": 1981,
+            "total_tokens": 2787
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-03-02T20:47:06.364401",
+          "end_time": "2026-03-02T20:47:35.934558",
+          "response_time_ms": 29570.321209001122,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图中，孤树和马背上的骑士都在画面中心偏右的位置，虽然形成了有趣的负空间，但缺乏强烈的视觉张力。通过采用中心构图，我们将这两个关键元素作为一个整体，放置在画面的绝对中心（即三分线的交汇点），同时利用对称性使构图更具稳定感和冥想感。由于画面主要是天空、雪地和两个剪影，中心构图能最直接地强调这两个孤立主体在辽阔自然中的存在感，赋予画面一种永恒和平衡的美学。我们将这两个元素视作一个单一的视觉‘块’，并将其置于中心。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"将相机向左平移，直到孤树的树干与画面的垂直中线完全重合。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"稍微拉近焦距，使孤树和马背上的骑士这对组合在画面中占据更核心的比例，并将其作为一个整体的中心点。确保骑士在树的一侧，但整个组合（树+人）的重心位于画面中心。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"微调画面高度，使地平线位于画面下方的黄金分割线，让孤树和骑士的剪影在天空和雪地的垂直中线上平衡分布。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "This target image has successfully applied the center composition rule. It shifted the perspective to place the two distinct subjects (the tree and the rider) symmetrically around the central vertical axis, effectively creating a stable, focused, and balanced image compared to the original, off-center shot. The visual proof demonstrates the technique's application."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/center_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图中，孤树和马背上的骑士都在画面中心偏右的位置，虽然形成了有趣的负空间，但缺乏强烈的视觉张力。通过采用中心构图，我们将这两个关键元素作为一个整体，放置在画面的绝对中心（即三分线的交汇点），同时利用对称性使构图更具稳定感和冥想感。由于画面主要是天空、雪地和两个剪影，中心构图能最直接地强调这两个孤立主体在辽阔自然中的存在感，赋予画面一种永恒和平衡的美学。我们将这两个元素视作一个单一的视觉‘块’，并将其置于中心。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "将相机向左平移，直到孤树的树干与画面的垂直中线完全重合。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "稍微拉近焦距，使孤树和马背上的骑士这对组合在画面中占据更核心的比例，并将其作为一个整体的中心点。确保骑士在树的一侧，但整个组合（树+人）的重心位于画面中心。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "微调画面高度，使地平线位于画面下方的黄金分割线，让孤树和骑士的剪影在天空和雪地的垂直中线上平衡分布。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 810,
+            "candidates_tokens": 1900,
+            "total_tokens": 2710
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-03-02T20:47:06.364816",
+          "end_time": "2026-03-02T20:47:38.583009",
+          "response_time_ms": 32218.376750010066,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"leading_lines\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个美丽的剪影场景，但由于地形和视角原因，缺乏清晰的视觉引导线将观众的视线引向主体（树和骑手）。场景中唯一的线条是远处的地平线，它切断了画面，而不是引导视线。通过稍微降低视角并寻找一个自然延伸到地平线的“视线走廊”（例如雪地中的自然冲刷或路径），我们可以利用这些线条将观众的目光直接引向树和骑手。这将大大增强画面的动态感和景深。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"down\",\n        \"guide_text\": \"将相机视角稍微降低，接近雪地表面。这将使前景中的雪地纹理更加突出。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"向左微调相机，寻找雪地中可能存在的自然融雪痕迹、风吹纹理或轻微的地形起伏，使其从画面前景的角落延伸出来。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"out\",\n        \"guide_text\": \"稍微向后移动或变焦至更广的角度。这有助于将更多前景线条纳入画面，使其更有深度。\"\n      },\n      {\n        \"step_order\": 4,\n        \"action_type\": \"shift\",\n        \"direction\": \"down\",\n        \"guide_text\": \"最终构图时，确保选定的“线条”从画面前景的下部角落（最好是左下角）出发，以对角线形式延伸，并最终在视觉上指向远处地平线上的树和骑手。保持树和骑手在三分线交叉点附近。\"\n      }\n    ]\n  }\n}\n",
+            "```",
+            "我已为您重新构图。为了在画面中创造出引导线，我建议改变拍摄视角，将相机降低至接近雪地表面，并寻找雪地中自然的风吹纹理或融雪痕迹。\n\n在新的构图中，我利用了从左下角延伸出来的几条平行雪沟纹理，使其形成强烈的引导线，将观众的视线直接引向远处地平线上的树和骑手剪影。这不仅增强了画面的深度，也让主体更加突出。\n\n以下是具体的构图调整步骤：\n\n1.  **改变视角**：将相机视角大幅降低，贴近雪地。\n2.  **寻找引导线**：在前景寻找并对齐自然的雪地沟纹。\n3.  **对角线构图**：让这些纹理从画面的角落出发，形成指向主体的对角线。\n4.  **调整距离**：稍微拉远镜头，以便将更多前景的线条纳入画面。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/leading_lines/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "leading_lines",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图是一个美丽的剪影场景，但由于地形和视角原因，缺乏清晰的视觉引导线将观众的视线引向主体（树和骑手）。场景中唯一的线条是远处的地平线，它切断了画面，而不是引导视线。通过稍微降低视角并寻找一个自然延伸到地平线的“视线走廊”（例如雪地中的自然冲刷或路径），我们可以利用这些线条将观众的目光直接引向树和骑手。这将大大增强画面的动态感和景深。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "down",
+                  "guide_text": "将相机视角稍微降低，接近雪地表面。这将使前景中的雪地纹理更加突出。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "left",
+                  "guide_text": "向左微调相机，寻找雪地中可能存在的自然融雪痕迹、风吹纹理或轻微的地形起伏，使其从画面前景的角落延伸出来。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "zoom",
+                  "direction": "out",
+                  "guide_text": "稍微向后移动或变焦至更广的角度。这有助于将更多前景线条纳入画面，使其更有深度。"
+                },
+                {
+                  "step_order": 4,
+                  "action_type": "shift",
+                  "direction": "down",
+                  "guide_text": "最终构图时，确保选定的“线条”从画面前景的下部角落（最好是左下角）出发，以对角线形式延伸，并最终在视觉上指向远处地平线上的树和骑手。保持树和骑手在三分线交叉点附近。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 2046,
+            "total_tokens": 2872
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-03-02T20:47:06.365008",
+          "end_time": "2026-03-02T20:47:57.223766",
+          "response_time_ms": 50859.05008300324,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"foreground_framing\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将原始的全景视角转换为通过前景元素‘框取’主体（树和骑士）的构图。这种方法通过引入深度层次，使画面看起来更像是在一个特定地点（如一个古老建筑或岩洞内）捕捉到的决定性瞬间。前景的深色几何框架不仅增加了视觉趣味，还将观众的注意力集中在远处的剪影上，使其更具戏剧性。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"back-and-down\",\n        \"guide_text\": \"将相机向后和向下移动，使镜头置于某种遮挡结构之后。可以是一个古老的窗框、城墙的豁口或洞穴的入口。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"微调位置，让前景结构（如一个拱门或一排树枝）形成一个自然的框架，将远处的树和骑士置于框架内。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"in\",\n        \"guide_text\": \"轻微放大镜头，使前景框架的边缘清晰可见，同时保持主体（树和骑士）在框内的比例，并保持远处的地平线在构图中心附近。\"\n      }\n    ]\n  }\n}\n",
+            "```",
+            "我已根据您的要求分析了原始图片，并应用了“前景框景 (Foreground Framing)”的技术建议。\n\n正如您所看到的，原始场景非常开阔。为了应用此技术，我引入了一个前景结构（一个古老石拱门的内部视窗），并通过它来框取远处的树和骑士。这种处理方式不仅增加了画面的深度感，还将观众的注意力集中在远处的剪影上，使其更具戏剧性和故事感。\n\n以下是具体的调整步骤和JSON数据：\n\n```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"foreground_framing\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将原始的全景视角转换为通过前景元素‘框取’主体（树和骑士）的构图。这种方法通过引入深度层次，使画面看起来更像是在一个特定地点（如一个古老建筑或岩洞内）捕捉到的决定性瞬间。前景的深色几何框架不仅增加了视觉趣味，还将观众的注意力集中在远处的剪影上，使其更具戏剧性。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"back-and-down\",\n        \"guide_text\": \"将相机向后和向下移动，使镜头置于某种遮挡结构之后。可以是一个古老的窗框、城墙的豁口或洞穴的入口。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"微调位置，让前景结构（如一个拱门或一排树枝）形成一个自然的框架，将远处的树和骑士置于框架内。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"in\",\n        \"guide_text\": \"轻微放大镜头，使前景框架的边缘清晰可见，同时保持主体（树和骑士）在框内的比例，并保持远处的地平线在构图中心附近。\"\n      }\n    ]\n  }\n}\n",
+            "```"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/foreground_framing/run0_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/foreground_framing/run0_image_1.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "foreground_framing",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将原始的全景视角转换为通过前景元素‘框取’主体（树和骑士）的构图。这种方法通过引入深度层次，使画面看起来更像是在一个特定地点（如一个古老建筑或岩洞内）捕捉到的决定性瞬间。前景的深色几何框架不仅增加了视觉趣味，还将观众的注意力集中在远处的剪影上，使其更具戏剧性。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "back-and-down",
+                  "guide_text": "将相机向后和向下移动，使镜头置于某种遮挡结构之后。可以是一个古老的窗框、城墙的豁口或洞穴的入口。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "left",
+                  "guide_text": "微调位置，让前景结构（如一个拱门或一排树枝）形成一个自然的框架，将远处的树和骑士置于框架内。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "zoom",
+                  "direction": "in",
+                  "guide_text": "轻微放大镜头，使前景框架的边缘清晰可见，同时保持主体（树和骑士）在框内的比例，并保持远处的地平线在构图中心附近。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 3621,
+            "total_tokens": 4447
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-03-02T20:47:06.365448",
+          "end_time": "2026-03-02T20:47:30.423059",
+          "response_time_ms": 24057.74420799571,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"diagonal_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将原始构图从水平叙事转变为动态的对角线引导。通过降低视角，原本平坦的雪原被转化为一条强大的对角引导线（地平线），从画面的左下角斜向上延伸至右上角。这不仅增强了画面的景深感和动感，还使原本孤立的元素（树、骑马者和新引入的元素，如远处的羊群或栅栏）在新的对角路径上产生视觉联系。骑马者的后仰剪影现在沿着这条对角线运动，更具视觉张力。整体氛围从静谧变为广阔、充满探索感。中文：通过降低视角和侧移，将平坦的地平线转化为连接画面对角的强引导线。原本水平放置的树和骑马者，现在沿着这条对角路径分布，极大地增强了画面的动感、深度和空间感。原本静止的雪原风景变得充满活力和视觉引导力。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Low-angle\",\n        \"guide_text\": \"将相机视角极度降低，使前景的雪地纹理放大并占据左下角。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left and Down\",\n        \"guide_text\": \"向左下方移动相机，使地平线在画面中从左下角斜向右上角对角穿过。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"Out\",\n        \"guide_text\": \"稍微拉远镜头，扩大视野，以容纳完整的对角引导线。确保树位于对角线上方（例如中景），而骑马者位于对角线下方或远端（例如远景）。\"\n      }\n    ]\n  }\n}\n```\n\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/diagonal_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "diagonal_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将原始构图从水平叙事转变为动态的对角线引导。通过降低视角，原本平坦的雪原被转化为一条强大的对角引导线（地平线），从画面的左下角斜向上延伸至右上角。这不仅增强了画面的景深感和动感，还使原本孤立的元素（树、骑马者和新引入的元素，如远处的羊群或栅栏）在新的对角路径上产生视觉联系。骑马者的后仰剪影现在沿着这条对角线运动，更具视觉张力。整体氛围从静谧变为广阔、充满探索感。中文：通过降低视角和侧移，将平坦的地平线转化为连接画面对角的强引导线。原本水平放置的树和骑马者，现在沿着这条对角路径分布，极大地增强了画面的动感、深度和空间感。原本静止的雪原风景变得充满活力和视觉引导力。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "View-change",
+                  "direction": "Low-angle",
+                  "guide_text": "将相机视角极度降低，使前景的雪地纹理放大并占据左下角。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Left and Down",
+                  "guide_text": "向左下方移动相机，使地平线在画面中从左下角斜向右上角对角穿过。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Zoom",
+                  "direction": "Out",
+                  "guide_text": "稍微拉远镜头，扩大视野，以容纳完整的对角引导线。确保树位于对角线上方（例如中景），而骑马者位于对角线下方或远端（例如远景）。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 891,
+            "candidates_tokens": 1911,
+            "total_tokens": 2802
+          }
+        }
+      ]
+    },
+    {
+      "run_index": 1,
+      "timestamp": "2026-03-02T20:47:59.234821",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 5,
+      "total_time_ms": 29720.47412500251,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-03-02T20:47:59.235049",
+          "end_time": "2026-03-02T20:48:17.038409",
+          "response_time_ms": 17803.45637499704,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原始图像中，唯一的孤树被放置在画面正中央，虽然突出了主体，但整体构图显得过于静态和对称，缺乏视觉上的动态平衡。通过应用‘三分法’，我们将孤树作为视觉焦点移动到左侧或右侧的垂直三分线上，这将为画面引入更多的呼吸空间和故事感。同时，将水平地平线（山脊线）置于下三分线或上三分线上，可以更好地平衡天空和地面的比例，使画面更具深度。这种构图方式可以让观众的目光自然地在画面中移动，增加照片的艺术感染力。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"将相机向左平移，使孤树主体从中轴线移动到画面的左侧垂直三分线上。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"Out\",\n        \"guide_text\": \"微微向后变焦或后退，以在孤树的右侧留出更多天空和雪地的空间，从而平衡画面，并确保地平线位于下三分线附近。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "This re-framed image perfectly exemplifies the Rule of Thirds. We shifted the scene to the right (Step 1), moving the tree to the left-third vertical line and placing the horseman on the right-third vertical line. We also zoomed out (Step 2), which lowered the horizon to the bottom-third horizontal line, creating a much more balanced and expansive landscape composition compared to the centered original."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/rule_of_thirds/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原始图像中，唯一的孤树被放置在画面正中央，虽然突出了主体，但整体构图显得过于静态和对称，缺乏视觉上的动态平衡。通过应用‘三分法’，我们将孤树作为视觉焦点移动到左侧或右侧的垂直三分线上，这将为画面引入更多的呼吸空间和故事感。同时，将水平地平线（山脊线）置于下三分线或上三分线上，可以更好地平衡天空和地面的比例，使画面更具深度。这种构图方式可以让观众的目光自然地在画面中移动，增加照片的艺术感染力。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "将相机向左平移，使孤树主体从中轴线移动到画面的左侧垂直三分线上。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "Out",
+                  "guide_text": "微微向后变焦或后退，以在孤树的右侧留出更多天空和雪地的空间，从而平衡画面，并确保地平线位于下三分线附近。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 806,
+            "candidates_tokens": 1749,
+            "total_tokens": 2555
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-03-02T20:47:59.240708",
+          "end_time": "2026-03-02T20:48:25.432654",
+          "response_time_ms": 26192.081166998832,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将主体精确放置于画面中心可以创造出一种极度的稳定感和庄严感，非常适合这张剪影作品。原图中孤树和昂首的马匹位于右侧，虽然灵动，但通过居中对齐，我们可以将这个强大的剪影组合转化为画面的精神内核。通过裁切并重新平移，让孤树和昂首马匹的组合（作为一个整体主体）精确对准水平和垂直中轴线。这种构图将强调主体的孤寂与力量，使其成为广阔天地的绝对焦点，营造出一种近乎宗教仪式的庄重感。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将镜头向右平移，使孤树和昂首马匹的整体剪影组合移至画面的正中央。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"适当放大（或在后期进行裁切），去除两侧过多的空白天空和雪地，使主体在画面中更加突出，并确保其精确居中。\"\n      }\n    ]\n  }\n}\n",
+            "```",
+            "This centered composition aligns the lone tree and the rearing horse with the central axis of the frame, creating a powerful focal point that emphasizes the solitary strength of the figures against the vast, cold landscape. The symmetry provides a stable, balanced foundation for the dynamic silhouette, drawing the eye directly to the main subjects."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/center_composition/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将主体精确放置于画面中心可以创造出一种极度的稳定感和庄严感，非常适合这张剪影作品。原图中孤树和昂首的马匹位于右侧，虽然灵动，但通过居中对齐，我们可以将这个强大的剪影组合转化为画面的精神内核。通过裁切并重新平移，让孤树和昂首马匹的组合（作为一个整体主体）精确对准水平和垂直中轴线。这种构图将强调主体的孤寂与力量，使其成为广阔天地的绝对焦点，营造出一种近乎宗教仪式的庄重感。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "将镜头向右平移，使孤树和昂首马匹的整体剪影组合移至画面的正中央。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "适当放大（或在后期进行裁切），去除两侧过多的空白天空和雪地，使主体在画面中更加突出，并确保其精确居中。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 810,
+            "candidates_tokens": 1773,
+            "total_tokens": 2583
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-03-02T20:47:59.245999",
+          "end_time": "2026-03-02T20:48:20.878597",
+          "response_time_ms": 21632.702374990913,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"leading_lines\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个非常干净、极简的剪影场景，孤树和起势的骏马在蓝色雪原和日落余晖下非常醒目。然而，前景广阔的蓝色雪原相对缺乏视觉焦点，没有引导观众的线条。通过应用‘引导线’技巧，我们将在前景雪原中引入一组天然的纹理线条（如风吹过雪面留下的脊线或低矮的冰凌边缘），这些线条从画面的角落出发，汇聚并直指画面中央的树与马。这不仅增强了画面的景深，使空间感更加立体，而且让观众的视线更自然、更有力地投向主体，提升了整体的故事感和视觉冲击力。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Low-angle\",\n        \"guide_text\": \"将相机视角极度压低，贴近雪面。这一步是关键，它能让前景的雪面纹理被放大并拉长，形成更清晰的几何线条。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"稍微向右移动，以确保前景的雪原纹理（如风蚀的脊线）从画面的左下角和左侧边缘出发，形成斜向汇聚的线条，直指孤树和骏马所在的中心区域。\"\n      }\n    ]\n  }\n}\n",
+            "```",
+            "This is a classic 'Leading Lines' re-imagining of your scene. The original had the subjects centrally placed but lacked strong foreground elements. By shifting the perspective low and using natural wind-sculpted snow ridges, we have created a clear path for the viewer's eye, starting from the corners and leading directly to the silhouette of the tree and the rearing horse. This adds significant depth and narrative power."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/leading_lines/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "leading_lines",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图是一个非常干净、极简的剪影场景，孤树和起势的骏马在蓝色雪原和日落余晖下非常醒目。然而，前景广阔的蓝色雪原相对缺乏视觉焦点，没有引导观众的线条。通过应用‘引导线’技巧，我们将在前景雪原中引入一组天然的纹理线条（如风吹过雪面留下的脊线或低矮的冰凌边缘），这些线条从画面的角落出发，汇聚并直指画面中央的树与马。这不仅增强了画面的景深，使空间感更加立体，而且让观众的视线更自然、更有力地投向主体，提升了整体的故事感和视觉冲击力。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "View-change",
+                  "direction": "Low-angle",
+                  "guide_text": "将相机视角极度压低，贴近雪面。这一步是关键，它能让前景的雪面纹理被放大并拉长，形成更清晰的几何线条。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "稍微向右移动，以确保前景的雪原纹理（如风蚀的脊线）从画面的左下角和左侧边缘出发，形成斜向汇聚的线条，直指孤树和骏马所在的中心区域。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 1842,
+            "total_tokens": 2668
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-03-02T20:47:59.251576",
+          "end_time": "2026-03-02T20:48:28.948205",
+          "response_time_ms": 29696.78254199971,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"foreground_framing\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图展现了一个美丽的剪影场景，但由于前景缺乏细节，显得有些单薄。通过引入前景框架，可以增加画面的层次感和故事性。我们将通过低角度和向一侧移动，利用更近处的雪地和一丛带有积雪的枯草作为前景框架。这些元素将虚化，环绕在画面底部和左侧，不仅增强了景深，还将观众的视线更强烈地引向远处的孤独树木和跃马剪影。虚实对比让远处的剪影显得更加空灵和神圣。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"low-angle\",\n        \"guide_text\": \"尝试将镜头高度降得更低，接近地面。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"left\",\n        \"guide_text\": \"向左移动几步，寻找可以作为前景的物体。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"in\",\n        \"guide_text\": \"轻微放大镜头，使前景物体在画面中占据更大比例。选择一丛带有积雪的枯草或树枝，调整机位，让其在画面底部和左侧形成自然的、略微虚化的画框，将远处的树和跃马包围在内。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "This composition adds significant depth by utilizing natural foreground elements found in the winter scene. I have lowered the camera to place snow-dusted, dry grass and frosted twigs in the immediate foreground, forming a natural, out-of-focus dark frame. The familiar subjects—the lone bare tree and the rearing horseman—remain centered in the distance against the sunset horizon, framed perfectly by the blurred foreground texture, creating a much more layered and immersive photograph."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/foreground_framing/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "foreground_framing",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图展现了一个美丽的剪影场景，但由于前景缺乏细节，显得有些单薄。通过引入前景框架，可以增加画面的层次感和故事性。我们将通过低角度和向一侧移动，利用更近处的雪地和一丛带有积雪的枯草作为前景框架。这些元素将虚化，环绕在画面底部和左侧，不仅增强了景深，还将观众的视线更强烈地引向远处的孤独树木和跃马剪影。虚实对比让远处的剪影显得更加空灵和神圣。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "low-angle",
+                  "guide_text": "尝试将镜头高度降得更低，接近地面。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "left",
+                  "guide_text": "向左移动几步，寻找可以作为前景的物体。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "zoom",
+                  "direction": "in",
+                  "guide_text": "轻微放大镜头，使前景物体在画面中占据更大比例。选择一丛带有积雪的枯草或树枝，调整机位，让其在画面底部和左侧形成自然的、略微虚化的画框，将远处的树和跃马包围在内。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 1825,
+            "total_tokens": 2651
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-03-02T20:47:59.257602",
+          "end_time": "2026-03-02T20:48:27.814550",
+          "response_time_ms": 28557.102583989035,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"diagonal_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将原始图像中呈水平状的山脊线，调整为从构图的左下角延伸至右上角的对角线。这种构图可以利用场景中仅有的线性元素（山脊线），赋予原本静态的画面更强的动感和视觉引导性，将观众的视线引向位于右上部主导位置的孤树和骑手剪影。调整后，地面（雪地山坡）和天空在构图上被对角线分割，画面更具视觉张力。由于山脊是场景中真实的物理线条，而非倾斜相机造成的虚假对角线，因此这种方法完全适用。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"low-angle, side-view\",\n        \"guide_text\": \"将相机机位降低，并向左侧（相对于原始视角）移动。调整拍摄角度，使得原本水平的山脊线在取景器中呈现为一个明显的、从左下角延伸至右上角的对角线。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"right\",\n        \"guide_text\": \"在调整角度后，将相机整体向右侧平移，将孤树和骑手剪影重新置于画面右上部的对角线交叉点或视觉重心区域，确保它们仍然是画面的核心焦点，但整体构图从水平居中变为对角线导向。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"out\",\n        \"guide_text\": \"轻微缩小焦距，以扩大视野，将更多前景的雪地纹理（现在也呈对角线延伸）纳入画面，进一步增强对角线的引导感，并使天空和地面的比例更均衡地分布在对角线两侧。\"\n      }\n    ]\n  }\n}\n```\n\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/diagonal_composition/run1_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "diagonal_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将原始图像中呈水平状的山脊线，调整为从构图的左下角延伸至右上角的对角线。这种构图可以利用场景中仅有的线性元素（山脊线），赋予原本静态的画面更强的动感和视觉引导性，将观众的视线引向位于右上部主导位置的孤树和骑手剪影。调整后，地面（雪地山坡）和天空在构图上被对角线分割，画面更具视觉张力。由于山脊是场景中真实的物理线条，而非倾斜相机造成的虚假对角线，因此这种方法完全适用。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "low-angle, side-view",
+                  "guide_text": "将相机机位降低，并向左侧（相对于原始视角）移动。调整拍摄角度，使得原本水平的山脊线在取景器中呈现为一个明显的、从左下角延伸至右上角的对角线。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "right",
+                  "guide_text": "在调整角度后，将相机整体向右侧平移，将孤树和骑手剪影重新置于画面右上部的对角线交叉点或视觉重心区域，确保它们仍然是画面的核心焦点，但整体构图从水平居中变为对角线导向。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "zoom",
+                  "direction": "out",
+                  "guide_text": "轻微缩小焦距，以扩大视野，将更多前景的雪地纹理（现在也呈对角线延伸）纳入画面，进一步增强对角线的引导感，并使天空和地面的比例更均衡地分布在对角线两侧。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 891,
+            "candidates_tokens": 1873,
+            "total_tokens": 2764
+          }
+        }
+      ]
+    },
+    {
+      "run_index": 2,
+      "timestamp": "2026-03-02T20:48:30.963579",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 5,
+      "total_time_ms": 38802.34979199304,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-03-02T20:48:30.963745",
+          "end_time": "2026-03-02T20:49:05.291491",
+          "response_time_ms": 34327.94154199655,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原始图像中，唯一的树位于中心位置。虽然树本身是一个强有力的主体，但将其放在正中心会产生一种静态和过于正式的感觉。原始图像中没有其他元素（如马）可以形成对比，因此中心构图显得有些单调。通过使用三分法，将树移动到左侧三分之一的垂直线上，可以打破这种静态，并在右侧创造出更多的开放空间。这个开放空间现在充满了动态：一匹马在雪坡上跃起，其位置正好落在右下角的三分之一交叉点附近。这种重新构图不仅平衡了画面（左侧的主体与右侧的动态前景），而且增加了故事性和视觉张力，使整个场景更加生动。地平线也被精确地定位在下三分之一的水平线上。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将相机向右移动，或者重新构图，使树的主干位于画面左侧三分之一的垂直线上。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"将相机向上移动，或者重新构图，使远处的地平线（山脊线）位于下三分之一的水平线上，为天空和雪坡提供更平衡的比例。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已根据您的要求分析了原始图像，并生成了应用**三分法（Rule of Thirds）**后的目标构图。\n\n在原始图像中，孤树位于正中心，构图过于静态。我们通过将树移动到左侧三分之一的垂直线上，打破了这种单调感，并平衡了画面。同时，我们在右下角的三分之一交叉点附近加入了一匹跃起的马，利用右侧的开放空间增加了视觉张力和故事性。地平线也被精确地定位在下三分之一的水平线上，使整个场景更加生动、平衡。\n\n以下是为您准备的构图方案和调整步骤：\n\n```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原始图像中，唯一的树位于中心位置。虽然树本身是一个强有力的主体，但将其放在正中心会产生一种静态和过于正式的感觉。通过使用三分法，将树移动到左侧三分之一的垂直线上，可以打破这种静态，并在右侧创造出更多的开放空间。这个开放空间现在充满了动态：一匹马在雪坡上跃起，其位置正好落在右下角的三分之一交叉点附近。这种重新构图不仅平衡了画面（左侧的主体与右侧的动态前景），而且增加了故事性和视觉张力，使整个场景更加生动。地平线也被精确地定位在下三分之一的水平线上。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"将相机向右移动，或者重新构图，使树的主干位于画面左侧三分之一的垂直线上。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Up\",\n        \"guide_text\": \"将相机向上移动，或者重新构图，使远处的地平线（山脊线）位于下三分之一的水平线上，为天空和雪坡提供更平衡的比例。\"\n      }\n    ]\n  }\n}\n```"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/rule_of_thirds/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原始图像中，唯一的树位于中心位置。虽然树本身是一个强有力的主体，但将其放在正中心会产生一种静态和过于正式的感觉。原始图像中没有其他元素（如马）可以形成对比，因此中心构图显得有些单调。通过使用三分法，将树移动到左侧三分之一的垂直线上，可以打破这种静态，并在右侧创造出更多的开放空间。这个开放空间现在充满了动态：一匹马在雪坡上跃起，其位置正好落在右下角的三分之一交叉点附近。这种重新构图不仅平衡了画面（左侧的主体与右侧的动态前景），而且增加了故事性和视觉张力，使整个场景更加生动。地平线也被精确地定位在下三分之一的水平线上。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "将相机向右移动，或者重新构图，使树的主干位于画面左侧三分之一的垂直线上。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Up",
+                  "guide_text": "将相机向上移动，或者重新构图，使远处的地平线（山脊线）位于下三分之一的水平线上，为天空和雪坡提供更平衡的比例。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 806,
+            "candidates_tokens": 2229,
+            "total_tokens": 3035
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-03-02T20:48:30.968731",
+          "end_time": "2026-03-02T20:49:04.396606",
+          "response_time_ms": 33428.04954199528,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将主体（这棵孤树和起势的骑士）置于画面中央，可以极大增强画面的稳定感和庄严感，使观者的目光直接聚焦在戏剧性的剪影上。虽然骑士位于树的一侧，但我们可以通过更紧密的构图，让整个组合在视觉上占据画面的中心。同时，可以尝试利用广角镜头的透视，让雪地山坡的线条和天空的渐变形成某种对称或引导线，共同汇聚向中心，从而创造一种更具力量感的对称美，而不仅仅是物理位置的居中。我们将采用更接近水平视角的中心构图。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"View-change\",\n        \"direction\": \"水平\",\n        \"guide_text\": \"首先，将您的拍摄视点降低，调整至几乎与地面水平的角度。这有助于更好地利用地面的雪纹和地平线线条。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"左下\",\n        \"guide_text\": \"将镜头向左下方移动，让孤树和它旁边的骑士（作为一个整体组合）精确地落在取景框的几何中心。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"放大\",\n        \"guide_text\": \"轻微放大（拉近焦距），使孤树和骑士剪影在画面中占据更显著的位置，裁掉过多的天空。让山坡的雪地纹理呈放射状从底部中心向两侧展开，形成视觉上的对称感。\"\n      }\n    ]\n  }\n}\n",
+            "```"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/center_composition/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将主体（这棵孤树和起势的骑士）置于画面中央，可以极大增强画面的稳定感和庄严感，使观者的目光直接聚焦在戏剧性的剪影上。虽然骑士位于树的一侧，但我们可以通过更紧密的构图，让整个组合在视觉上占据画面的中心。同时，可以尝试利用广角镜头的透视，让雪地山坡的线条和天空的渐变形成某种对称或引导线，共同汇聚向中心，从而创造一种更具力量感的对称美，而不仅仅是物理位置的居中。我们将采用更接近水平视角的中心构图。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "View-change",
+                  "direction": "水平",
+                  "guide_text": "首先，将您的拍摄视点降低，调整至几乎与地面水平的角度。这有助于更好地利用地面的雪纹和地平线线条。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "左下",
+                  "guide_text": "将镜头向左下方移动，让孤树和它旁边的骑士（作为一个整体组合）精确地落在取景框的几何中心。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Zoom",
+                  "direction": "放大",
+                  "guide_text": "轻微放大（拉近焦距），使孤树和骑士剪影在画面中占据更显著的位置，裁掉过多的天空。让山坡的雪地纹理呈放射状从底部中心向两侧展开，形成视觉上的对称感。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 810,
+            "candidates_tokens": 1816,
+            "total_tokens": 2626
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-03-02T20:48:30.974985",
+          "end_time": "2026-03-02T20:48:54.094189",
+          "response_time_ms": 23119.31670899503,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"leading_lines\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个非常干净的剪影场景，但由于雪地纹理较为杂乱且拍摄角度偏高，缺乏明确的引导线将观众的视线引向主体（树和骑马者）。通过降低拍摄视角，可以利用雪地表面微小的地貌起伏、车辙或自然形成的雪垄痕迹。我们将这些原本分散的线条汇聚成几条主要的径向线条，从画面的前景中央和两侧延伸出来，直接指向山丘顶部的主体。这样不仅强化了主体的视觉地位，还增加了解析度和景深感。主体本身（树和骑马者）保持其经典的剪影位置，作为引导线的终点。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Low-angle\",\n        \"guide_text\": \"将相机贴近雪地，采用低角度拍摄。这可以压缩前景，使其纹理更密集，并使雪地上的自然线条（如车辙或雪垄）显得更加绵长和汇聚。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Lower and Center\",\n        \"guide_text\": \"稍微向后并向下移动，使前景的雪垄或车辙呈现出清晰的径向透视。确保这些线条从画面的底部边缘开始，干净地指向远处的山丘和主体。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"Out (slightly)\",\n        \"guide_text\": \"如果需要，稍微拉宽焦距，以容纳更长的前景引导线，确保其汇聚效果明显。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已根据您的要求分析了原图，并为您生成了应用“引导线”技巧后的最佳效果图。通过将相机视角贴近雪地，我们利用原本模糊的纹理创建了清晰、汇聚的车辙线条，将观众的视线直接引向山丘上的树和骑马者，从而极大地增强了画面的景深和视觉冲击力。"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/leading_lines/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "leading_lines",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图是一个非常干净的剪影场景，但由于雪地纹理较为杂乱且拍摄角度偏高，缺乏明确的引导线将观众的视线引向主体（树和骑马者）。通过降低拍摄视角，可以利用雪地表面微小的地貌起伏、车辙或自然形成的雪垄痕迹。我们将这些原本分散的线条汇聚成几条主要的径向线条，从画面的前景中央和两侧延伸出来，直接指向山丘顶部的主体。这样不仅强化了主体的视觉地位，还增加了解析度和景深感。主体本身（树和骑马者）保持其经典的剪影位置，作为引导线的终点。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "View-change",
+                  "direction": "Low-angle",
+                  "guide_text": "将相机贴近雪地，采用低角度拍摄。这可以压缩前景，使其纹理更密集，并使雪地上的自然线条（如车辙或雪垄）显得更加绵长和汇聚。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Lower and Center",
+                  "guide_text": "稍微向后并向下移动，使前景的雪垄或车辙呈现出清晰的径向透视。确保这些线条从画面的底部边缘开始，干净地指向远处的山丘和主体。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Zoom",
+                  "direction": "Out (slightly)",
+                  "guide_text": "如果需要，稍微拉宽焦距，以容纳更长的前景引导线，确保其汇聚效果明显。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 1973,
+            "total_tokens": 2799
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-03-02T20:48:30.980637",
+          "end_time": "2026-03-02T20:49:01.685256",
+          "response_time_ms": 30704.778082988923,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"foreground_framing\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"使用前景构图技术，通过将现有的雪地元素和潜在的天然岩石放置在镜头极近处，我们可以为这张原本开阔、极简的图像增加极具深度的层次感。将相机靠近地面，利用地形边缘和被雪覆盖的岩石（如 image_0.png 所示，前景中已有雪和少量草丛，我们将这些元素放大），自然地构建一个“窗框”，使远处的树和昂扬的马成为这个框中的焦点，从而增强视觉冲击力。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"View-change\",\n        \"direction\": \"Low-angle\",\n        \"guide_text\": \"将相机视角移至极低角度，贴近地面雪层。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Down\",\n        \"guide_text\": \"向下移动相机，直到镜头极近处（前景）被雪覆盖的岩石和地形边缘占据画面底部的显著部分。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"轻微拉近焦距，使前景元素（放大的雪地和岩石）看起来更大、更清晰，同时保持远处的树和昂扬的马（image_0.png 的核心主题）在这些前景元素的空隙中清晰可见。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "This generated image successfully applies the foreground framing technique. While the original scene was very open, I introduced realistic, snow-covered rocks in the extreme foreground (a view-change and shift down, simulating a low angle from behind cover). This effectively creates a dark, natural frame (a window effect) around the original subject matter: the bare tree and the rearing horse silhouette. This transformation maintains the aesthetic while vastly increasing the perceived depth of field, showcasing the requested technique perfectly."
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/foreground_framing/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "foreground_framing",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "使用前景构图技术，通过将现有的雪地元素和潜在的天然岩石放置在镜头极近处，我们可以为这张原本开阔、极简的图像增加极具深度的层次感。将相机靠近地面，利用地形边缘和被雪覆盖的岩石（如 image_0.png 所示，前景中已有雪和少量草丛，我们将这些元素放大），自然地构建一个“窗框”，使远处的树和昂扬的马成为这个框中的焦点，从而增强视觉冲击力。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "View-change",
+                  "direction": "Low-angle",
+                  "guide_text": "将相机视角移至极低角度，贴近地面雪层。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Shift",
+                  "direction": "Down",
+                  "guide_text": "向下移动相机，直到镜头极近处（前景）被雪覆盖的岩石和地形边缘占据画面底部的显著部分。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "轻微拉近焦距，使前景元素（放大的雪地和岩石）看起来更大、更清晰，同时保持远处的树和昂扬的马（image_0.png 的核心主题）在这些前景元素的空隙中清晰可见。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 1871,
+            "total_tokens": 2697
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-03-02T20:48:30.986874",
+          "end_time": "2026-03-02T20:49:09.762430",
+          "response_time_ms": 38775.768250008696,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"diagonal_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个非常平衡且静止的剪影。孤独的树和起伏的山丘主导了画面，主体（树和人马）垂直且居中，虽然构图经典，但缺乏动态引导。对角线构图在此场景中完全适用，可以利用雪地山丘的边缘和地面的纹理作为引导线。通过改变视角和取景，我们可以将原本接近水平的山脊线转化为引导视线的动态对角线，同时利用雪地本身的起伏纹理强化这种对角感。新的构图将利用这些物理线条，将观众的视线从前景（左下角）引导至背景的主体（右上角），极大地增加画面的动感和深度。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"down-left\",\n        \"guide_text\": \"将相机视角显著移向左下方，并适当降低。目标是捕捉更长的山脊线斜坡和前景雪地的纹理。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"right\",\n        \"guide_text\": \"在水平方向上向右移动相机，使主体（树和人马）在画面中偏移。让主体从原本的中心位置移向画面的右上部，成为对角线的终点。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"in\",\n        \"guide_text\": \"适当拉近镜头焦距，强化引导线的汇聚感。确保山丘的边缘从左下角斜着向上延伸，直指向右上角的树和人马剪影。\"\n      }\n    ]\n  }\n}\n```\n\n",
+            "我已根据您的要求分析了图像，并为您生成了应用“对角线构图”的方案。\n\n由于场景本身主要由水平线（山丘）和垂直主体（树和人马）构成，传统的“改变视角”方法在此并不适用，因此我采用了图像旋转和重构（倾斜镜头）的方式来创造对角感，同时调整了光线以配合新的动态布局。\n\n以下是具体的调整建议和效果。\n\n### 对角线构图调整方案\n\n{\n  \"is_applicable\": true,\n  \"technique\": \"diagonal_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"原图是一个非常平衡且静止的剪影。孤独的树和起伏的山丘主导了画面，主体（树和人马）垂直且居中，虽然构图经典，但缺乏动态引导。由于场景中缺乏可调节视角的物理对角线（如围栏或道路），我选择了旋转构图（Dutch Angle）的方式，将原本水平的山脊线转化为一条从左下角延伸至右上角的动态引导线，同时利用雪地的纹理强化这种方向感。新的构图极大地增加了画面的动感和深度，使原本静止的剪影显得更加激昂。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"view-change\",\n        \"direction\": \"rotate-left\",\n        \"guide_text\": \"将相机向左倾斜（或者在后期旋转图像），使原本水平的山脊线变为从画面左下角指向右上角的对角线。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"shift\",\n        \"direction\": \"up-right\",\n        \"guide_text\": \"在水平和垂直方向上向右上移动相机，使主体（树和人马）在画面中偏移。让主体从原本的中心位置移向画面的右上部，成为对角线的终点。\"\n      },\n      {\n        \"step_order\": 3,\n        \"action_type\": \"zoom\",\n        \"direction\": \"out\",\n        \"guide_text\": \"适当拉远镜头焦距或重新构图，确保前景的雪地纹理也能顺应新的对角线方向，增强画面的整体动感。\"\n      }\n    ]\n  }\n}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260302_204706/diagonal_composition/run2_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "diagonal_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "原图是一个非常平衡且静止的剪影。孤独的树和起伏的山丘主导了画面，主体（树和人马）垂直且居中，虽然构图经典，但缺乏动态引导。对角线构图在此场景中完全适用，可以利用雪地山丘的边缘和地面的纹理作为引导线。通过改变视角和取景，我们可以将原本接近水平的山脊线转化为引导视线的动态对角线，同时利用雪地本身的起伏纹理强化这种对角感。新的构图将利用这些物理线条，将观众的视线从前景（左下角）引导至背景的主体（右上角），极大地增加画面的动感和深度。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "view-change",
+                  "direction": "down-left",
+                  "guide_text": "将相机视角显著移向左下方，并适当降低。目标是捕捉更长的山脊线斜坡和前景雪地的纹理。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "shift",
+                  "direction": "right",
+                  "guide_text": "在水平方向上向右移动相机，使主体（树和人马）在画面中偏移。让主体从原本的中心位置移向画面的右上部，成为对角线的终点。"
+                },
+                {
+                  "step_order": 3,
+                  "action_type": "zoom",
+                  "direction": "in",
+                  "guide_text": "适当拉近镜头焦距，强化引导线的汇聚感。确保山丘的边缘从左下角斜着向上延伸，直指向右上角的树和人马剪影。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 891,
+            "candidates_tokens": 2354,
+            "total_tokens": 3245
+          }
+        }
+      ]
+    }
+  ]
+}

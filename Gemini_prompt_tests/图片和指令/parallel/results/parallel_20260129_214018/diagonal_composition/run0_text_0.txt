@@ -1,0 +1,24 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "diagonal_composition",
+  "reasoning": "这张照片的元素，包括地平线和树与骑手的剪影，可以巧妙地重新构图，使其形成对角线，从而增加画面的动感和视觉引导。",
+  "composition_data": {
+    "aesthetic_desc": "将地平线和树木与骑手形成一条从左下到右上或从右下到左上的对角线，增加照片的动感和深度，引导观众的视线穿过画面。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Left-Down",
+        "guide_text": "向左下方移动相机，使得地平线从画面的一角延伸至另一角。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "View-change",
+        "direction": "Side-view",
+        "guide_text": "轻微倾斜相机，使地平线形成一条更明显的对角线，同时保持树木和骑手在对角线上。"
+      }
+    ]
+  }
+}
+```

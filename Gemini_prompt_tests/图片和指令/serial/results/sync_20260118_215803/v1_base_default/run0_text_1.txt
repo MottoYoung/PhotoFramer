@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "通过向左平移并拉近，突出画面左侧的两位人物，创造一个更私密的对话场景，同时减少背景干扰。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使画面主要聚焦在左侧两位人物上。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，将左侧两位人物充满画面，裁剪掉右侧的伞和人物，使画面更简洁，主题更明确。"
+    }
+  ]
+}
+```

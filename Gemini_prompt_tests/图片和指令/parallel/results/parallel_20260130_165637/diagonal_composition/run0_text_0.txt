@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "diagonal_composition",
+  "reasoning": "此场景中没有明显的对角线引导元素。主体（树和骑马人）是垂直的，而地平线是水平的，画面缺乏可以用于对角线构图的自然线条。简单地倾斜相机（荷兰式角度）会使画面看起来不自然。",
+  "composition_data": null
+}
+```

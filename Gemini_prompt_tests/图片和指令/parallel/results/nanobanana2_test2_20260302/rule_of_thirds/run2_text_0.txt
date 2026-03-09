@@ -1,0 +1,28 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原始图像中，三个人物都集中在左侧三分之二的区域，右侧虽然有伞，但整体构图偏重左侧，缺乏平衡感。通过应用三分法，我们可以重新构图，将主要的兴趣点——中间的微笑老者和右侧撑伞人的伞和背影——分别放置在画面的关键网格线上，从而创造出更平衡、更具动感的构图。新的构图将引导观众的视线在两个主要元素之间移动，同时利用斜射的阳光和阴影增加深度。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "将相机向右移动，重新对焦，使画面重新对齐。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "轻微放大（Zoom In）以更紧凑地构图，去除左侧过多的空白墙面，并强化主体。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Positioning",
+        "direction": "Center",
+        "guide_text": "调整画面，使微笑的蓝色上衣老者（中心人物）的身体大致位于左侧垂直三分线上，而他的头部（面部表情）位于左上方的交叉点。同时，确保右侧撑伞妇人的伞顶边缘和她身体的一部分位于右侧垂直三分线上，伞的中心部分接近右侧三分线。最左侧的蹲坐者和篮子仍然保留在画面左边缘，作为环境点缀，但不再是视觉焦点。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "foreground_framing",
+  "reasoning": "当前场景是一个开放的街道空间，前景没有明显的自然物体（如树枝、门框、窗户等）可以用来构建框架。要应用前景框架技术，需要引入新的元素或彻底改变拍摄视角，这在当前场景下是不自然的。",
+  "composition_data": null
+}
+```

@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "leading_lines",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图是一个非常干净的剪影场景，但由于雪地纹理较为杂乱且拍摄角度偏高，缺乏明确的引导线将观众的视线引向主体（树和骑马者）。通过降低拍摄视角，可以利用雪地表面微小的地貌起伏、车辙或自然形成的雪垄痕迹。我们将这些原本分散的线条汇聚成几条主要的径向线条，从画面的前景中央和两侧延伸出来，直接指向山丘顶部的主体。这样不仅强化了主体的视觉地位，还增加了解析度和景深感。主体本身（树和骑马者）保持其经典的剪影位置，作为引导线的终点。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "View-change",
+        "direction": "Low-angle",
+        "guide_text": "将相机贴近雪地，采用低角度拍摄。这可以压缩前景，使其纹理更密集，并使雪地上的自然线条（如车辙或雪垄）显得更加绵长和汇聚。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Lower and Center",
+        "guide_text": "稍微向后并向下移动，使前景的雪垄或车辙呈现出清晰的径向透视。确保这些线条从画面的底部边缘开始，干净地指向远处的山丘和主体。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "Out (slightly)",
+        "guide_text": "如果需要，稍微拉宽焦距，以容纳更长的前景引导线，确保其汇聚效果明显。"
+      }
+    ]
+  }
+}
+```
+

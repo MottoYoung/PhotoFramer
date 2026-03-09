@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "diagonal_composition",
+  "reasoning": "此场景中没有明显的对角线条或引导线可以用来进行对角线构图。照片中的地平线和树木都是水平或垂直的，不适合通过简单的构图调整来创建自然的对角线效果。如果强行制造对角线，可能会导致画面不自然或失衡。",
+  "composition_data": null
+}
+```

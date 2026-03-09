@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "向左平移，减少顶部空间，聚焦人物互动。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使画面更聚焦在人物互动上。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Up",
+      "guide_text": "向上平移，减少顶部过多的墙面空间。"
+    }
+  ]
+}
+```

@@ -1,0 +1,50 @@
+{
+  "timestamp": "20260131_211452",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 1,
+  "prompts_config": {
+    "parallel_v2": {
+      "description": "通过拼接多张图片来达到并行化的目的",
+      "system_instruction": "# Role: AI Photography Layout Editor & Composition Expert\n# Task: Analyze the user's input image and create a single \"Composition Contact Sheet\".\n# Output Requirement: You must generate EXACTLY TWO parts in your response:\n#   PART 1: A strictly formatted JSON object (Text Part).\n#   PART 2: A single 2x2 grid collage image (Image Part).\n\n# === IMAGE GENERATION RULES (Crucial Visual Constraints) ===\n1.  **Layout**: The final image MUST be a **2x2 Grid**.\n    * Top-Left Panel\n    * Top-Right Panel\n    * Bottom-Left Panel\n    * Bottom-Right Panel\n2.  **Separators**: You MUST draw bright **NEON GREEN lines with thickness of 5 pixels** (纯亮绿色线条) to separate the 4 panels. There should be one vertical green line down the center and one horizontal green line across the middle, forming a green cross.\n3.  **Content Content Assignment (Strict mapping)**:\n    * **Top-Left Panel**: Apply **\"Rule of Thirds\"** (三分构图). Place main subjects on grid intersections.\n    * **Top-Right Panel**: Apply **\"Center Composition\"** (中心构图). Place main subject perfectly in the middle.\n    * **Bottom-Left Panel**: Apply **\"Leading Lines\"** (引导线构图). Utilize lines pointing to the subject. (If none exist, create the best possible balanced shot).\n    * **Bottom-Right Panel**: Apply **\"Foreground Framing\"** (前景框架). Use foreground elements to frame the subject. (If none exist, use a tight close-up or focus-stacking effect to simulate depth).\n4.  **Realism**: Each panel must be a photorealistic re-composition of the original scene.\n\n# === JSON STRUCTURE RULES (Data Mapping) ===\nThe JSON must contain an array of 4 objects, strictly corresponding to the 2x2 grid order: [Top-Left, Top-Right, Bottom-Left, Bottom-Right].\n\n# JSON Schema definition:\n{\n  \"layout\": \"2x2_grid_with_green_separators\",\n  \"compositions\": [\n    // Array Index 0 -> Maps to Top-Left Image Panel\n    {\n      \"position\": \"top_left\",\n      \"technique\": \"rule_of_thirds\",\n      \"is_applicable\": true, // Set to false if this technique looks terrible for the scene, but still generate the image panel.\n      \"aesthetic_desc\": \"Chinese description...\",\n      \"steps\": [{ \"action\": \"...\", \"guide\": \"Chinese instruction...\" }]\n    },\n    // Array Index 1 -> Maps to Top-Right Image Panel\n    {\n      \"position\": \"top_right\",\n      \"technique\": \"center_composition\",\n      // ... same structure\n    },\n    // Array Index 2 -> Maps to Bottom-Left Image Panel\n    {\n      \"position\": \"bottom_left\",\n      \"technique\": \"leading_lines\",\n      // ... same structure\n    },\n    // Array Index 3 -> Maps to Bottom-Right Image Panel\n    {\n      \"position\": \"bottom_right\",\n      \"technique\": \"foreground_framing\",\n      // ... same structure\n    }\n  ]\n}\n\n# General Constraints:\n1. All instruction text must be in **Chinese (中文)**.\n2. The JSON MUST come before the Image generation.\n",
+      "user_prompt": "# Task Request\nPlease generate the 2x2 Composition Contact Sheet based on the attached image, following all layout and green separator rules defined in the system instructions.\n"
+    }
+  },
+  "results": [
+    {
+      "case_id": "parallel_v2_default",
+      "prompt_id": "parallel_v2",
+      "model_config_id": "default",
+      "total_runs": 1,
+      "successful_runs": 1,
+      "failed_runs": 0,
+      "avg_response_time_ms": 15742.683042000863,
+      "min_response_time_ms": 15742.683042000863,
+      "max_response_time_ms": 15742.683042000863,
+      "std_response_time_ms": 0,
+      "all_timings": [
+        {
+          "case_id": "parallel_v2_default",
+          "run_index": 0,
+          "start_time": "2026-01-31T21:14:52.552718",
+          "end_time": "2026-01-31T21:15:08.295285",
+          "response_time_ms": 15742.683042000863,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"layout\": \"2x2_grid_with_green_separators\",\n  \"compositions\": [\n    {\n      \"position\": \"top_left\",\n      \"technique\": \"rule_of_thirds\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"将主要人物置于三分线交点，使画面更具动态感和视觉吸引力。中心人物（穿蓝色T恤的男子）位于右侧垂直三分线，头部接近上方水平三分线交点。\",\n      \"steps\": [\n        {\n          \"action\": \"调整相机位置或裁剪\",\n          \"guide\": \"将图像主体（蓝色T恤的男子）放置在画面的右侧三分之一处，使他的眼睛或面部特征与上方三分之一的水平线相交。\"\n        },\n        {\n          \"action\": \"考虑背景元素\",\n          \"guide\": \"确保背景中的其他人物和物品也能在三分法构图下保持平衡，不要过度集中在画面中央。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"top_right\",\n      \"technique\": \"center_composition\",\n      \"is_applicable\": true,\n      \"aesthetic_desc\": \"将画面中最引人注目的人物置于正中央，突出其重要性和直接的视觉冲击力。穿蓝色T恤的男子被清晰地放置在画面中心。\",\n      \"steps\": [\n        {\n          \"action\": \"聚焦并居中\",\n          \"guide\": \"将穿蓝色T恤的男子精确地放置在画面的中央，使他的身体大致位于图像的正中心。\"\n        },\n        {\n          \"action\": \"确保清晰度\",\n          \"guide\": \"确保中心人物清晰对焦，背景可适当虚化以进一步突出主体。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"bottom_left\",\n      \"technique\": \"leading_lines\",\n      \"is_applicable\": false,\n      \"aesthetic_desc\": \"原图中没有明显的自然引导线，但通过调整视角和焦点，仍能创造出引导视觉的效果。这里通过地面的线条将视线引向人物。\",\n      \"steps\": [\n        {\n          \"action\": \"寻找或创造引导线\",\n          \"guide\": \"利用地面上的阴影或地面的边缘线，使其指向画面中的人物，引导观众视线。\"\n        },\n        {\n          \"action\": \"调整角度\",\n          \"guide\": \"略微降低拍摄角度，使地面的线条或边缘在画面中更显眼，形成引导效果。\"\n        }\n      ]\n    },\n    {\n      \"position\": \"bottom_right\",\n      \"technique\": \"foreground_framing\",\n      \"is_applicable\": false,\n      \"aesthetic_desc\": \"原图中没有现成的前景元素可用于构图，因此通过靠近拍摄，将人物头部和上半身作为主体，营造出亲近感，并利用光影作为非传统前景。也可通过虚化前景模拟框架。\",\n      \"steps\": [\n        {\n          \"action\": \"靠近主体\",\n          \"guide\": \"将相机移近画面中的人物，以他的肩膀或头顶作为前景，或利用其他模糊的近景物体虚化前景来框住人物。\"\n        },\n        {\n          \"action\": \"选择性对焦\",\n          \"guide\": \"确保主体清晰，前景和背景适当虚化，以突出被框住的人物。\"\n        }\n      ]\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t_pinjie/results/sync_20260131_211452/parallel_v2_default/run0_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 1054,
+            "candidates_tokens": 2089,
+            "total_tokens": 3143
+          }
+        }
+      ]
+    }
+  ]
+}

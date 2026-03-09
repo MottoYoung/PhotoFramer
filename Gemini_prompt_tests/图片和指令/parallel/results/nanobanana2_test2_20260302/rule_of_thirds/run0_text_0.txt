@@ -1,0 +1,16 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "rule_of_thirds",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原始图像中，三个人物都集中在画面中央和右侧，左侧显得较为单调空旷，整体构图不平衡。通过向右移动镜头，我们可以将主体（中心的老人）置于左侧三分之一线上，从而达到平衡。此外，通过重新构图，可以让画面中的主要元素（特别是中心老人的头部和影子）分别对应不同的三分线，使视觉流动更加自然，画面整体更具动态平衡感。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右移动镜头（约1/3个画面宽度），使中心的老人（穿蓝色Polo衫）和他的影子整体向左移动。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "向右平移，切掉左侧不相关人物，并让中心人物处于黄金分割线。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，切掉左侧不相关人物。"
+    }
+  ]
+}
+```

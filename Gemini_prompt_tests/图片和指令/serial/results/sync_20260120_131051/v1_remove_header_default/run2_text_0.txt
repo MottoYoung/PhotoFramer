@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "向左平移，裁剪多余顶部空间，突出人物。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，让画面更聚焦于中间人物。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "放大，裁切掉顶部多余墙面，使构图更紧凑。"
+    }
+  ]
+}
+```

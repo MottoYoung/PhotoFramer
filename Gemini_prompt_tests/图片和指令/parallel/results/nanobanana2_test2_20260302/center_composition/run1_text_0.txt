@@ -1,0 +1,22 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图中存在三个人物，画面重点分散。通过将画面中心调整为这位穿蓝色上衣的微笑大叔，可以将他（作为主要叙事主体）和他的影子、雨伞影子以及右侧撑伞人的后背形成一个更具稳定感的三角形布局。中心构图突出了这位大叔亲切、放松的神态，使他成为绝对的视觉焦点，同时利用强烈的夕阳阴影在中心区域创造出一种近乎对称的几何感，强调了场景的叙事性。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "将相机向右平移，使原本位于左侧的蓝色上衣大叔移动到取景器的水平中心线上。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "稍微向内拉近镜头（变焦或物理靠近），聚焦于大叔和右侧撑伞人，从而裁剪掉左侧的第三个人物（拿瓶子的大叔）。确保蓝色上衣大叔位于新的画面正中心。"
+      }
+    ]
+  }
+}

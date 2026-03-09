@@ -1,0 +1,1 @@
+{"id":1,"reason":"突出人物主体，利用光影对比增加画面层次感。","steps":[{"action":"Shift Right 10%","guide":"向右平移"},{"action":"Zoom In 20%","guide":"拉近焦距"}]}

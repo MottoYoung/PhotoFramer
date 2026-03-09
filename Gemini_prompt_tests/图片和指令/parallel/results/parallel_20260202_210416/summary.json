@@ -1,0 +1,199 @@
+{
+  "timestamp": "20260202_210416",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_runs": 1,
+  "techniques": [
+    "rule_of_thirds",
+    "center_composition",
+    "leading_lines",
+    "foreground_framing",
+    "diagonal_composition"
+  ],
+  "runs": [
+    {
+      "run_index": 0,
+      "timestamp": "2026-02-02T21:04:16.030106",
+      "total_techniques": 5,
+      "successful_techniques": 5,
+      "applicable_techniques": 3,
+      "total_time_ms": 14057.29829199845,
+      "results": [
+        {
+          "technique_id": "rule_of_thirds",
+          "request_id": "rule_of_thirds_default",
+          "start_time": "2026-02-02T21:04:16.030145",
+          "end_time": "2026-02-02T21:04:28.695664",
+          "response_time_ms": 12665.604959009215,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"rule_of_thirds\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将主体人物移动到三分之一线上，能够增强画面的平衡感和视觉趣味性。通过改变构图，将中间的男性置于右侧的三分线交叉点附近，使画面更具吸引力，避免了主体过于居中造成的呆板。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"向右移动相机，使画面中间的男性人物移动到右侧垂直三分线上。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"Out\",\n        \"guide_text\": \"稍微缩小焦距，以容纳更多的环境，并确保主体人物头部上方留有足够的空间，符合三分法构图的平衡感。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260202_210416/rule_of_thirds/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "rule_of_thirds",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将主体人物移动到三分之一线上，能够增强画面的平衡感和视觉趣味性。通过改变构图，将中间的男性置于右侧的三分线交叉点附近，使画面更具吸引力，避免了主体过于居中造成的呆板。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "向右移动相机，使画面中间的男性人物移动到右侧垂直三分线上。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "Out",
+                  "guide_text": "稍微缩小焦距，以容纳更多的环境，并确保主体人物头部上方留有足够的空间，符合三分法构图的平衡感。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 806,
+            "candidates_tokens": 1545,
+            "total_tokens": 2351
+          }
+        },
+        {
+          "technique_id": "center_composition",
+          "request_id": "center_composition_default",
+          "start_time": "2026-02-02T21:04:16.040407",
+          "end_time": "2026-02-02T21:04:28.429464",
+          "response_time_ms": 12389.139583014185,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"center_composition\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"将画面中的主要人物（中间的男人）置于中心，可以更好地突出他的重要性和表情，营造出更稳定、直接的视觉效果。原图中的光线和背景墙壁简洁，非常适合这种突出主体的构图方式。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Left\",\n        \"guide_text\": \"向左平移相机，将中心人物移到画面中央。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"稍微拉近焦距，以更好地聚焦并突出中心人物。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260202_210416/center_composition/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "center_composition",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "将画面中的主要人物（中间的男人）置于中心，可以更好地突出他的重要性和表情，营造出更稳定、直接的视觉效果。原图中的光线和背景墙壁简洁，非常适合这种突出主体的构图方式。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Left",
+                  "guide_text": "向左平移相机，将中心人物移到画面中央。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "稍微拉近焦距，以更好地聚焦并突出中心人物。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 810,
+            "candidates_tokens": 1517,
+            "total_tokens": 2327
+          }
+        },
+        {
+          "technique_id": "leading_lines",
+          "request_id": "leading_lines_default",
+          "start_time": "2026-02-02T21:04:16.040978",
+          "end_time": "2026-02-02T21:04:30.083059",
+          "response_time_ms": 14042.17366699595,
+          "success": true,
+          "is_applicable": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": true,\n  \"technique\": \"leading_lines\",\n  \"composition_data\": {\n    \"aesthetic_desc_and_resoning\": \"在此场景中，地面的线条、墙壁的阴影边缘以及人物之间的视线都能够作为引导线，将观众的目光引向画面中心正在交谈的人们，增强画面的故事性和趣味性。\",\n    \"steps\": [\n      {\n        \"step_order\": 1,\n        \"action_type\": \"Shift\",\n        \"direction\": \"Right\",\n        \"guide_text\": \"向右平移，使地面的纹理线和墙壁的阴影线更能有效地指向中心的人物。\"\n      },\n      {\n        \"step_order\": 2,\n        \"action_type\": \"Zoom\",\n        \"direction\": \"In\",\n        \"guide_text\": \"稍微拉近镜头，让引导线更加明显，并让主体人物在画面中更突出，减少背景中不必要的干扰。\"\n      }\n    ]\n  }\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_paraller_p_t/results/parallel_20260202_210416/leading_lines/run0_image_0.png"
+          ],
+          "parsed_json": {
+            "is_applicable": true,
+            "technique": "leading_lines",
+            "composition_data": {
+              "aesthetic_desc_and_resoning": "在此场景中，地面的线条、墙壁的阴影边缘以及人物之间的视线都能够作为引导线，将观众的目光引向画面中心正在交谈的人们，增强画面的故事性和趣味性。",
+              "steps": [
+                {
+                  "step_order": 1,
+                  "action_type": "Shift",
+                  "direction": "Right",
+                  "guide_text": "向右平移，使地面的纹理线和墙壁的阴影线更能有效地指向中心的人物。"
+                },
+                {
+                  "step_order": 2,
+                  "action_type": "Zoom",
+                  "direction": "In",
+                  "guide_text": "稍微拉近镜头，让引导线更加明显，并让主体人物在画面中更突出，减少背景中不必要的干扰。"
+                }
+              ]
+            }
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 1535,
+            "total_tokens": 2361
+          }
+        },
+        {
+          "technique_id": "foreground_framing",
+          "request_id": "foreground_framing_default",
+          "start_time": "2026-02-02T21:04:16.041207",
+          "end_time": "2026-02-02T21:04:19.841354",
+          "response_time_ms": 3800.1662919996306,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"foreground_framing\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "foreground_framing",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 826,
+            "candidates_tokens": 37,
+            "total_tokens": 863
+          }
+        },
+        {
+          "technique_id": "diagonal_composition",
+          "request_id": "diagonal_composition_default",
+          "start_time": "2026-02-02T21:04:16.041460",
+          "end_time": "2026-02-02T21:04:21.280682",
+          "response_time_ms": 5239.250124985119,
+          "success": true,
+          "is_applicable": false,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"is_applicable\": false,\n  \"technique\": \"diagonal_composition\",\n  \"composition_data\": null\n}\n```"
+          ],
+          "images": [],
+          "parsed_json": {
+            "is_applicable": false,
+            "technique": "diagonal_composition",
+            "composition_data": null
+          },
+          "token_usage": {
+            "prompt_tokens": 891,
+            "candidates_tokens": 36,
+            "total_tokens": 927
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "reasoning": "这张照片的主体是孤独的树和马匹的剪影。将它们置于画面中心可以增强其重要性和视觉冲击力，尤其是在这种广阔的背景下。",
+  "composition_data": {
+    "aesthetic_desc": "将树和马匹的剪影完美置于画面中心，利用地平线作为水平对称轴，营造出一种宁静而强大的对称美。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Left",
+        "guide_text": "将相机稍微向左平移，使树和马匹的组合主体更接近画面的垂直中心线。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Up",
+        "guide_text": "向上平移相机，使地平线位于画面水平中心，同时确保树和马匹保持在垂直中心。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "Out",
+        "guide_text": "稍微缩小焦距，给主体周围留出更多空间，增强中心构图的平衡感和孤寂感。"
+      }
+    ]
+  }
+}
+```

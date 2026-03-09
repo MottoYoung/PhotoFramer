@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "reasoning": "这张照片的主体是单独的树和马，非常适合采用中心构图来突出其独立性和画面的平衡感。通过将它们放置在画面中央，可以增强其视觉冲击力。",
+  "composition_data": {
+    "aesthetic_desc": "将孤独的树和马术表演者完美地置于画面中心，营造出一种宁静而有力的对称美感，强调主体与广阔背景之间的和谐。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "将相机向右稍微移动，直到树和马的组合体位于画面中央的水平线上。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Up",
+        "guide_text": "将相机稍微向上移动，确保树和马在画面垂直方向上也处于中心位置，使地平线和天空的比例更平衡。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "Out",
+        "guide_text": "稍微缩小焦距，以便在中心构图的同时，保留背景广阔天空和地面的比例，增强画面的气势。"
+      }
+    ]
+  }
+}
+```

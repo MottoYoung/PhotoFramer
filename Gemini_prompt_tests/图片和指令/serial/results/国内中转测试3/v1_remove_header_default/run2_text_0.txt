@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "将焦点集中在画面中心的人物上，利用三分法构图使画面更平衡。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "放大，使主要人物占据画面中心，并更突出。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使人物位于三分线交点，避免背景过于空旷。"
+    }
+  ]
+}
+```

@@ -1,0 +1,1 @@
+{"id":1,"reason":"通过平移聚焦主体，利用阴影和光线形成对比","steps":[{"action":"Shift Left 10%","guide":"向左平移"},{"action":"Zoom In 5%","guide":"拉近焦距"}]}

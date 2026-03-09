@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "center_composition",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图是一个充满市井气息和强列光影对比的场景。我们选择将那个站在中心、表情丰富的蓝衣男子作为主体进行中心构图。通过拉近镜头并将他精确放置在画面正中央，不仅突出了他的主体地位，更强调了此时强烈的斜射阳光和影子所构成的戏剧性。他的表情、姿态以及投射在墙上的巨大、清晰的影子将共同构成一个视觉焦点，使画面更具张力和故事感。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "向前移动相机或拉近镜头，将焦点集中在蓝衣男子和墙上的影子上，确保他占据画面的主导地位。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "将相机向右移动，调整构图，将蓝衣男子的身体躯干（包括他腰间的黑色小包）精确地放置在画面水平和垂直的中心线上。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "View-change",
+        "direction": "None",
+        "guide_text": "保持原有的水平视角，但要注意利用此时强烈的斜光，使男子投射在墙上的清晰影子与他本人构成一个垂直的视觉轴线，位于画面中心。"
+      }
+    ]
+  }
+}
+```
+

@@ -1,0 +1,22 @@
+
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "利用人物对话的瞬间，将焦点放在两个人之间，通过平移和裁切创造一种交流感，使画面更具故事性。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移镜头，将画面中央的人物和右侧的打伞人物都纳入画面，强调两人之间的互动。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，进一步聚焦两人，裁切掉左侧无关的人物和多余的地面，使主体更突出。"
+    }
+  ]
+}
+```

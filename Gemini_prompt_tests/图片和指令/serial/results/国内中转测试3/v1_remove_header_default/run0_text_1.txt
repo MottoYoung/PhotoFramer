@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "拉近镜头，突出中心人物，营造更亲密的氛围。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，放大人物，使其在画面中更突出。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Up",
+      "guide_text": "向上平移，减少顶部墙面空间，使构图更紧凑。"
+    }
+  ]
+}
+```

@@ -1,0 +1,15 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "向右平移，聚焦于两位男性角色，利用光影和人物互动增强故事感。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，将画面重心放在两位男性角色上，减少右侧遮阳伞的干扰。"
+    }
+  ]
+}
+```

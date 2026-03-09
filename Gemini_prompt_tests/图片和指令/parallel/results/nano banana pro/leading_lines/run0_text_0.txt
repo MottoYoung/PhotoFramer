@@ -1,0 +1,23 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "leading_lines",
+  "reasoning": "场景中前景的混凝土台阶边缘形成了非常清晰的线条。通过改变拍摄角度，可以将这条线作为引导线，将观众的视线引向画面中的人物。",
+  "composition_data": {
+    "aesthetic_desc": "低角度拍摄，前景的混凝土台阶边缘从画面左下角有力地延伸至右上方，将视线引导至站立的男子和打伞的女子身上。夕阳的侧光更加强调了台阶的线条和人物的轮廓。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "View-change",
+        "direction": "Low-angle",
+        "guide_text": "蹲下身子，降低相机的拍摄高度，与前景的混凝土台阶保持较低的视线平行。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Left",
+        "guide_text": "向左移动几步，让台阶的边缘线在画面中占据更显著的位置，从左下角开始延伸。"
+      }
+    ]
+  }
+}

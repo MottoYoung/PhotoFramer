@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "拉近镜头，突出主要人物，减少杂乱背景，创造更亲密的交流场景。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，将主要人物的身体充满画面，同时裁剪掉背景中不必要的元素。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Left",
+      "guide_text": "向左平移，使主要人物居中或置于三分线附近，增强视觉平衡。"
+    }
+  ]
+}
+```

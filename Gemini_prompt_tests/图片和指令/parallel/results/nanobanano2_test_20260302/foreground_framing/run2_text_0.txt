@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "foreground_framing",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "使用前景构图技术，通过将现有的雪地元素和潜在的天然岩石放置在镜头极近处，我们可以为这张原本开阔、极简的图像增加极具深度的层次感。将相机靠近地面，利用地形边缘和被雪覆盖的岩石（如 image_0.png 所示，前景中已有雪和少量草丛，我们将这些元素放大），自然地构建一个“窗框”，使远处的树和昂扬的马成为这个框中的焦点，从而增强视觉冲击力。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "View-change",
+        "direction": "Low-angle",
+        "guide_text": "将相机视角移至极低角度，贴近地面雪层。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Shift",
+        "direction": "Down",
+        "guide_text": "向下移动相机，直到镜头极近处（前景）被雪覆盖的岩石和地形边缘占据画面底部的显著部分。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "轻微拉近焦距，使前景元素（放大的雪地和岩石）看起来更大、更清晰，同时保持远处的树和昂扬的马（image_0.png 的核心主题）在这些前景元素的空隙中清晰可见。"
+      }
+    ]
+  }
+}
+```
+

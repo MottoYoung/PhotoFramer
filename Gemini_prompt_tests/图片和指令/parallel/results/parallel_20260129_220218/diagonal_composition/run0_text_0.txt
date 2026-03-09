@@ -1,0 +1,8 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "diagonal_composition",
+  "reasoning": "此图像中没有明显的对角线条元素可以用来进行对角线构图。主体是一棵树和一个人骑马的剪影，背景是地平线和天空，这些元素主要呈现水平和垂直方向，不适合通过简单的构图调整来创造有意义的对角线。如果强行制造对角线，可能会使画面看起来不自然。",
+  "composition_data": null
+}
+```

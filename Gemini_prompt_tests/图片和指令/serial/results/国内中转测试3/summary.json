@@ -1,0 +1,256 @@
+{
+  "timestamp": "20260122_115108",
+  "model_name": "gemini-2.5-flash-image",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 3,
+  "repeats_per_case": 3,
+  "prompts_config": {
+    "v1_base": {
+      "description": "基础版本，来自现有代码",
+      "system_instruction": "**Role:** You are an AI Photography Director (\"Camera Coach\"). Your goal is to guide a user to take a better photo by re-composing their shot.\n\n**Task:**\nAnalyze the input image and generate **1 to 4** aesthetically superior compositions.\n* **Quality over Quantity:** Only generate a composition if it meaningfully improves the original. Do not force 4 outputs if fewer options are sufficient.\n* For each composition, provide a generative Target Image and structured guidance.\n\n**Action Definitions:**\n* `Shift`: Moving camera (Left, Right, Up, Down).\n* `Zoom`: Adjusting focal length/distance (In, Out).\n* `View-change`: Changing angle (High-angle, Low-angle, Side-view).\n\n**Output Structure (Strict Sequence):**\nYou must output in the following order. The **Header JSON** must be the very first output.\n\n1.  **[Header JSON]**: Contains the total count of compositions to be generated.\n2.  **[Composition 1 JSON]**: Detailed steps for the first option.\n3.  **[Generated Image 1]**: The visual result for option 1.\n4.  **[Composition 2 JSON]**: (If applicable)\n5.  **[Generated Image 2]**: (If applicable)\n... and so on.\n\n**JSON Schema Definition:**\n\n**1. Header JSON:**\n{\n  \"type\": \"header\",\n  \"total_count\": 2, // Integer between 1 and 4\n  \"analysis\": \"Brief analysis of the original shot (e.g., 'Lighting is good, but horizon is tilted.').\"\n}\n\n**2. Composition JSON:**\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"Short Chinese description of the improvement.\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\", // 'Shift', 'Zoom', 'View-change'\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，将人物置于三分线处。\" // Chinese instruction\n    },\n    ...\n  ]\n}\n\n**Content Requirements:**\n1.  **Language:** All textual descriptions must be in **Chinese (中文)**.\n2.  **Consistency:** Instructions must match the generated image.\n",
+      "user_prompt": "请分析这张照片，判断有几种（1-4种）更好的构图方案。\n请首先输出包含 `total_count` 的 Header JSON，然后依次输出每种方案的 JSON 指令和对应的生成图片。\n"
+    },
+    "v1_remove_header": {
+      "description": "基础版本，来自现有代码,移除了header",
+      "system_instruction": "**Role:** You are an AI Photography Director (\"Camera Coach\"). Your goal is to guide a user to take a better photo by re-composing their shot.\n\n**Task:**\nAnalyze the input image and generate **1 to 4** aesthetically superior compositions.\n* **Quality over Quantity:** Only generate a composition if it meaningfully improves the original. Do not force 4 outputs if fewer options are sufficient.\n* For each composition, provide a generative Target Image and structured guidance.\n\n**Action Definitions:**\n* `Shift`: Moving camera (Left, Right, Up, Down).\n* `Zoom`: Adjusting focal length/distance (In, Out).\n* `View-change`: Changing angle (High-angle, Low-angle, Side-view).\n\n**Output Structure (Strict Sequence):**\nYou must output in the following order. \n\n1.  **[Composition 1 JSON]**: Detailed steps for the first option.\n2.  **[Generated Image 1]**: The visual result for option 1.\n3.  **[Composition 2 JSON]**: (If applicable)\n4.  **[Generated Image 2]**: (If applicable)\n... and so on.\n\n**JSON Schema Definition:**\n\n\n**Composition JSON:**\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"Short Chinese description of the improvement.\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\", // 'Shift', 'Zoom', 'View-change'\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，将人物置于三分线处。\" // Chinese instruction\n    },\n    ...\n  ]\n}\n\n**Content Requirements:**\n1.  **Language:** All textual descriptions must be in **Chinese (中文)**.\n2.  **Consistency:** Instructions must match the generated image.\n",
+      "user_prompt": "Improve the composition through shift, zoom-in, or viewpoint adjustment.And describe the changes in 20 words or less\n"
+    },
+    "v2_base": {
+      "description": "中文版本,格式要求没那么严格",
+      "system_instruction": "**角色**:你是顶尖的摄影师,尤其擅长构图方面的指导。\n**任务**:你的任务是分析用户上传的图片然后给出1-4张具有更高美学质量的理想构图,\n以及每张图片采用该构图的原因(一句话,20个字以内)以及用于指导用户调整拍摄位姿的指令.\n\n\n**严格规则**:\n1. 禁止输出任何开场白、寒暄或解释性文字\n2. 直接按 [图像][JSON] 交替输出\n3. 每个JSON的steps数组可包含1-5个动作\n4. 用户按照你的指令操作后,能从原图得到与生成图相似的构图\n\n**动作类型**:\n- Shift: 平移 (Left/Right/Up/Down + 百分比)\n- Zoom: 变焦 (In/Out + 百分比)  \n- ViewChange: 视角 (HighAngle/LowAngle/SideView)\n\n**JSON格式（直接输出，无代码块）**:\n{\"id\":1,\"reason\":\"利用三分法并聚焦主体\",\"steps\":[{\"action\":\"Shift Left 15%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}\n",
+      "user_prompt": "Improve the composition through shift, zoom-in, or viewpoint adjustment.And describe the changes in 20 words or less"
+    }
+  },
+  "results": [
+    {
+      "case_id": "v1_base_default",
+      "prompt_id": "v1_base",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 22173.130513663637,
+      "min_response_time_ms": 21223.90224999981,
+      "max_response_time_ms": 22827.39020799636,
+      "std_response_time_ms": 841.456030063315,
+      "all_timings": [
+        {
+          "case_id": "v1_base_default",
+          "run_index": 0,
+          "start_time": "2026-01-22T11:51:08.222886",
+          "end_time": "2026-01-22T11:51:30.690874",
+          "response_time_ms": 22468.09908299474,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"header\",\n  \"total_count\": 2,\n  \"analysis\": \"原始照片捕捉到了有趣的日常瞬间，但构图可以进一步优化，使主题更突出，背景更简洁。\"\n}\n```\n```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"将焦点集中在画面中央的人物，通过裁切移除分散注意力的左右两侧人物和阴影，使构图更简洁，强化人物主体的表达。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，将画面中央的人物作为主要焦点。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Shift\",\n      \"direction\": \"None\",\n      \"guide_text\": \"进行适当裁切，移除左右两侧的人物和背景中多余的阴影，使构图更集中和简洁。\"\n    }\n  ]\n}\n```\n",
+            "\n```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"利用人物对话的瞬间，将焦点放在两个人之间，通过平移和裁切创造一种交流感，使画面更具故事性。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Right\",\n      \"guide_text\": \"向右平移镜头，将画面中央的人物和右侧的打伞人物都纳入画面，强调两人之间的互动。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，进一步聚焦两人，裁切掉左侧无关的人物和多余的地面，使主体更突出。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_base_default/run0_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_base_default/run0_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 828,
+            "candidates_tokens": 3044,
+            "total_tokens": 3872
+          }
+        },
+        {
+          "case_id": "v1_base_default",
+          "run_index": 1,
+          "start_time": "2026-01-22T11:51:35.699955",
+          "end_time": "2026-01-22T11:51:58.527246",
+          "response_time_ms": 22827.39020799636,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"header\",\n  \"total_count\": 2,\n  \"analysis\": \"原始照片捕捉到了有趣的日常场景和人物互动，光影效果也不错。然而，构图上可以进一步优化，使主体更加突出，画面更具故事感。\"\n}\n```\n```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"通过向右平移并稍微放大，将穿着蓝色T恤的男士置于画面中心，突出其面部表情，并利用背景光影和虚化，增强画面的纵深感和主体的突出性。右侧的伞和人物作为前景，为画面增添层次。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Right\",\n      \"guide_text\": \"向右平移相机，使穿蓝色T恤的男士更靠近画面中心。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"稍微放大画面，使穿蓝色T恤的男士的面部表情更清晰，占据画面更重要的位置。\"\n    }\n  ]\n}\n```\n",
+            "\n```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"将焦点放在左侧正在整理蔬菜的摊主身上，通过平移和放大，突出他的工作状态和细节，同时利用背景的两位人物和光影作为画面的辅助元素，营造出一种更具市井气息的构图。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移相机，将左侧正在整理蔬菜的摊主置于画面三分线处。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"放大画面，以便更好地捕捉摊主的动作和表情细节。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_base_default/run1_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_base_default/run1_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 828,
+            "candidates_tokens": 3098,
+            "total_tokens": 3926
+          }
+        },
+        {
+          "case_id": "v1_base_default",
+          "run_index": 2,
+          "start_time": "2026-01-22T11:52:03.539391",
+          "end_time": "2026-01-22T11:52:24.763202",
+          "response_time_ms": 21223.90224999981,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"header\",\n  \"total_count\": 2,\n  \"analysis\": \"原图光线很好，但人物构图有些杂乱，背景墙面占比过大。\"\n}\n```\n```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"拉近镜头，突出前景人物，让画面更简洁，并利用光影引导视线。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，截取右侧打伞的摊贩，突出前景。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，使打伞人物位于画面右侧，并将伞的边缘与画面顶部对齐。\"\n    }\n  ]\n}\n```\n",
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"调整焦距和构图，让中间的微笑人物成为主体，背景简洁化，光影更具冲击力。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，让中间的微笑人物占据画面主体。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Right\",\n      \"guide_text\": \"向右平移，使人物略微偏右，利用左侧的光影形成的阴影作为视觉引导。\"\n    },\n    {\n      \"step_order\": 3,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Up\",\n      \"guide_text\": \"略微向上平移，减少地面杂物，使背景墙面更简洁，突出人物。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_base_default/run2_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_base_default/run2_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 828,
+            "candidates_tokens": 3074,
+            "total_tokens": 3902
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v1_remove_header_default",
+      "prompt_id": "v1_remove_header",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 17177.648221996304,
+      "min_response_time_ms": 12152.436917007435,
+      "max_response_time_ms": 20104.236040991964,
+      "std_response_time_ms": 4371.606424304684,
+      "all_timings": [
+        {
+          "case_id": "v1_remove_header_default",
+          "run_index": 0,
+          "start_time": "2026-01-22T11:52:24.777950",
+          "end_time": "2026-01-22T11:52:44.882097",
+          "response_time_ms": 20104.236040991964,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"向左平移，减少顶部空间，聚焦人物互动。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，使画面更聚焦在人物互动上。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Up\",\n      \"guide_text\": \"向上平移，减少顶部过多的墙面空间。\"\n    }\n  ]\n}\n```\n",
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"拉近镜头，突出中心人物，营造更亲密的氛围。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"拉近镜头，放大人物，使其在画面中更突出。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Up\",\n      \"guide_text\": \"向上平移，减少顶部墙面空间，使构图更紧凑。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_remove_header_default/run0_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_remove_header_default/run0_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 2916,
+            "total_tokens": 3623
+          }
+        },
+        {
+          "case_id": "v1_remove_header_default",
+          "run_index": 1,
+          "start_time": "2026-01-22T11:52:49.892690",
+          "end_time": "2026-01-22T11:53:09.168873",
+          "response_time_ms": 19276.27170798951,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"向左平移，切掉右侧不相关人物，突出中心人物。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，切掉右侧不相关人物。\"\n    }\n  ]\n}\n```\n",
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 2,\n  \"aesthetic_desc\": \"向右平移，切掉左侧不相关人物，并让中心人物处于黄金分割线。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Right\",\n      \"guide_text\": \"向右平移，切掉左侧不相关人物。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_remove_header_default/run1_image_0.png",
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_remove_header_default/run1_image_1.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 2813,
+            "total_tokens": 3520
+          }
+        },
+        {
+          "case_id": "v1_remove_header_default",
+          "run_index": 2,
+          "start_time": "2026-01-22T11:53:14.182332",
+          "end_time": "2026-01-22T11:53:26.334723",
+          "response_time_ms": 12152.436917007435,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"type\": \"composition\",\n  \"id\": 1,\n  \"aesthetic_desc\": \"将焦点集中在画面中心的人物上，利用三分法构图使画面更平衡。\",\n  \"steps\": [\n    {\n      \"step_order\": 1,\n      \"action_type\": \"Zoom\",\n      \"direction\": \"In\",\n      \"guide_text\": \"放大，使主要人物占据画面中心，并更突出。\"\n    },\n    {\n      \"step_order\": 2,\n      \"action_type\": \"Shift\",\n      \"direction\": \"Left\",\n      \"guide_text\": \"向左平移，使人物位于三分线交点，避免背景过于空旷。\"\n    }\n  ]\n}\n```\n"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v1_remove_header_default/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 707,
+            "candidates_tokens": 1467,
+            "total_tokens": 2174
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v2_base_default",
+      "prompt_id": "v2_base",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 8814.078819656666,
+      "min_response_time_ms": 4400.295916973846,
+      "max_response_time_ms": 11653.057707997505,
+      "std_response_time_ms": 3874.357257923422,
+      "all_timings": [
+        {
+          "case_id": "v2_base_default",
+          "run_index": 0,
+          "start_time": "2026-01-22T11:53:26.339843",
+          "end_time": "2026-01-22T11:53:30.740129",
+          "response_time_ms": 4400.295916973846,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"利用三分法突出中间人物，使其成为焦点。\",\"steps\":[{\"action\":\"Shift Right 10%\",\"guide\":\"向右平移\"},{\"action\":\"Zoom In 15%\",\"guide\":\"拉近焦距\"}]}\n{\"id\":2,\"reason\":\"通过拉近聚焦前景，同时保留背景的叙事感。\",\"steps\":[{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"},{\"action\":\"Shift Up 5%\",\"guide\":\"向上平移\"}]}\n{\"id\":3,\"reason\":\"聚焦左侧人物，以呈现更亲密的肖像，同时展现他手中的物品。\",\"steps\":[{\"action\":\"Shift Left 20%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 30%\",\"guide\":\"拉近焦距\"}]}\n{\"id\":4,\"reason\":\"通过捕捉整个场景，强调人物与背景的互动和整体氛围。\",\"steps\":[{\"action\":\"Zoom Out 10%\",\"guide\":\"拉远焦距\"},{\"action\":\"Shift Down 5%\",\"guide\":\"向下平移\"}]}"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 222,
+            "total_tokens": 775
+          }
+        },
+        {
+          "case_id": "v2_base_default",
+          "run_index": 1,
+          "start_time": "2026-01-22T11:53:35.747194",
+          "end_time": "2026-01-22T11:53:46.136044",
+          "response_time_ms": 10388.88283399865,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "{\"id\":1,\"reason\":\"突显人物表情，增强视觉冲击力。\",\"steps\":[{\"action\":\"Shift Left 10%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 30%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v2_base_default/run1_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 1341,
+            "total_tokens": 1894
+          }
+        },
+        {
+          "case_id": "v2_base_default",
+          "run_index": 2,
+          "start_time": "2026-01-22T11:53:51.144529",
+          "end_time": "2026-01-22T11:54:02.797546",
+          "response_time_ms": 11653.057707997505,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            ".\n{\"id\":1,\"reason\":\"利用三分法突出主体，同时裁切掉右侧不相关人物。\",\"steps\":[{\"action\":\"Shift Left 10%\",\"guide\":\"向左平移\"},{\"action\":\"Zoom In 20%\",\"guide\":\"拉近焦距\"}]}"
+          ],
+          "images": [
+            "/Users/mottoyoung/学习/毕设/PhotoFramer/Gemini_prompt_tests/prompt_accessment_pic_mix_text/results/sync_20260122_115108/v2_base_default/run2_image_0.png"
+          ],
+          "token_usage": {
+            "prompt_tokens": 553,
+            "candidates_tokens": 1349,
+            "total_tokens": 1902
+          }
+        }
+      ]
+    }
+  ]
+}

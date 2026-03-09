@@ -1,0 +1,76 @@
+{
+  "timestamp": "20260121_113533",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 3,
+  "results": [
+    {
+      "case_id": "v1_json_en_default",
+      "prompt_id": "v1_json_en",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 18398.096805661527,
+      "min_response_time_ms": 15006.859582994366,
+      "max_response_time_ms": 22656.441333994735,
+      "std_response_time_ms": 3897.81112304894,
+      "all_timings": [
+        {
+          "case_id": "v1_json_en_default",
+          "run_index": 0,
+          "start_time": "2026-01-21T11:35:33.504891",
+          "end_time": "2026-01-21T11:35:56.161250",
+          "response_time_ms": 22656.441333994735,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"画面拥有绝佳的侧向暖色光影和生动的人物表情，但左右两侧元素较杂乱（左侧被切断的人物和右侧巨大的遮阳伞遮挡了视觉重心）。长投影是极具表现力的艺术元素，应当被更好地强调。\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"暖阳下的生动人像\",\n      \"image_gen_prompt\": \"Medium portrait of a smiling elderly man in a blue shirt standing against a sunlit grey wall, dramatic long shadow, golden hour lighting, cinematic street photography.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 2.2,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 2.2 倍，剔除左右干扰者，专注于中心人物的笑容\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"meters\",\n          \"text_cn\": \"向右移动半步，调整构图使人物与影子形成平衡的三角结构\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5.0,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"镜头略微向下倾斜，压低背景墙的留白，使画面更有沉浸感\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"光影叙事极简构图\",\n      \"image_gen_prompt\": \"A street photo of market vendors and their very long shadows on a plain wall, minimalist composition, silhouette-like shadows, high contrast sunlight.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Left\",\n          \"magnitude_val\": 3.0,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向左走约 3 步，避开右侧遮阳伞的干扰，将画面视角拉开\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.2,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"微调焦距至 1.2 倍，确保墙面占据画面主体，强调影子的延展感\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-up\",\n          \"magnitude_val\": 10.0,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"采用略微仰拍视角，增加人物的视觉高度，并使地面上的农产品作为前景点缀\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 1748,
+            "candidates_tokens": 759,
+            "total_tokens": 4401
+          }
+        },
+        {
+          "case_id": "v1_json_en_default",
+          "run_index": 1,
+          "start_time": "2026-01-21T11:36:01.168780",
+          "end_time": "2026-01-21T11:36:18.699726",
+          "response_time_ms": 17530.989499995485,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"画面拥有极佳的午后侧逆光，形成的拉长阴影具有强烈的叙事感。但左侧路人干扰了主体视线，构图略显散乱，且地平线有轻微倾斜。\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"温暖瞬间人像特写\",\n      \"image_gen_prompt\": \"Cinematic portrait of a smiling elderly man in a blue shirt, golden hour sunlight, sharp shadows on a concrete wall, shallow depth of field, street photography style.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 2.0,\n          \"magnitude_unit\": \"meters\",\n          \"text_cn\": \"向右移动约 2 米，将左侧提水壶的人移除出画面\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 2.0,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 2 倍焦距，聚焦老人的神态与伞下的互动\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5.0,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"镜头向下微倾，将地面的蔬菜摊作为前景引导\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"光影几何叙事\",\n      \"image_gen_prompt\": \"Wide angle street photography, long shadows of people cast on a grey wall at sunset, minimalist composition, graphic play of light and shadow, urban life scene.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Left\",\n          \"magnitude_val\": 2.0,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向左横移约 2 步，使雨伞的阴影与老人身体分开，增强光影美感\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.2,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"稍微拉近，精准裁剪掉最左侧的杂乱物体\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-adjust\",\n          \"magnitude_val\": 3.0,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"向右旋转手机约 3 度，矫正地面水平线\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 1748,
+            "candidates_tokens": 724,
+            "total_tokens": 3777
+          }
+        },
+        {
+          "case_id": "v1_json_en_default",
+          "run_index": 2,
+          "start_time": "2026-01-21T11:36:23.708357",
+          "end_time": "2026-01-21T11:36:38.715174",
+          "response_time_ms": 15006.859582994366,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "```json\n{\n  \"header\": {\n    \"analysis_summary\": \"金色的夕阳光线在墙上投射出极具戏剧性的长阴影，但画面右侧人物背影过于遮挡视线，且左侧构图略显散乱，缺乏明确的视觉中心。\"\n  },\n  \"compositions\": [\n    {\n      \"id\": 1,\n      \"title_cn\": \"金秋暖阳人像特写\",\n      \"image_gen_prompt\": \"A close-up street portrait of a smiling elderly man in a light blue polo shirt, bathed in warm golden hour sunlight, long dramatic shadows on a plain concrete wall behind him, cinematic lighting, sharp focus on eyes.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 2.5,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"放大画面至 2.5 倍，排除右侧遮挡物，聚焦中心男子的生动表情\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Right\",\n          \"magnitude_val\": 0.5,\n          \"magnitude_unit\": \"meters\",\n          \"text_cn\": \"向右平移约 0.5 米，使人物处于画面三分线位置，并与墙上的阴影形成呼应\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-down\",\n          \"magnitude_val\": 5,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"手机向下微俯 5 度，避开顶部过亮区域，使光影更有层次感\"\n        }\n      ]\n    },\n    {\n      \"id\": 2,\n      \"title_cn\": \"光影叙事极简构图\",\n      \"image_gen_prompt\": \"Cinematic wide shot of a man standing against a grey wall, long silhouette shadows stretched across the wall during golden hour, minimalist composition, street photography style.\",\n      \"instruction_steps\": [\n        {\n          \"step\": 1,\n          \"action\": \"SHIFT\",\n          \"direction\": \"Left\",\n          \"magnitude_val\": 2,\n          \"magnitude_unit\": \"steps\",\n          \"text_cn\": \"向左跨 2 步，寻找一个可以避开右侧人物的角度，让画面更简洁\"\n        },\n        {\n          \"step\": 2,\n          \"action\": \"ZOOM\",\n          \"direction\": \"In\",\n          \"magnitude_val\": 1.2,\n          \"magnitude_unit\": \"x\",\n          \"text_cn\": \"稍微放大画面至 1.2 倍，裁掉底部零乱的地面杂物\"\n        },\n        {\n          \"step\": 3,\n          \"action\": \"VIEW\",\n          \"direction\": \"Tilt-up\",\n          \"magnitude_val\": 10,\n          \"magnitude_unit\": \"degrees\",\n          \"text_cn\": \"将手机向上抬起 10 度，增加上方墙面的留白，利用光影留出故事感空间\"\n        }\n      ]\n    }\n  ]\n}\n```"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 1748,
+            "candidates_tokens": 767,
+            "total_tokens": 3556
+          }
+        }
+      ]
+    }
+  ]
+}

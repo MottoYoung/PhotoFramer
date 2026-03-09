@@ -1,0 +1,84 @@
+{
+  "timestamp": "20260122_115816",
+  "model_name": "gemini-2.5-flash",
+  "input_image": "/Users/mottoyoung/学习/毕设/PhotoFramer/test_images/input/person.jpg",
+  "total_cases": 1,
+  "repeats_per_case": 3,
+  "prompts_config": {
+    "test_prompt": {
+      "description": "",
+      "system_instruction": "you are a helpful assistant .\n",
+      "user_prompt": "分析当前图片的构图并给出20字以内的点评."
+    }
+  },
+  "results": [
+    {
+      "case_id": "test_prompt_default",
+      "prompt_id": "test_prompt",
+      "model_config_id": "default",
+      "total_runs": 3,
+      "successful_runs": 3,
+      "failed_runs": 0,
+      "avg_response_time_ms": 3191.108235672194,
+      "min_response_time_ms": 2969.1094160079956,
+      "max_response_time_ms": 3595.795833010925,
+      "std_response_time_ms": 351.02045300830196,
+      "all_timings": [
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 0,
+          "start_time": "2026-01-22T11:58:16.926886",
+          "end_time": "2026-01-22T11:58:19.935317",
+          "response_time_ms": 3008.419457997661,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "这幅构图通过光影和人物动态，捕捉了市井生活自然的互动与日常感。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 22,
+            "total_tokens": 303
+          }
+        },
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 1,
+          "start_time": "2026-01-22T11:58:24.942110",
+          "end_time": "2026-01-22T11:58:27.911229",
+          "response_time_ms": 2969.1094160079956,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "运用黄金分割与引导线，形成生动的人物互动，光影对比强烈，生活气息浓郁。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 23,
+            "total_tokens": 304
+          }
+        },
+        {
+          "case_id": "test_prompt_default",
+          "run_index": 2,
+          "start_time": "2026-01-22T11:58:32.915683",
+          "end_time": "2026-01-22T11:58:36.511489",
+          "response_time_ms": 3595.795833010925,
+          "success": true,
+          "error_message": null,
+          "texts": [
+            "这张图片以三分法构图，突出人物互动，光影对比强烈，生活气息浓厚。"
+          ],
+          "images": [],
+          "token_usage": {
+            "prompt_tokens": 281,
+            "candidates_tokens": 22,
+            "total_tokens": 303
+          }
+        }
+      ]
+    }
+  ]
+}

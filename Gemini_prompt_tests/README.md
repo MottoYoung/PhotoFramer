@@ -1,164 +1,109 @@
 # Gemini 提示词测评工具集
 
-本目录包含 7 套提示词测评工具，用于测试和比较不同提示词策略在辅助摄影构图指导场景下的效果。
+本目录包含多套提示词测评工具，用于测试和比较不同提示词策略在辅助摄影构图指导场景下的效果。
 
 ## 📁 目录结构
 
 | 目录 | 架构 | 输出模态 | 说明 |
 |-----|------|---------|------|
-| `prompt_accessment_paraller_p_t` | **并行** | 图+文 | 5种构图方案并发请求，分而治之策略 |
-| `prompt_accessment_paraller_p_t_pure_image` | **并行** | 纯图 | 仅返回构图目标图片 |
-| `prompt_accessment_paraller_p_t_pure_text` | **并行** | 纯文 | 仅返回 JSON 文本指导 |
-| `prompt_accessment_paraller_p_t_pinjie` | **并行** | 图+文 | 多种构图方案拼接后返回 |
-| `prompt_accessment_pic_mix_text` | 串行 | 图+文 | 图文混合输入测试 |
-| `prompt_accessment_pure_image` | 串行 | 图+文 | 纯图像输入测试 |
-| `prompt_accessment_pure_text` | 串行 | 图+文 | 纯文本输入测试 |
+| `图片和指令/parallel` | **并行** | 图片+文字指令 | 并行发送5个请求，每个请求返回对应构图方案的图片和文字指导 |
+| `图片和指令/serial` | **串行** | 图片+文字指令 | 只发送1个请求，模型决定返回几种构图方案，每种包含图片和文字指导 |
+| `图片和指令/拼接方案` | **逻辑上并行** | 图+文 | 只发送1个请求，模型返回一张拼接图及各子图的文字指令 |
+| `纯图片/parallel` | **并行** | 纯图 | 并行发送5个请求，每个请求返回对应构图方案的图片 |
+| `纯图片/serial` | **串行** | 纯图 | 只发送1个请求，模型决定返回几种构图方案，每种包含一张图片 |
+| `纯指令/有参考图` | **串行** | 纯文字 | 输入**原图+参考图**，生成从原图重现参考图所需的相机操作指令 |
+| `纯指令/无参考图` | **串行** | 纯文字 | 只输入原图，生成多种构图改进的文字指令，适合无参考图的场景 |
 
 ## 🎯 核心区别
 
-### 1. 并行架构 vs 串行架构
-
-**并行架构 - 请求级并行** (3 个 `paraller` 目录)
-- 采用 "分而治之" 策略：统一 System Instruction + 5 个独立 User Prompt
-- 5 种构图技术（三分法、中心构图、引导线、前景框架、对角线）**并发请求**
-- 每个请求返回 1 种构图方案，5 个请求同时执行
-- 适合快速获取多种构图方案
-
-**并行架构 - 输出级并行** (`prompt_accessment_paraller_p_t_pinjie`)
-- 采用 "拼接返回" 策略：单个请求让模型一次性返回多种构图方案
-- 模型在一次响应中生成所有构图建议
-- 减少 API 调用次数，适合构图方案数量较少的场景
-
-**串行架构** (其他 3 个目录)
-- 采用 "测试矩阵" 策略：多个提示词版本 × 多个模型配置
-- 顺序执行每个测试用例
-- 适合系统性对比评估
-
-### 2. 输出模态差异
+### 1. 输出模态
 
 | 输出模态 | 目录 | 特点 |
 |---------|------|-----|
-| **图+文** | `paraller_p_t`, `p_t_pinjie`, `pic_mix_text` 等 | 返回 JSON 指导 + 目标构图图片 |
-| **纯图** | `paraller_p_t_pure_image` | 仅返回构图目标图片，不返回文本 |
-| **纯文** | `paraller_p_t_pure_text` | 仅返回 JSON 指导，不生成图片 |
+| **图+文** | `图片和指令/*` | 返回 JSON 操作指导 + 目标构图图片 |
+| **纯图** | `纯图片/*` | 仅返回构图目标图片，不返回文本 |
+| **纯文** | `纯指令/*` | 仅返回 JSON 操作指导，不生成图片 |
 
-## 🚀 通用命令
+### 2. 纯指令子类型区别
 
-所有目录均支持以下统一命令：
+| 类型 | 输入 | 适用场景 |
+|-----|------|---------|
+| **有参考图** | 原图 + 参考图 | 已通过后端生成参考图，需将参考图转换为操作指令 |
+| **无参考图** | 原图 | 完全依赖模型判断，无参考图的端到端流程 |
+
+## 🚀 使用命令
+
+### 纯指令/有参考图（双图输入）
 
 ```bash
-# 查看配置和可用提示词版本
-python main.py config
+cd 纯指令/有参考图
 
-# 同步测试（实时响应）
-python main.py sync -i <图像路径> [-p <提示词版本>] [-r <重复次数>] [-d <间隔秒数>]
+# 测试所有提示词版本
+python main.py sync -i origin.jpg --ref edit.jpg
+
+# 指定版本，重复3次
+python main.py sync -i origin.jpg --ref edit.jpg -p v1_cot -r 3
+
+# 生成报告
+python main.py report
+
+# 预览配置
+python main.py config
+```
+
+### 其他目录（单图输入）
+
+```bash
+# 同步测试
+python main.py sync -i <图像路径> [-p <提示词版本>] [-r <重复次数>]
 
 # 批量测试（Batch API，成本 50%）
-python main.py batch -i <图像路径> [-p <提示词版本>]
+python main.py batch -i <图像路径>
 
-# 生成测评报告
+# 生成报告
 python main.py report
 ```
 
 ### 参数说明
 
-| 参数 | 说明 | 默认值 |
-|-----|------|-------|
-| `-i, --image` | 输入图像路径 | 必填 |
-| `-p, --prompt` | 指定提示词版本 ID | 全部版本 |
-| `-r, --repeats` | 每用例重复次数 | 1~3 |
-| `-d, --delay` | 调用间隔（秒） | 2.0~5.0 |
+| 参数 | 适用 | 说明 | 默认值 |
+|-----|------|------|-------|
+| `-i, --image` | 全部 | 原始图像路径 | 必填 |
+| `--ref` | 仅有参考图 | 参考构图图路径 | 必填 |
+| `-p, --prompt` | 全部 | 指定提示词版本 ID | 全部版本 |
+| `-r, --repeats` | 全部 | 每用例重复次数 | 1~3 |
+| `-d, --delay` | 全部 | 调用间隔（秒） | 2.0 |
 
-## 📋 使用示例
-
-### 示例 1：并行测试（请求级并行）
-
-```bash
-cd prompt_accessment_paraller_p_t
-
-# 查看可用配置
-python main.py config
-
-# 使用 Gemini 版提示词测试，重复 3 次
-python main.py sync -i test.jpg -p parallel_v1_gemini -r 3
-
-# 使用 GPT 版提示词测试
-python main.py sync -i test.jpg -p parallel_v1_gpt -r 3
-```
-
-### 示例 2：串行对比测试
-
-```bash
-cd prompt_accessment_pic_mix_text
-
-# 查看测试矩阵
-python main.py config
-
-# 测试特定提示词版本，重复 5 次
-python main.py sync -i test.jpg -p v1_base -r 5
-
-# 测试所有版本
-python main.py sync -i test.jpg -r 3
-```
-
-### 示例 3：批量测试（成本优化）
-
-```bash
-# 使用 Batch API 进行大规模测试（成本降低 50%）
-python main.py batch -i test.jpg
-
-# 不等待完成，后台运行
-python main.py batch -i test.jpg --no-wait
-```
-
-## 📊 输出结果
+##  输出结果
 
 测试结果保存在各目录的 `results/` 文件夹中：
 
 ```
 results/
-├── sync_20260131_221500/     # 同步测试结果
-│   ├── summary.json          # 汇总数据
-│   ├── case_001.json         # 单用例结果
-│   └── ...
-├── batch_20260131_220000/    # 批量测试结果
-│   └── ...
-└── report.md                 # 生成的测评报告
+└── sync_20260309_105612/
+    ├── summary.json            # 汇总数据（含 prompts_config）
+    ├── <case_id>/
+    │   ├── run0_output.txt     # 原始响应文本
+    │   └── run0_parsed.json    # 解析后的 JSON（若成功）
+    └── report.md               # 测评报告
 ```
 
 ## ⚙️ 环境配置
 
-### 依赖安装
-
 ```bash
-pip install google-generativeai pyyaml pillow
-```
-
-### 环境变量
-
-```bash
-# Gemini API Key
+pip install google-genai pyyaml pillow
 export GEMINI_API_KEY="your-api-key"
-
-# 或使用中转 API
-export GEMINI_API_KEY="your-relay-key"
-export GEMINI_BASE_URL="https://your-relay-url/v1beta"
 ```
 
 ## 🔧 配置文件
 
-每个目录包含 `config.yaml` 用于定义：
-
-- **提示词版本**：System Instruction + User Prompt
-- **模型配置**：temperature, top_k, top_p
-- **输出模式**：JSON Schema 约束
+每个目录包含 `config.yaml`，定义提示词版本（System Instruction + User Prompt）和模型参数（temperature, top_k, top_p）。
 
 ## 📈 选择建议
 
-| 场景 | 推荐目录 |
+| 目标 | 推荐目录 |
 |-----|---------|
-| 快速获取多种构图方案 | `prompt_accessment_paraller_p_t` |
-| 系统性对比不同提示词效果 | `prompt_accessment_pic_mix_text` |
-| 测试纯图像理解能力 | `prompt_accessment_pure_image` |
-| 测试纯文本指导效果 | `prompt_accessment_pure_text` |
-| 拼接式提示词实验 | `prompt_accessment_paraller_p_t_pinjie` |
+| 获取构图方案（图+文） | `图片和指令/parallel` |
+| 只需操作指令（有参考图） | `纯指令/有参考图` |
+| 只需操作指令（无参考图） | `纯指令/无参考图` |
+| 对比提示词效果 | 各目录的 `sync` 命令 |

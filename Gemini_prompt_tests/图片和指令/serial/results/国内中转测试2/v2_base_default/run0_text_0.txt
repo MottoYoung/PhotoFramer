@@ -1,0 +1,2 @@
+{"id":1,"reason":"将主体置于画面中心，突出人物表情","steps":[{"action":"Shift Right 20%","guide":"向右平移"},{"action":"Zoom In 15%","guide":"拉近焦距"}]}
+{"id":2,"reason":"采用低角度拍摄，使画面更具冲击力","steps":[{"action":"Shift Right 10%","guide":"向右平移"},{"action":"LowAngle","guide":"降低拍摄角度"}]}

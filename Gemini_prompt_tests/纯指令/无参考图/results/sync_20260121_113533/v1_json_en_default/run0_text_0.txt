@@ -1,0 +1,71 @@
+```json
+{
+  "header": {
+    "analysis_summary": "画面拥有绝佳的侧向暖色光影和生动的人物表情，但左右两侧元素较杂乱（左侧被切断的人物和右侧巨大的遮阳伞遮挡了视觉重心）。长投影是极具表现力的艺术元素，应当被更好地强调。"
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "暖阳下的生动人像",
+      "image_gen_prompt": "Medium portrait of a smiling elderly man in a blue shirt standing against a sunlit grey wall, dramatic long shadow, golden hour lighting, cinematic street photography.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 2.2,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 2.2 倍，剔除左右干扰者，专注于中心人物的笑容"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Right",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "meters",
+          "text_cn": "向右移动半步，调整构图使人物与影子形成平衡的三角结构"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-down",
+          "magnitude_val": 5.0,
+          "magnitude_unit": "degrees",
+          "text_cn": "镜头略微向下倾斜，压低背景墙的留白，使画面更有沉浸感"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "光影叙事极简构图",
+      "image_gen_prompt": "A street photo of market vendors and their very long shadows on a plain wall, minimalist composition, silhouette-like shadows, high contrast sunlight.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Left",
+          "magnitude_val": 3.0,
+          "magnitude_unit": "steps",
+          "text_cn": "向左走约 3 步，避开右侧遮阳伞的干扰，将画面视角拉开"
+        },
+        {
+          "step": 2,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.2,
+          "magnitude_unit": "x",
+          "text_cn": "微调焦距至 1.2 倍，确保墙面占据画面主体，强调影子的延展感"
+        },
+        {
+          "step": 3,
+          "action": "VIEW",
+          "direction": "Tilt-up",
+          "magnitude_val": 10.0,
+          "magnitude_unit": "degrees",
+          "text_cn": "采用略微仰拍视角，增加人物的视觉高度，并使地面上的农产品作为前景点缀"
+        }
+      ]
+    }
+  ]
+}
+```

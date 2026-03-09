@@ -1,0 +1,23 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "leading_lines",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "在此场景中，地面的线条、墙壁的阴影边缘以及人物之间的视线都能够作为引导线，将观众的目光引向画面中心正在交谈的人们，增强画面的故事性和趣味性。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "Shift",
+        "direction": "Right",
+        "guide_text": "向右平移，使地面的纹理线和墙壁的阴影线更能有效地指向中心的人物。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "Zoom",
+        "direction": "In",
+        "guide_text": "稍微拉近镜头，让引导线更加明显，并让主体人物在画面中更突出，减少背景中不必要的干扰。"
+      }
+    ]
+  }
+}
+```

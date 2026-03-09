@@ -1,0 +1,27 @@
+```json
+{
+  "type": "composition",
+  "id": 2,
+  "aesthetic_desc": "调整焦距和构图，让中间的微笑人物成为主体，背景简洁化，光影更具冲击力。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "拉近镜头，让中间的微笑人物占据画面主体。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，使人物略微偏右，利用左侧的光影形成的阴影作为视觉引导。"
+    },
+    {
+      "step_order": 3,
+      "action_type": "Shift",
+      "direction": "Up",
+      "guide_text": "略微向上平移，减少地面杂物，使背景墙面更简洁，突出人物。"
+    }
+  ]
+}
+```

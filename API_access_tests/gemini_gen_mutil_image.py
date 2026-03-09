@@ -8,7 +8,7 @@ from pathlib import Path
 # ================配置=================== #
 # API
 # 从环境变量读取，或直接填写
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyC_KWWzdi39-TDTOhNRMZmlvFj8IwwH9u4")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 
 # 模型

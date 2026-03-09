@@ -1,0 +1,30 @@
+```json
+{
+  "is_applicable": true,
+  "technique": "foreground_framing",
+  "composition_data": {
+    "aesthetic_desc_and_resoning": "原图展现了一个美丽的剪影场景，但由于前景缺乏细节，显得有些单薄。通过引入前景框架，可以增加画面的层次感和故事性。我们将通过低角度和向一侧移动，利用更近处的雪地和一丛带有积雪的枯草作为前景框架。这些元素将虚化，环绕在画面底部和左侧，不仅增强了景深，还将观众的视线更强烈地引向远处的孤独树木和跃马剪影。虚实对比让远处的剪影显得更加空灵和神圣。",
+    "steps": [
+      {
+        "step_order": 1,
+        "action_type": "view-change",
+        "direction": "low-angle",
+        "guide_text": "尝试将镜头高度降得更低，接近地面。"
+      },
+      {
+        "step_order": 2,
+        "action_type": "shift",
+        "direction": "left",
+        "guide_text": "向左移动几步，寻找可以作为前景的物体。"
+      },
+      {
+        "step_order": 3,
+        "action_type": "zoom",
+        "direction": "in",
+        "guide_text": "轻微放大镜头，使前景物体在画面中占据更大比例。选择一丛带有积雪的枯草或树枝，调整机位，让其在画面底部和左侧形成自然的、略微虚化的画框，将远处的树和跃马包围在内。"
+      }
+    ]
+  }
+}
+```
+

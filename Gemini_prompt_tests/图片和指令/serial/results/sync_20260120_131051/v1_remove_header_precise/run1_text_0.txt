@@ -1,0 +1,21 @@
+```json
+{
+  "type": "composition",
+  "id": 1,
+  "aesthetic_desc": "向右平移并稍微拉近，聚焦于两位主要人物，减少环境干扰，使画面更紧凑。",
+  "steps": [
+    {
+      "step_order": 1,
+      "action_type": "Shift",
+      "direction": "Right",
+      "guide_text": "向右平移，将画面中心移至两位主要人物。"
+    },
+    {
+      "step_order": 2,
+      "action_type": "Zoom",
+      "direction": "In",
+      "guide_text": "稍微拉近，使人物占据画面更大比例，减少背景杂物。"
+    }
+  ]
+}
+```

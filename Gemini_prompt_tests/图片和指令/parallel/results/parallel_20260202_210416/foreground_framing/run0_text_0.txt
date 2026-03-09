@@ -1,0 +1,7 @@
+```json
+{
+  "is_applicable": false,
+  "technique": "foreground_framing",
+  "composition_data": null
+}
+```

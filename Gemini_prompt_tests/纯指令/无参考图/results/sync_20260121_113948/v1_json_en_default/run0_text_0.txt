@@ -1,0 +1,63 @@
+```json
+{
+  "header": {
+    "analysis_summary": "The current frame is wide, including excessive empty wall space and a less engaged subject on the far left. The smiling man in the middle and the person under the umbrella offer compelling subjects with excellent golden hour lighting and strong shadows. Improvements should focus on tighter framing and better subject emphasis."
+  },
+  "compositions": [
+    {
+      "id": 1,
+      "title_cn": "笑容特写与市场细节",
+      "image_gen_prompt": "Close-up portrait of an elderly man smiling brightly, captured during golden hour, with warm light highlighting his face and subtle market details in the lower frame, plain wall in the background, candid street photography style.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.8,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 1.8 倍，突出中间人物的笑容和神态"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Down",
+          "magnitude_val": 0.5,
+          "magnitude_unit": "meters",
+          "text_cn": "将手机向下平移约 0.5 米，减少顶部空白墙面，纳入更多市场地面的细节"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title_cn": "聚焦市集互动瞬间",
+      "image_gen_prompt": "Candid shot of two people interacting in a market setting during golden hour, with one man smiling and another person holding an umbrella, strong shadows on a plain wall background, showing market goods on the ground, street photography vibe.",
+      "instruction_steps": [
+        {
+          "step": 1,
+          "action": "SHIFT",
+          "direction": "Forward",
+          "magnitude_val": 1.0,
+          "magnitude_unit": "meters",
+          "text_cn": "向前走近约 1 米，让人物在画面中更具存在感"
+        },
+        {
+          "step": 2,
+          "action": "SHIFT",
+          "direction": "Down",
+          "magnitude_val": 0.4,
+          "magnitude_unit": "meters",
+          "text_cn": "将手机向下平移约 0.4 米，减少上方墙面，更好展现人物与地面的互动"
+        },
+        {
+          "step": 3,
+          "action": "ZOOM",
+          "direction": "In",
+          "magnitude_val": 1.2,
+          "magnitude_unit": "x",
+          "text_cn": "放大画面至 1.2 倍，进一步收紧构图，聚焦中间的人物关系"
+        }
+      ]
+    }
+  ]
+}
+```
