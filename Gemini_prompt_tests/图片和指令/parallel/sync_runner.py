@@ -29,9 +29,6 @@ from prompts_config import (
 # 【Gemini官方API配置】
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# 【中转API配置 - 可选】
-# GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "sk-xxxxxx")
-# GEMINI_BASE_URL = os.environ.get("GEMINI_BASE_URL", "https://your-relay.api/v1beta")
 
 # MODEL_NAME = "gemini-2.5-flash-image"
 # MODEL_NAME = "gemini-3-pro-image-preview"
@@ -155,6 +152,14 @@ async def call_gemini_async(
             temperature=model_config.temperature,
             top_k=model_config.top_k,
             top_p=model_config.top_p,
+            maxOutputTokens=1000,
+            image_config=types.ImageConfig(
+            image_size="512"
+            )
+            # response_mime_type="application/json"
+            # thinking_config=types.ThinkingConfig(
+            # thinking_level="MINIMAL"
+            # )
         )
         
         # 使用 asyncio.to_thread 将同步调用转为异步
@@ -177,20 +182,13 @@ async def call_gemini_async(
         case_dir.mkdir(parents=True, exist_ok=True)
         
         if hasattr(response, "parts"):
-            text_idx = 0
             image_idx = 0
+            full_text_content = "" # 用于拼接所有文本
+            
+            # 第一步：遍历所有 part，分别提取图片和拼接文本
             for part in response.parts:
                 if hasattr(part, "text") and part.text:
-                    result.texts.append(part.text)
-                    # 保存文本
-                    txt_path = case_dir / f"run{run_index}_text_{text_idx}.txt"
-                    with open(txt_path, "w", encoding="utf-8") as f:
-                        f.write(part.text)
-                    text_idx += 1
-                    
-                    # 尝试解析 JSON
-                    if result.parsed_json is None:
-                        result.parsed_json = _parse_json_from_text(part.text)
+                    full_text_content += part.text # 累加文本碎片
                 
                 elif hasattr(part, "inline_data") and part.inline_data:
                     img = part.as_image()
@@ -198,6 +196,18 @@ async def call_gemini_async(
                     img.save(img_path)
                     result.images.append(str(img_path))
                     image_idx += 1
+            
+            # 第二步：对拼接后的完整文本进行处理
+            if full_text_content.strip():
+                result.texts.append(full_text_content)
+                
+                # 将完整文本保存到一个文件中，方便你查看模型的真实输出
+                txt_path = case_dir / f"run{run_index}_text_full.txt"
+                with open(txt_path, "w", encoding="utf-8") as f:
+                    f.write(full_text_content)
+                
+                # 对完整文本进行 JSON 解析
+                result.parsed_json = _parse_json_from_text(full_text_content)
         
         # 提取 is_applicable 字段
         if result.parsed_json:
@@ -296,107 +306,112 @@ def run_parallel_assessment(
 ) -> list[ParallelRunResult]:
     """
     运行并行测评
-    
     Args:
         input_image_path: 输入图像路径
         repeats: 重复运行次数
         delay_between_runs: 每次运行之间的间隔（秒）
-        prompt_id: 指定提示词版本ID（默认第一个）
-        
+        prompt_id: 指定提示词版本ID（None 时遍历所有版本）
+
     Returns:
-        ParallelRunResult 列表
+        ParallelRunResult 列表（所有版本、所有运行的汇总）
     """
     client = init_client()
-    requests = generate_composition_requests(prompt_id=prompt_id)
-    
-    # 创建输出目录
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = RESULTS_DIR / f"parallel_{timestamp}"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # 验证图像路径存在
     input_image_path = Path(input_image_path)
     if not input_image_path.exists():
         raise FileNotFoundError(f"输入图像不存在: {input_image_path}")
-    
+
+    # 决定要跑哪些 prompt set
+    from prompts_config import load_prompts_from_yaml, get_prompt_set_by_id
+    if prompt_id:
+        prompt_sets_to_run = [get_prompt_set_by_id(prompt_id)]
+    else:
+        prompt_sets_to_run = load_prompts_from_yaml()
+        if not prompt_sets_to_run:
+            raise ValueError("config.yaml 中没有找到任何提示词配置")
+
+    # 创建本次测试的根输出目录
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    root_output_dir = RESULTS_DIR / f"parallel_{timestamp}"
+    root_output_dir.mkdir(parents=True, exist_ok=True)
+
     print(f"\n{'='*60}")
-    print(f"🚀 并行测评 - 5 种构图方案并发请求")
+    print(f"🚀 并行测评 - {len(prompt_sets_to_run)} 个提示词版本")
     print(f"{'='*60}")
-    print(f"   构图技术数: {len(requests)}")
+    print(f"   提示词版本: {[ps.id for ps in prompt_sets_to_run]}")
     print(f"   重复次数: {repeats}")
-    print(f"   输出目录: {output_dir}")
-    print(f"   请求列表:")
-    for req in requests:
-        print(f"      • {req.technique_id}")
-    
+    print(f"   输出目录: {root_output_dir}")
+
     all_results: list[ParallelRunResult] = []
-    
-    for run_idx in range(repeats):
-        print(f"\n[运行 {run_idx+1}/{repeats}]")
-        
-        # 运行并行请求（传递图像路径，每个任务独立加载）
-        result = asyncio.run(run_parallel_requests(
-            client=client,
-            image_path=input_image_path,
-            requests=requests,
-            output_dir=output_dir,
-            run_index=run_idx
-        ))
-        
-        all_results.append(result)
-        
-        print(f"   ⏱️ 总耗时: {result.total_time_ms:.0f}ms")
-        print(f"   ✓ 成功: {result.successful_techniques}/{result.total_techniques}")
-        print(f"   📸 适用: {result.applicable_techniques}/{result.total_techniques}")
-        
-        # 打印各技术详情
-        for r in result.results:
-            status = "✓" if r.success else "✗"
-            applicable = "适用" if r.is_applicable else ("不适用" if r.is_applicable is False else "未知")
-            print(f"      {status} {r.technique_id}: {r.response_time_ms:.0f}ms [{applicable}]")
-        
-        if run_idx < repeats - 1:
-            time.sleep(delay_between_runs)
-    
-    # 保存汇总结果
+    all_summaries = {}
+
+    for ps in prompt_sets_to_run:
+        requests = generate_composition_requests(prompt_set=ps)
+        # 每个 prompt set 存到独立子目录
+        output_dir = root_output_dir / ps.id
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        print(f"\n{'─'*60}")
+        print(f"📝 提示词版本: {ps.id}  ({ps.description})")
+        print(f"   构图技术: {[req.technique_id for req in requests]}")
+
+        prompt_results: list[ParallelRunResult] = []
+
+        for run_idx in range(repeats):
+            print(f"\n  [运行 {run_idx+1}/{repeats}]")
+
+            result = asyncio.run(run_parallel_requests(
+                client=client,
+                image_path=input_image_path,
+                requests=requests,
+                output_dir=output_dir,
+                run_index=run_idx
+            ))
+
+            prompt_results.append(result)
+            all_results.append(result)
+
+            print(f"   ⏱️ 总耗时: {result.total_time_ms:.0f}ms")
+            print(f"   ✓ 成功: {result.successful_techniques}/{result.total_techniques}")
+            print(f"   📸 适用: {result.applicable_techniques}/{result.total_techniques}")
+
+            for r in result.results:
+                if r.success:
+                    applicable = "适用" if r.is_applicable else ("不适用" if r.is_applicable is False else "未知")
+                    print(f"      ✓ {r.technique_id}: {r.response_time_ms:.0f}ms [{applicable}]")
+                else:
+                    print(f"      ✗ {r.technique_id}: {r.response_time_ms:.0f}ms [错误: {r.error_message}]")
+
+            if run_idx < repeats - 1:
+                time.sleep(delay_between_runs)
+
+        # 保存该版本的汇总
+        all_summaries[ps.id] = {
+            "prompt_description": ps.description,
+            "runs": [r.to_dict() for r in prompt_results],
+        }
+
+    # 保存整体汇总
     summary = {
         "timestamp": timestamp,
         "model_name": MODEL_NAME,
         "input_image": str(input_image_path),
-        "total_runs": repeats,
-        "techniques": [req.technique_id for req in requests],
-        "runs": [r.to_dict() for r in all_results]
+        "total_prompt_versions": len(prompt_sets_to_run),
+        "repeats_per_version": repeats,
+        "prompt_versions": {ps.id: ps.description for ps in prompt_sets_to_run},
+        "results_by_prompt": all_summaries,
     }
-    
-    summary_path = output_dir / "summary.json"
+
+    summary_path = root_output_dir / "summary.json"
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
-    
-    print(f"\n✅ 测评完成，结果已保存到: {output_dir}")
-    
-    # 打印统计摘要
-    if all_results:
-        avg_total_time = sum(r.total_time_ms for r in all_results) / len(all_results)
-        print(f"\n{'='*60}")
-        print(f"📊 统计摘要")
-        print(f"{'='*60}")
-        print(f"   平均并行耗时: {avg_total_time:.0f}ms")
-        
-        # 按技术统计
-        tech_times: dict[str, list[float]] = {}
-        for run in all_results:
-            for r in run.results:
-                if r.success:
-                    if r.technique_id not in tech_times:
-                        tech_times[r.technique_id] = []
-                    tech_times[r.technique_id].append(r.response_time_ms)
-        
-        print(f"\n   按技术平均响应时间:")
-        for tech, times in sorted(tech_times.items(), key=lambda x: sum(x[1])/len(x[1])):
-            avg = sum(times) / len(times)
-            print(f"      • {tech}: {avg:.0f}ms")
-    
+
+    print(f"\n✅ 测评完成，结果已保存到: {root_output_dir}")
+
     return all_results
+
+
 
 
 if __name__ == "__main__":
