@@ -58,6 +58,7 @@ fun CameraScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsState()
     val validationResult by viewModel.validationResult.collectAsState()
+    val allStepsCompleted by viewModel.allStepsCompleted.collectAsState()
     
     // 相机相关
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
@@ -69,7 +70,6 @@ fun CameraScreen(
     var flashMode by remember { mutableStateOf(FlashMode.OFF) }
     var gridEnabled by remember { mutableStateOf(false) }
     var useFrontCamera by remember { mutableStateOf(false) }
-    var cameraMode by remember { mutableStateOf(CameraMode.PHOTO) }
     var lastPhotoThumbnail by remember { mutableStateOf<Bitmap?>(null) }
     
     // 帧分析计数器（每隔N帧分析一次，避免过于频繁）
@@ -79,6 +79,19 @@ fun CameraScreen(
     // 上次分析时间（限制分析频率）
     var lastAnalysisTime by remember { mutableStateOf(0L) }
     val minAnalysisInterval = 100L  // 提升到 100ms 以增强实时性
+
+    val captureGuidedPhoto = {
+        captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
+            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+            if (bitmap != null) {
+                lastPhotoThumbnail = bitmap
+                kotlinx.coroutines.GlobalScope.launch {
+                    com.photoframer.utils.ImageSaver.saveImageToGallery(context, bitmap, "photoframer_final")
+                }
+            }
+            viewModel.backToPreview()
+        }
+    }
     
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         // 1. 顶部栏（纯黑背景，独立区域）
@@ -153,8 +166,11 @@ fun CameraScreen(
                                                     lastAnalysisTime = currentTime
                                                     val bitmap = com.photoframer.vision.ImageConverter.imageProxyToBitmap(imageProxy)
                                                     if (bitmap != null) {
-                                                        // 降低分辨率以提升处理速度 (480 -> 360)
-                                                        val scaledBitmap = com.photoframer.vision.ImageConverter.scaleBitmap(bitmap, 360)
+                                                        // 统一到固定宽度坐标系，保证验证阈值与引导 UI 一致
+                                                        val scaledBitmap = com.photoframer.vision.ImageConverter.scaleBitmapToWidth(
+                                                            bitmap,
+                                                            com.photoframer.vision.StepValidator.VALIDATION_FRAME_WIDTH
+                                                        )
                                                         viewModel.validateCurrentFrame(scaledBitmap, zoomRatio)
                                                     }
                                                 }
@@ -189,7 +205,6 @@ fun CameraScreen(
             // B. 覆盖层 (Guidance Arrows, Glow) - 只在预览区显示
             if (uiState is CameraUiState.Guiding) {
                 val guidingState = uiState as CameraUiState.Guiding
-                val allStepsCompleted by viewModel.allStepsCompleted.collectAsState()
                 
                 // 动态箭头
                 if (!allStepsCompleted) {
@@ -224,7 +239,7 @@ fun CameraScreen(
                     }
                 } else {
                      AllStepsCompletedBanner(
-                        onTakePhoto = {}, // Handled by bottom shutter
+                        onTakePhoto = captureGuidedPhoto,
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 80.dp)
                     )
                 }
@@ -318,8 +333,7 @@ fun CameraScreen(
                 is CameraUiState.Preview -> {
                     // 预览模式：专业相机底部栏
                     CameraBottomBar(
-                        currentMode = cameraMode,
-                        onModeChange = { cameraMode = it },
+                        currentMode = CameraMode.PHOTO,
                         onShutterClick = {
                             // 普通拍照
                             captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
@@ -333,8 +347,8 @@ fun CameraScreen(
                             }
                         },
                         onCameraSwitch = { useFrontCamera = !useFrontCamera },
-                        onGalleryClick = { /* TODO: 打开相册 */ },
-                        lastPhotoThumbnail = lastPhotoThumbnail
+                        lastPhotoThumbnail = lastPhotoThumbnail,
+                        isGalleryAvailable = false
                     )
                 }
                 
@@ -385,7 +399,7 @@ fun CameraScreen(
                         applicableCount = state.applicableCount,
                         totalTimeMs = state.totalTimeMs,
                         compositions = state.compositions,
-                        onCompositionSelected = { comp -> viewModel.selectComposition(comp) },
+                        onStartGuidance = { comp -> viewModel.selectComposition(comp) },
                         getCompositionBitmap = { technique -> viewModel.getCachedImage(technique) },
                         onSaveComposition = { technique ->
                             val bitmap = viewModel.getCachedImage(technique)
@@ -402,31 +416,20 @@ fun CameraScreen(
                 is CameraUiState.Guiding -> {
                     // 引导模式
                     GuidingBottomBar(
-                        onCaptureClick = {
-                            captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
-                                val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-                                if (bitmap != null) {
-                                    lastPhotoThumbnail = bitmap
-                                    kotlinx.coroutines.GlobalScope.launch {
-                                        com.photoframer.utils.ImageSaver.saveImageToGallery(context, bitmap, "photoframer_final")
-                                    }
-                                }
-                                viewModel.backToPreview()
-                            }
-                        },
-                        onBackClick = { viewModel.backToCandidates() }
+                        onCaptureClick = captureGuidedPhoto,
+                        onBackClick = { viewModel.backToCandidates() },
+                        isCaptureEnabled = allStepsCompleted
                     )
                 }
                 
                 else -> {
                     // 错误或其他状态：显示基础底部栏
                     CameraBottomBar(
-                        currentMode = cameraMode,
-                        onModeChange = { cameraMode = it },
+                        currentMode = CameraMode.PHOTO,
                         onShutterClick = { },
                         onCameraSwitch = { useFrontCamera = !useFrontCamera },
-                        onGalleryClick = { },
-                        lastPhotoThumbnail = lastPhotoThumbnail
+                        lastPhotoThumbnail = lastPhotoThumbnail,
+                        isGalleryAvailable = false
                     )
                 }
             }

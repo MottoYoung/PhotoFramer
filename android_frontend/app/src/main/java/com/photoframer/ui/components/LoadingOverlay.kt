@@ -28,14 +28,12 @@ import com.photoframer.ui.theme.TextPrimary
  * Apple Intelligence 风格的流光色彩
  */
 private val GlowColors = listOf(
-    Color(0xFF6EB5FF),  // 天蓝色
-    Color(0xFF8B9DFF),  // 蓝紫色
-    Color(0xFFBC82F3),  // 紫色
-    Color(0xFFF5B9EA),  // 粉色
-    Color(0xFFFF6B8A),  // 玫红色
-    Color(0xFFFF8C71),  // 珊瑚色
-    Color(0xFFFFBA71),  // 橙色
-    Color(0xFFC686FF),  // 回到紫色
+    Color(0xFF9DC3FF),  // 冷白蓝
+    Color(0xFF6EA7FF),  // 天蓝
+    Color(0xFF4D8DFF),  // 主蓝
+    Color(0xFF7DB9FF),  // 亮蓝
+    Color(0xFFE7F1FF),  // 冷白
+    Color(0xFF89B6FF),  // 柔和浅蓝
 )
 
 /**

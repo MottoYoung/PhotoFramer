@@ -3,9 +3,9 @@ package com.photoframer.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ==================== 主题色 ==================== //
-val PurplePrimary = Color(0xFF7C4DFF)
-val PurpleSecondary = Color(0xFFB388FF)
-val BlueAccent = Color(0xFF448AFF)
+val PurplePrimary = Color(0xFF4D8DFF)
+val PurpleSecondary = Color(0xFFB8D3FF)
+val BlueAccent = Color(0xFF73B2FF)
 
 // ==================== 背景色 ==================== //
 val BackgroundDark = Color(0xFF121212)
@@ -22,8 +22,8 @@ val WarningYellow = Color(0xFFFFC107)
 val ErrorRed = Color(0xFFF44336)
 
 // ==================== 渐变色 ==================== //
-val GradientStart = Color(0xFF7C4DFF)
-val GradientEnd = Color(0xFF448AFF)
+val GradientStart = Color(0xFF4D8DFF)
+val GradientEnd = Color(0xFF89B6FF)
 
 // ==================== 相机 UI 专用色 ==================== //
 // 控件背景（按钮、药丸等暗色控件统一使用）
@@ -36,14 +36,14 @@ val PillBackground = Color(0xFF1A1A1A)
 val ControlSelectedBackground = Color(0xFF3D3D3D)
 
 // 高亮色（变焦数字、模式选择器选中态、引导图标）
-val AccentYellow = Color(0xFFFFD700)
+val AccentYellow = Color(0xFFFFD35C)
 
 // 顶部栏图标激活色（略暖的黄色）
-val IconActiveYellow = Color(0xFFFFD54F)
+val IconActiveYellow = Color(0xFFFFD35C)
 
 // 录制红
 val RecordingRed = Color(0xFFEA4335)
 
 // AI 按钮渐变色
-val AiGradientStart = Color(0xFF5B7FFF)
-val AiGradientEnd = Color(0xFF8B5CF6)
+val AiGradientStart = Color(0xFF74A7FF)
+val AiGradientEnd = Color(0xFF4D8DFF)

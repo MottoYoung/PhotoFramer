@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
@@ -24,33 +25,28 @@ import androidx.compose.ui.unit.dp
 import com.photoframer.ui.theme.*
 
 /**
- * 相机模式
+ * 保留枚举以兼容现有状态，但当前只暴露真正实现的拍照模式。
  */
 enum class CameraMode(val displayName: String) {
-    PORTRAIT("人像"),
-    PHOTO("拍照"),
-    VIDEO("录像"),
-    NIGHT("夜景")
+    PHOTO("拍照")
 }
 
 /**
- * 相机底部控制栏 - 专业相机风格
+ * 相机底部控制栏 - 贴近系统相机的基础拍照控制
  * 
  * 布局:
- * - 上层: 模式选择器 (可滑动)
- * - 下层: [相册缩略图] [快门按钮] [前后切换]
+ * - 上层: 当前模式标签（仅展示真实可用的拍照模式）
+ * - 下层: [最近照片预览] [快门按钮] [前后切换]
  * 
  * 注意：变焦控制已移至预览区悬浮显示
  */
 @Composable
 fun CameraBottomBar(
     currentMode: CameraMode,
-    onModeChange: (CameraMode) -> Unit,
     onShutterClick: () -> Unit,
     onCameraSwitch: () -> Unit,
-    onGalleryClick: () -> Unit,
     lastPhotoThumbnail: Bitmap? = null,
-    isRecording: Boolean = false,
+    isGalleryAvailable: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -61,11 +57,11 @@ fun CameraBottomBar(
             .padding(top = 20.dp, bottom = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. 模式选择器
-        ModeSelector(
-            currentMode = currentMode,
-            onModeChange = onModeChange,
-            modifier = Modifier.padding(bottom = 28.dp)
+        Text(
+            text = currentMode.displayName,
+            color = AccentYellow,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(bottom = 24.dp)
         )
         
         // 2. 主控制行：相册 / 快门 / 切换
@@ -79,13 +75,11 @@ fun CameraBottomBar(
             // 左侧：相册缩略图
             GalleryThumbnail(
                 thumbnail = lastPhotoThumbnail,
-                onClick = onGalleryClick
+                enabled = isGalleryAvailable
             )
             
             // 中间：快门按钮
             ShutterButton(
-                isRecording = isRecording,
-                isVideoMode = currentMode == CameraMode.VIDEO,
                 onClick = onShutterClick
             )
             
@@ -104,7 +98,7 @@ fun ZoomSelector(
     onZoomChange: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val zoomOptions = listOf(0.6f, 1f, 2f)
+    val zoomOptions = listOf(1f, 2f)
     
     Row(
         modifier = modifier
@@ -115,7 +109,6 @@ fun ZoomSelector(
     ) {
         zoomOptions.forEach { zoom ->
             val isSelected = kotlin.math.abs(currentZoom - zoom) < 0.3f ||
-                    (zoom == 0.6f && currentZoom < 0.8f) ||
                     (zoom == 1f && currentZoom >= 0.8f && currentZoom < 1.5f) ||
                     (zoom == 2f && currentZoom >= 1.5f)
             
@@ -130,7 +123,6 @@ fun ZoomSelector(
                 Text(
                     text = if (isSelected && kotlin.math.abs(currentZoom - zoom) > 0.05f) 
                         String.format("%.1f", currentZoom) 
-                    else if (zoom < 1f) ".6" 
                     else "${zoom.toInt()}",
                     color = if (isSelected) AccentYellow else Color.White.copy(alpha = 0.7f),
                     style = if (isSelected) MaterialTheme.typography.labelLarge
@@ -142,78 +134,12 @@ fun ZoomSelector(
 }
 
 /**
- * 模式选择器 - 可点击切换
- */
-@Composable
-private fun ModeSelector(
-    currentMode: CameraMode,
-    onModeChange: (CameraMode) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val modes = CameraMode.entries
-    
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        modes.forEach { mode ->
-            val isSelected = mode == currentMode
-            
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onModeChange(mode) }
-                    .padding(horizontal = 4.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = mode.displayName,
-                    color = if (isSelected) AccentYellow else Color.White.copy(alpha = 0.5f),
-                    style = if (isSelected) MaterialTheme.typography.labelLarge
-                            else MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.5f))
-                )
-                
-                // 选中指示器
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .size(4.dp)
-                        .clip(CircleShape)
-                        .background(if (isSelected) AccentYellow else Color.Transparent)
-                )
-            }
-        }
-    }
-}
-
-/**
- * 快门按钮 - 专业设计
- * 
- * 拍照模式: 白色圆环 + 白色内圆
- * 录像模式: 白色圆环 + 红色内圆
- * 录像中: 白色圆环 + 红色方形(停止)
+ * 快门按钮 - 仅保留已实现的拍照语义
  */
 @Composable
 private fun ShutterButton(
-    isRecording: Boolean,
-    isVideoMode: Boolean,
     onClick: () -> Unit
 ) {
-    // 录像时的脉冲动画
-    val infiniteTransition = rememberInfiniteTransition(label = "recording")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = if (isRecording) 0.9f else 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
-    
     // 点击动画
     var isPressed by remember { mutableStateOf(false) }
     val pressScale by animateFloatAsState(
@@ -225,7 +151,7 @@ private fun ShutterButton(
     Box(
         modifier = Modifier
             .size(76.dp)
-            .scale(if (isRecording) pulseScale else pressScale)
+            .scale(pressScale)
             .border(4.dp, Color.White, CircleShape)
             .padding(6.dp)
             .clip(CircleShape)
@@ -236,32 +162,12 @@ private fun ShutterButton(
             ) { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        // 内部填充
-        if (isRecording) {
-            // 录像中：显示红色方形停止按钮
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(RecordingRed)
-            )
-        } else if (isVideoMode) {
-            // 录像模式：显示红色圆形
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(RecordingRed)
-            )
-        } else {
-            // 拍照模式：显示白色圆形
-            Box(
-                modifier = Modifier
-                    .size(58.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-            )
-        }
+        Box(
+            modifier = Modifier
+                .size(58.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+        )
     }
 }
 
@@ -271,23 +177,31 @@ private fun ShutterButton(
 @Composable
 private fun GalleryThumbnail(
     thumbnail: Bitmap?,
-    onClick: () -> Unit
+    enabled: Boolean
 ) {
     Box(
         modifier = Modifier
             .size(52.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(ControlBackground)
-            .border(1.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
+            .border(1.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.Center
     ) {
         if (thumbnail != null) {
             Image(
                 bitmap = thumbnail.asImageBitmap(),
                 contentDescription = "最近照片",
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(if (enabled) 1f else 0.72f),
                 contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = if (enabled) 0.18f else 0.1f))
             )
         }
     }

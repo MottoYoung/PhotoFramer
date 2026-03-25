@@ -7,6 +7,7 @@ import re
 import json
 import time
 import base64
+import ssl
 from io import BytesIO
 from typing import List, Optional, Tuple, Dict, Any
 from dataclasses import dataclass, field
@@ -24,6 +25,9 @@ from config import (
     MODEL_TEMPERATURE,
     MODEL_TOP_K,
     MODEL_TOP_P,
+    IMAGE_SIZE,
+    MODEL_MAX_TOKENS,
+    THINKING_LEVEL
 )
 from schemas import CompositionStep, CompositionResult
 
@@ -56,7 +60,7 @@ class GeminiService:
             )
         self.client = genai.Client(api_key=GEMINI_API_KEY)
         print("✅ Gemini 客户端初始化成功")
-    
+
     def _parse_json_from_text(self, text: str) -> Optional[Dict]:
         """从响应文本中解析 JSON"""
         # 尝试提取 ```json ... ``` 块
@@ -125,6 +129,13 @@ class GeminiService:
                 temperature=MODEL_TEMPERATURE,
                 top_k=MODEL_TOP_K,
                 top_p=MODEL_TOP_P,
+                maxOutputTokens=MODEL_MAX_TOKENS,
+                image_config=types.ImageConfig(
+                image_size=IMAGE_SIZE
+                ),
+                thinking_config=types.ThinkingConfig(
+                    thinking_level=THINKING_LEVEL
+                )
             )
             
             # 使用 asyncio.to_thread 将同步调用转为异步
@@ -134,6 +145,10 @@ class GeminiService:
                 contents=contents,
                 config=config
             )
+            response = None
+            last_error: Optional[Exception] = None
+
+
             
             end_ts = time.perf_counter()
             end_time = datetime.now()

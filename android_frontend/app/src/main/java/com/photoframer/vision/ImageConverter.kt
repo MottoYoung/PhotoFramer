@@ -101,6 +101,21 @@ object ImageConverter {
             true
         )
     }
+
+    /**
+     * 将 Bitmap 缩放到指定宽度，保持长宽比不变。
+     * 引导验证使用固定宽度坐标系，便于阈值和 UI 叠加层保持一致。
+     */
+    fun scaleBitmapToWidth(bitmap: Bitmap, targetWidth: Int): Bitmap {
+        if (targetWidth <= 0 || bitmap.width == targetWidth) {
+            return bitmap
+        }
+
+        val scale = targetWidth.toFloat() / bitmap.width
+        val newHeight = (bitmap.height * scale).toInt().coerceAtLeast(1)
+
+        return Bitmap.createScaledBitmap(bitmap, targetWidth, newHeight, true)
+    }
     
     /**
      * 缩放 Bitmap（降低分辨率以加快处理速度）

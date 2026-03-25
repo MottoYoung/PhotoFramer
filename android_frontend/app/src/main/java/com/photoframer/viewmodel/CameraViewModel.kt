@@ -61,6 +61,10 @@ class CameraViewModel : ViewModel() {
     
     // 当前分析任务
     private var analysisJob: Job? = null
+
+    // 引导会话与验证请求版本号，确保只有“当前步骤、当前请求”的结果可以生效
+    private var guidanceSessionId = 0L
+    private var latestValidationRequestId = 0L
     
     /**
      * 分析图片构图 (v3.1 并行化后端)
@@ -109,6 +113,7 @@ class CameraViewModel : ViewModel() {
     fun cancelAnalysis() {
         analysisJob?.cancel()
         analysisJob = null
+        invalidateGuidanceSession()
         _uiState.value = CameraUiState.Preview
     }
     
@@ -116,15 +121,20 @@ class CameraViewModel : ViewModel() {
      * 选择构图方案，进入引导阶段
      */
     fun selectComposition(composition: CompositionResult) {
+        stepValidator?.close()
+
         // 获取目标图片并创建验证器 (使用 technique 作为 key)
         val targetBitmap = imageCache[composition.technique]
         if (targetBitmap != null) {
             stepValidator = StepValidator(targetBitmap)
+        } else {
+            stepValidator = null
         }
-        
+
+        beginGuidanceSession()
+        _validationResult.value = null
         _stepCompleted.value = false
         _allStepsCompleted.value = false
-        isAutoAdvancing = false
         
         _uiState.value = CameraUiState.Guiding(
             composition = composition,
@@ -145,18 +155,27 @@ class CameraViewModel : ViewModel() {
         
         // 如果正在自动跳转，跳过验证
         if (isAutoAdvancing) return
+
+        val sessionId = guidanceSessionId
+        val stepIndex = currentState.currentStepIndex
+        val requestId = nextValidationRequestId()
         
         viewModelScope.launch {
             // 根据操作类型选择验证方式
             if (step.actionType.lowercase() == "view-change") {
                 // View-change 使用 ML Kit 物体检测（异步）
-                validator.validateViewChangeAsync(currentFrame) { result ->
-                    _validationResult.value = result
-                    
-                    // 如果步骤完成且开启自动跳转
-                    if (result.isCompleted && _autoAdvanceEnabled.value && !isAutoAdvancing) {
-                        handleStepCompleted(currentState)
-                    }
+                validator.validateViewChangeAsync(
+                    currentFrame = currentFrame,
+                    stepKey = step.stepOrder,
+                    direction = step.direction
+                ) { result ->
+                    applyValidationResultIfCurrent(
+                        result = result,
+                        validator = validator,
+                        sessionId = sessionId,
+                        stepIndex = stepIndex,
+                        requestId = requestId
+                    )
                 }
             } else {
                 // Shift 和 Zoom 使用 Homography 验证
@@ -168,13 +187,14 @@ class CameraViewModel : ViewModel() {
                         currentZoomRatio = currentZoomRatio
                     )
                 }
-                
-                _validationResult.value = result
-                
-                // 如果步骤完成且开启自动跳转
-                if (result.isCompleted && _autoAdvanceEnabled.value && !isAutoAdvancing) {
-                    handleStepCompleted(currentState)
-                }
+
+                applyValidationResultIfCurrent(
+                    result = result,
+                    validator = validator,
+                    sessionId = sessionId,
+                    stepIndex = stepIndex,
+                    requestId = requestId
+                )
             }
         }
     }
@@ -183,19 +203,33 @@ class CameraViewModel : ViewModel() {
     /**
      * 处理步骤完成
      */
-    private fun handleStepCompleted(currentState: CameraUiState.Guiding) {
+    private fun handleStepCompleted(sessionId: Long, stepIndex: Int) {
         isAutoAdvancing = true
         _stepCompleted.value = true
+        invalidatePendingValidation()
         
         viewModelScope.launch {
             // 显示完成动画
             delay(800)  // 等待动画显示
+
+            if (!isGuidanceStepCurrent(sessionId, stepIndex)) {
+                _stepCompleted.value = false
+                isAutoAdvancing = false
+                return@launch
+            }
             
             _stepCompleted.value = false
-            
+
+            val currentState = _uiState.value as? CameraUiState.Guiding
+            if (currentState == null) {
+                isAutoAdvancing = false
+                return@launch
+            }
+
             if (currentState.isLastStep) {
                 // 所有步骤完成
                 _allStepsCompleted.value = true
+                invalidatePendingValidation()
             } else {
                 // 跳转到下一步
                 nextStep()
@@ -219,8 +253,11 @@ class CameraViewModel : ViewModel() {
     fun nextStep() {
         val currentState = _uiState.value
         if (currentState is CameraUiState.Guiding && !currentState.isLastStep) {
+            invalidatePendingValidation()
+            isAutoAdvancing = false
             _validationResult.value = null
             _stepCompleted.value = false
+            _allStepsCompleted.value = false
             _uiState.value = currentState.copy(
                 currentStepIndex = currentState.currentStepIndex + 1
             )
@@ -233,6 +270,8 @@ class CameraViewModel : ViewModel() {
     fun previousStep() {
         val currentState = _uiState.value
         if (currentState is CameraUiState.Guiding && !currentState.isFirstStep) {
+            invalidatePendingValidation()
+            isAutoAdvancing = false
             _validationResult.value = null
             _stepCompleted.value = false
             _allStepsCompleted.value = false
@@ -246,6 +285,7 @@ class CameraViewModel : ViewModel() {
      * 返回预览状态
      */
     fun backToPreview() {
+        invalidateGuidanceSession()
         imageCache.clear()
         stepValidator?.close()  // 释放 ML Kit 资源
         stepValidator = null
@@ -262,6 +302,7 @@ class CameraViewModel : ViewModel() {
     fun backToCandidates() {
         val cached = cachedCandidatesState
         if (cached != null) {
+            invalidateGuidanceSession()
             stepValidator?.close()  // 释放 ML Kit 资源
             stepValidator = null
             _validationResult.value = null
@@ -290,6 +331,56 @@ class CameraViewModel : ViewModel() {
             BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
         } catch (e: Exception) {
             null
+        }
+    }
+
+    private fun beginGuidanceSession() {
+        guidanceSessionId += 1
+        latestValidationRequestId = 0L
+        isAutoAdvancing = false
+    }
+
+    private fun invalidateGuidanceSession() {
+        guidanceSessionId += 1
+        invalidatePendingValidation()
+        isAutoAdvancing = false
+    }
+
+    private fun nextValidationRequestId(): Long {
+        latestValidationRequestId += 1
+        return latestValidationRequestId
+    }
+
+    private fun invalidatePendingValidation() {
+        latestValidationRequestId += 1
+    }
+
+    private fun isGuidanceStepCurrent(
+        sessionId: Long,
+        stepIndex: Int,
+        validator: StepValidator? = null
+    ): Boolean {
+        if (sessionId != guidanceSessionId) return false
+        if (validator != null && validator !== stepValidator) return false
+
+        val state = _uiState.value as? CameraUiState.Guiding ?: return false
+        return state.currentStepIndex == stepIndex
+    }
+
+    private fun applyValidationResultIfCurrent(
+        result: StepValidationResult,
+        validator: StepValidator,
+        sessionId: Long,
+        stepIndex: Int,
+        requestId: Long
+    ) {
+        if (requestId != latestValidationRequestId) return
+        if (!isGuidanceStepCurrent(sessionId, stepIndex, validator)) return
+
+        _validationResult.value = result
+
+        if (result.isCompleted && _autoAdvanceEnabled.value && !isAutoAdvancing) {
+            handleStepCompleted(sessionId, stepIndex)
         }
     }
 }

@@ -1,7 +1,6 @@
 package com.photoframer.ui.components
 
 import android.graphics.Bitmap
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,7 +22,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.photoframer.data.api.CompositionResult
@@ -38,14 +36,16 @@ import com.photoframer.ui.theme.*
 fun GuidingBottomBar(
     onCaptureClick: () -> Unit,
     onBackClick: () -> Unit,
+    isCaptureEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.Black)
             .navigationBarsPadding()
-            .padding(vertical = 24.dp, horizontal = 48.dp)
+            .padding(start = 48.dp, top = 12.dp, end = 48.dp, bottom = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -70,11 +70,22 @@ fun GuidingBottomBar(
             }
             
             // 中间：快门按钮
-            GuidingShutterButton(onClick = onCaptureClick)
+            GuidingShutterButton(
+                enabled = isCaptureEnabled,
+                onClick = onCaptureClick
+            )
             
             // 右侧：占位
             Spacer(modifier = Modifier.size(52.dp))
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = if (isCaptureEnabled) "构图已完成，可直接拍摄" else "按引导完成当前步骤后可拍摄",
+            color = if (isCaptureEnabled) SuccessGreen else Color.White.copy(alpha = 0.64f),
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
@@ -82,23 +93,23 @@ fun GuidingBottomBar(
  * 引导模式快门按钮 - 带脉冲动画
  */
 @Composable
-private fun GuidingShutterButton(onClick: () -> Unit) {
-    var isPressed by remember { mutableStateOf(false) }
-    val pressScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f),
-        label = "press"
-    )
-    
+private fun GuidingShutterButton(
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .size(76.dp)
-            .scale(pressScale)
-            .border(4.dp, Color.White, CircleShape)
+            .border(
+                4.dp,
+                if (enabled) Color.White else Color.White.copy(alpha = 0.28f),
+                CircleShape
+            )
             .padding(6.dp)
             .clip(CircleShape)
             .background(Color.Transparent)
             .clickable(
+                enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { onClick() },
@@ -108,7 +119,7 @@ private fun GuidingShutterButton(onClick: () -> Unit) {
             modifier = Modifier
                 .size(58.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(if (enabled) Color.White else Color.White.copy(alpha = 0.22f))
         )
     }
 }
@@ -121,12 +132,18 @@ fun CandidatesBottomPanel(
     applicableCount: Int,
     totalTimeMs: Float,
     compositions: List<CompositionResult>,
-    onCompositionSelected: (CompositionResult) -> Unit,
+    onStartGuidance: (CompositionResult) -> Unit,
     getCompositionBitmap: (String) -> Bitmap?,
     onSaveComposition: (String) -> Unit,
     onRescan: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var selectedTechnique by remember(compositions) {
+        mutableStateOf(compositions.firstOrNull()?.technique)
+    }
+    val selectedComposition = compositions.firstOrNull { it.technique == selectedTechnique }
+        ?: compositions.firstOrNull()
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -138,10 +155,17 @@ fun CandidatesBottomPanel(
         // 统计信息
         if (applicableCount > 0) {
             Text(
-                text = "AI 推荐了 $applicableCount 种构图",
-                color = Color.White.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                text = "选择一个参考构图",
+                color = Color.White.copy(alpha = 0.82f),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
+
+            Text(
+                text = "共生成 $applicableCount 个可用方案  ·  ${totalTimeMs.toInt()}ms",
+                color = Color.White.copy(alpha = 0.46f),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 14.dp)
             )
         }
 
@@ -149,19 +173,69 @@ fun CandidatesBottomPanel(
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 20.dp),
-            modifier = Modifier.height(220.dp)
+            modifier = Modifier.height(190.dp)
         ) {
             items(compositions) { composition ->
                 CompositionCard(
                     composition = composition,
                     bitmap = getCompositionBitmap(composition.technique),
-                    onClick = { onCompositionSelected(composition) },
+                    isSelected = composition.technique == selectedComposition?.technique,
+                    onClick = { selectedTechnique = composition.technique },
                     onSaveClick = { onSaveComposition(composition.technique) }
                 )
             }
         }
-        
-        Spacer(modifier = Modifier.height(20.dp))
+
+        if (selectedComposition != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 14.dp, bottom = 12.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(22.dp)
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = selectedComposition.techniqueName,
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = buildSelectionSummary(selectedComposition),
+                        color = Color.White.copy(alpha = 0.58f),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1
+                    )
+                }
+
+                Button(
+                    onClick = { onStartGuidance(selectedComposition) },
+                    colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                    shape = RoundedCornerShape(22.dp),
+                    modifier = Modifier.height(42.dp)
+                ) {
+                    Text(
+                        text = "开始引导",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
         
         // 重新扫描按钮
         Button(
@@ -184,4 +258,8 @@ fun CandidatesBottomPanel(
             )
         }
     }
+}
+
+private fun buildSelectionSummary(composition: CompositionResult): String {
+    return "预计 ${composition.steps.size} 步完成"
 }

@@ -54,7 +54,7 @@ fun GuidanceOverlay(
         }
         isViewChangeStep -> {
             rawTx = if (isCompleted) 1.0f else (validationResult?.tx ?: 0f)
-            rawTy = 0f
+            rawTy = if (isCompleted) 1.0f else (validationResult?.ty ?: 0f)
         }
         else -> {
             val rawDistance = kotlin.math.sqrt(
@@ -213,6 +213,8 @@ fun GuidanceOverlay(
         if (step?.actionType.equals("view-change", ignoreCase = true)) {
             // validationResult.tx 存放 progress（0-1 完成进度）
             val progress = animTx.coerceIn(0f, 1f)
+            val directionConfidence = animTy.coerceIn(0f, 1f)
+            val viewChangeDirection = step?.direction.orEmpty()
             
             val arcRadius = armEnd + 12f  // 准星外围
             val arcStroke = 4f
@@ -264,7 +266,48 @@ fun GuidanceOverlay(
                     style = Stroke(arcStroke, cap = StrokeCap.Round)
                 )
             }
+
+            drawViewChangeDirectionHint(
+                centerX = centerX,
+                centerY = centerY,
+                arcRadius = arcRadius + 22f,
+                direction = viewChangeDirection,
+                confidence = directionConfidence,
+                color = color,
+                shadow = shadow
+            )
         }
     }
 }
 
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawViewChangeDirectionHint(
+    centerX: Float,
+    centerY: Float,
+    arcRadius: Float,
+    direction: String,
+    confidence: Float,
+    color: Color,
+    shadow: Color
+) {
+    val inactiveColor = Color.White.copy(alpha = 0.18f)
+    val activeAlpha = 0.45f + confidence * 0.5f
+    val chevronSize = 18f
+    val stroke = 4f
+
+    fun drawChevron(cx: Float, cy: Float, dx: Float, dy: Float, active: Boolean) {
+        val tint = if (active) color.copy(alpha = activeAlpha.coerceIn(0f, 1f)) else inactiveColor
+        val path = Path().apply {
+            moveTo(cx - dx * chevronSize - dy * chevronSize * 0.55f, cy - dy * chevronSize + dx * chevronSize * 0.55f)
+            lineTo(cx, cy)
+            lineTo(cx - dx * chevronSize + dy * chevronSize * 0.55f, cy - dy * chevronSize - dx * chevronSize * 0.55f)
+        }
+        drawPath(path = path, color = shadow, style = Stroke(width = stroke + 2f, cap = StrokeCap.Round))
+        drawPath(path = path, color = tint, style = Stroke(width = stroke, cap = StrokeCap.Round))
+    }
+
+    val normalized = direction.lowercase()
+    drawChevron(centerX, centerY - arcRadius, 0f, -1f, normalized == "high-angle")
+    drawChevron(centerX, centerY + arcRadius, 0f, 1f, normalized == "low-angle")
+    drawChevron(centerX - arcRadius, centerY, -1f, 0f, normalized == "side-view-left")
+    drawChevron(centerX + arcRadius, centerY, 1f, 0f, normalized == "side-view-right")
+}

@@ -51,6 +51,21 @@ class FeatureMatcher {
      * 计算当前帧与目标图片的单应性矩阵
      */
     fun computeHomography(currentBitmap: Bitmap): HomographyResult {
+        return computeTransform(currentBitmap, usePerspective = false)
+    }
+
+    /**
+     * 计算当前帧与目标图片的完整单应矩阵
+     * 用于 View-change 任务评估透视变化
+     */
+    fun computePerspectiveHomography(currentBitmap: Bitmap): HomographyResult {
+        return computeTransform(currentBitmap, usePerspective = true)
+    }
+
+    private fun computeTransform(
+        currentBitmap: Bitmap,
+        usePerspective: Boolean
+    ): HomographyResult {
         if (cachedTargetDescriptors == null || cachedTargetDescriptors!!.empty()) {
             return HomographyResult(null, 0, "目标图片未初始化")
         }
@@ -114,26 +129,37 @@ class FeatureMatcher {
         val srcPointsMat = MatOfPoint2f(*targetPoints.toTypedArray())
         val dstPointsMat = MatOfPoint2f(*currentPoints.toTypedArray())
         
-        // 计算单应性矩阵
-        // 计算仿射矩阵 (限制为: 平移 + 旋转 + 缩放)
-        // 这种约束比单应性矩阵(8自由度)更稳定，非常适合引导用户调整相机位置
+        // 计算变换矩阵
         val inliers = Mat()
-        val affine2D = Calib3d.estimateAffinePartial2D(
-            srcPointsMat,
-            dstPointsMat,
-            inliers,
-            Calib3d.RANSAC,
-            5.0
-        )
+        val transform = if (usePerspective) {
+            Calib3d.findHomography(
+                srcPointsMat,
+                dstPointsMat,
+                Calib3d.RANSAC,
+                5.0,
+                inliers
+            )
+        } else {
+            // 计算仿射矩阵 (限制为: 平移 + 旋转 + 缩放)
+            // 这种约束比单应性矩阵(8自由度)更稳定，非常适合引导用户调整相机位置
+            Calib3d.estimateAffinePartial2D(
+                srcPointsMat,
+                dstPointsMat,
+                inliers,
+                Calib3d.RANSAC,
+                5.0
+            )
+        }
         
         // 计算内点数量
         val inlierCount = Core.countNonZero(inliers)
         
-        if (affine2D.empty()) {
-            return HomographyResult(null, goodMatches.size, "无法计算仿射矩阵")
+        if (transform.empty()) {
+            val transformName = if (usePerspective) "单应矩阵" else "仿射矩阵"
+            return HomographyResult(null, goodMatches.size, "无法计算$transformName")
         }
         
-        return HomographyResult(affine2D, inlierCount, "成功 ($inlierCount 内点)")
+        return HomographyResult(transform, inlierCount, "成功 ($inlierCount 内点)")
     }
 }
 

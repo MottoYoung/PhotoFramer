@@ -9,9 +9,12 @@ from typing import Dict
 
 # ==================== API 配置 ==================== #
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_MAX_CONCURRENCY = int(os.environ.get("GEMINI_MAX_CONCURRENCY", "2"))
+GEMINI_MAX_RETRIES = int(os.environ.get("GEMINI_MAX_RETRIES", "1"))
+GEMINI_RETRY_BASE_DELAY = float(os.environ.get("GEMINI_RETRY_BASE_DELAY", "0.8"))
 
 # ==================== 模型配置 ==================== #
-MODEL_NAME = "gemini-2.5-flash-image"
+MODEL_NAME = "gemini-3.1-flash-image-preview"
 
 # ==================== 路径配置 ==================== #
 BASE_DIR = Path(__file__).parent
@@ -29,45 +32,49 @@ class TechniqueConfig:
 
 
 # 共享的 System Instruction
-SYSTEM_INSTRUCTION = """# Role: AI Photography Director
-# Goal: Analyze the user's input image and guide them to take a better photo based on a specific composition technique.
+SYSTEM_INSTRUCTION = """
+      # Role
+      你是一位屡获殊荣的顶尖国家地理摄影师和视觉美学大师。你精通构图，能精准评估场景，并指导如何通过调整相机的物理位置来获得完美画面。
+      
+      # Task
+      分析用户上传的原始取景器画面，判断指定的构图技巧是否适用于当前场景。
+      如果适用，请提供大师级的分析、具体的相机移动指导，并生成**一张**应用该构图技巧后的绝美参考图。
 
-# CRITICAL OUTPUT PROTOCOL (STRICT EXECUTION ORDER):
-1.  **Analyze**: Determine if the requested technique is valid for this scene.
-2.  **JSON Output**: Output the JSON object containing the decision and instructions.
-3.  **VISUAL PROOF (MANDATORY)**: 
-    * IF `is_applicable` is `true`: You **MUST** generate the Target Image immediately after the JSON. **Failure to generate an image when `is_applicable` is true is a CRITICAL ERROR.**
-    * IF `is_applicable` is `false`: Do NOT generate an image.
+      # Constraints (核心约束)
+      1. 真实性约束：你生成的参考图必须是对原图的构图重塑。如需进行画面视角的改变或边缘扩展(Outpainting)，必须严格符合原图的光照逻辑、物理规律和场景连贯性。严禁突兀地添加原图中不存在的主体元素或改变季节/时间。
+      2. 动作限制：指导步骤只能包含以下三种物理相机操作：
+         - Shift (2D位移与旋转): 相机在平行平面内上下左右平移，或微调水平。
+         - Zoom (2D缩放): 调整焦距(Zoom in/Zoom out)。
+         - View-change (视角改变): 改变俯仰角(高低机位)或轻微侧方位移动。
+      3. 适用性判断：如果画面缺乏明确主体、极度杂乱，或当前画面已完美符合该构图且无需任何调整，应将 `is_applicable` 设为 `false`。
 
-# Action Definitions (For JSON Instructions):
-* `Shift`: Moving camera (Left, Right, Up, Down) or leveling frame (Rotate-CW, Rotate-CCW).
-* `Zoom`: Adjusting focal length/distance (In, Out).
-* `View-change`: Changing angle (High-angle, Low-angle, Side-view) or position (move one step left/right).
+      # Workflow & Format (工作流与输出格式)
+      为了确保系统的稳定解析，你的文本响应必须**仅仅**包含一个纯净的 JSON 代码块，**严禁重复生成任何内容**,也绝不能在 JSON 之外输出任何文字。在 JSON 输出完成后，如果判定适用，再触发参考图的生成。
+      
+      - 若 `is_applicable` 为 `true`: 必须基于JSON 中的指导步骤，生成那张重构后的高美感参考图。
+      - 若 `is_applicable` 为 `false`: 绝对不生成任何图片
+      - `guide_text` 会直接显示给普通中文用户，必须是自然、人话、能立刻执行的提示。
+      - 严禁在 `guide_text` 中出现 `CW`、`CCW`、`Rotate-CW`、`Rotate-CCW`、`Shift`、`Zoom`、`View-change` 这类内部术语。
+      - 若需要表达微调水平，只能用类似“手机稍微向左转一点”“把画面放平”这样的中文表达。
 
-# JSON Schema (Strict):
-You must return a JSON object with this exact structure:
-```json
-{
-  "is_applicable": true,
-  "technique": "string",
-  "composition_data": {
-    "aesthetic_desc": "string (Chinese description)",
-    "steps": [
+      请严格按照以下 JSON 结构输出：
+      ```json
       {
-        "step_order": 1,
-        "action_type": "Shift|Zoom|View-change",
-        "direction": "string",
-        "guide_text": "string (Chinese instruction)"
-      }
-    ]
-  }
-}
-```
-
-# General Constraints:
-1.  **Language**: All descriptive text (`aesthetic_desc`, `guide_text`) must be in **Chinese (中文)**.
-2.  **Realism**: The target image must be a realistic re-framing of the original scene.
-3.  **Completeness**: Do not stop generation after the JSON if `is_applicable` is true. The task is ONLY complete after the image is generated."""
+        "is_applicable": true, 
+        "technique": "string",
+        "aesthetic_analysis": "string", // [10-15字] 以顶尖摄影师口吻，简要分析原图潜力及为何适用/不适用该构图技巧。
+        "composition_data": { 
+          "core_reasoning": "string", // [10字以内] 调整后的核心美学提升总结（若不适用则留空）
+          "steps": [
+            {
+              "step_order": 1, 
+              "action_type": "string", // 仅限: "Shift", "Zoom", "View-change"
+              "direction": "string", // 具体的动作方向描述，如 "向左平移并微调水平"
+              "guide_text": "string" // [重点] 面向普通用户的简明中文指导15字以内，例如：“请拿着手机向左平移两步，让人物位于左侧三分线上”
+            }
+          ]
+        }
+      }"""
 
 
 # 5 种构图技术的 User Prompt
@@ -76,49 +83,31 @@ TECHNIQUE_CONFIGS: Dict[str, TechniqueConfig] = {
         id="rule_of_thirds",
         name="三分构图",
         user_prompt="""# Task Request
-The user has uploaded an image. Please apply the **"Rule of Thirds"** technique.
-1.  **Technique Goal**: Place the main subject on the grid lines or intersection points.
-2.  **Technique Name for JSON**: `rule_of_thirds`
-3.  **Analysis**: Check if the subject can be shifted to a third-line to improve balance."""
+    The user has uploaded an image. Please apply the **"Rule of Thirds"** technique to improve the composition of the uploaded image.)"""
     ),
     "center_composition": TechniqueConfig(
         id="center_composition",
         name="中心构图",
         user_prompt="""# Task Request
-The user has uploaded an image. Please apply the **"Center Composition / Symmetry"** technique.
-1.  **Technique Goal**: Place the subject perfectly in the center to emphasize stability, symmetry, or importance.
-2.  **Technique Name for JSON**: `center_composition`
-3.  **Analysis**: Check if the subject works well when centered (e.g., portraits, symmetrical architecture)."""
+    The user has uploaded an image. Please apply the **"Center Composition / Symmetry"** technique to improve the composition of the uploaded image.) """
     ),
     "leading_lines": TechniqueConfig(
         id="leading_lines",
         name="引导线构图",
         user_prompt="""# Task Request
-The user has uploaded an image. Please apply the **"Leading Lines"** technique.
-1.  **Technique Goal**: Find natural lines (roads, fences, rivers, edges) and align the shot so they point towards the subject.
-2.  **Technique Name for JSON**: `leading_lines`
-3.  **Analysis**: Crucial step - Check if there are ACTUAL lines in the scene. If no lines exist, set `is_applicable` to `false`."""
+    The user has uploaded an image. Please apply the **"Leading Lines"** technique to improve the composition of the uploaded image.)"""
     ),
     "foreground_framing": TechniqueConfig(
         id="foreground_framing",
         name="前景/框架构图",
         user_prompt="""# Task Request
-The user has uploaded an image. Please apply the **"Foreground Framing"** technique.
-1.  **Technique Goal**: Use elements close to the lens (leaves, windows, objects) to frame the main subject, adding depth.
-2.  **Technique Name for JSON**: `foreground_framing`
-3.  **Analysis**: Check if there are potential foreground elements to use. If the scene is completely open/empty, set `is_applicable` to `false`."""
+    The user has uploaded an image. Please apply the **"Foreground Framing"** technique to improve the composition of the uploaded image.)"""
     ),
     "diagonal_composition": TechniqueConfig(
         id="diagonal_composition",
         name="对角线构图",
         user_prompt="""# Task Request
-The user has uploaded an image. Please apply the **"Diagonal Composition"** technique.
-1.  **Technique Goal**: Use **EXISTING** linear elements (fences, roads, architecture edges) to guide the eye diagonally.
-2.  **Technique Name for JSON**: `diagonal_composition`
-3.  **Strict Analysis Constraints**:
-   * **DO NOT simply tilt the camera** (Dutch Angle) to create a fake diagonal if the subject is vertical.
-   * Only set `is_applicable` to `true` if there are **actual physical lines** in the scene that can be aligned diagonally.
-   * If the scene is static and vertical/horizontal dominant, set `is_applicable` to `false`."""
+    The user has uploaded an image. Please apply the **"Diagonal Composition"** technique to improve the composition of the uploaded image.)"""
     ),
 }
 
@@ -126,3 +115,6 @@ The user has uploaded an image. Please apply the **"Diagonal Composition"** tech
 MODEL_TEMPERATURE = 1.0
 MODEL_TOP_K = 40
 MODEL_TOP_P = 0.95
+MODEL_MAX_TOKENS = 1024
+IMAGE_SIZE = "512"
+THINKING_LEVEL="MINIMAL"

@@ -9,13 +9,13 @@ package com.photoframer.data.api
  */
 object ApiConfig {
     // TODO: 修改为你的电脑局域网 IP
-    private const val HOST = "172.24.109.227"  // ⬅️ 修改这里
+    private const val HOST = "10.81.209.92"  // ⬅️ 修改这里
     private const val PORT = "8000"
     
     const val BASE_URL = "http://$HOST:$PORT/"
     
     // API 超时设置（秒）
-    const val CONNECT_TIMEOUT = 15L
+    const val CONNECT_TIMEOUT = 10L
     const val READ_TIMEOUT = 120L  // 图片生成需要较长时间
     const val WRITE_TIMEOUT = 60L
 }

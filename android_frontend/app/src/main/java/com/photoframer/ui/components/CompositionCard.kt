@@ -2,8 +2,8 @@ package com.photoframer.ui.components
 
 import android.graphics.Bitmap
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -35,11 +37,9 @@ import com.photoframer.data.api.CompositionResult
 import com.photoframer.ui.theme.*
 
 /**
- * 构图方案卡片 — 重设计版
+ * 候选构图卡片
  *
- * - 更大的图片预览区 (130dp)
- * - 选中态发光边框 + 微缩放
- * - 弹性缩放动画
+ * 以图片为主，信息克制，尽量接近系统相册里的照片选择卡体验。
  */
 @Composable
 fun CompositionCard(
@@ -50,11 +50,10 @@ fun CompositionCard(
     onSaveClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 选中态缩放动画
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.03f else 1f,
+        targetValue = if (isSelected) 1.012f else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
+            dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "card_scale"
@@ -62,33 +61,31 @@ fun CompositionCard(
 
     Card(
         modifier = modifier
-            .width(200.dp)
+            .width(184.dp)
             .scale(scale)
             .then(
                 if (isSelected) Modifier.border(
-                    width = 2.dp,
+                    width = 1.25.dp,
                     color = PurplePrimary,
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) else Modifier
             )
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) PurplePrimary.copy(alpha = 0.15f) else CardBackground
+            containerColor = CardBackground
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 12.dp else 4.dp
+            defaultElevation = if (isSelected) 10.dp else 3.dp
         )
     ) {
         Column {
-            // 图片预览区
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(130.dp)
-                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                    .height(138.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                     .background(SurfaceDark),
-                contentAlignment = Alignment.Center
             ) {
                 if (bitmap != null) {
                     Image(
@@ -101,19 +98,45 @@ fun CompositionCard(
                     Text(
                         text = composition.techniqueName,
                         color = TextSecondary,
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
 
-                // 保存按钮 (右上角)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.68f)
+                                )
+                            )
+                        )
+                )
+
+                SelectionChip(
+                        text = when {
+                            isSelected -> "已选中"
+                            composition.isRecommended -> "推荐"
+                            else -> "${composition.steps.size} 步"
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(10.dp),
+                    isSelected = isSelected
+                )
+
                 if (bitmap != null) {
                     IconButton(
                         onClick = onSaveClick,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(6.dp)
-                            .size(28.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                            .padding(8.dp)
+                            .size(30.dp)
+                            .background(Color.Black.copy(alpha = 0.42f), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowDownward,
@@ -123,40 +146,116 @@ fun CompositionCard(
                         )
                     }
                 }
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 9.dp)
+                ) {
+                    Text(
+                        text = composition.techniqueName,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Text(
+                        text = compactAestheticDesc(composition.aestheticDesc),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.82f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
-            // 描述区
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                    .padding(horizontal = 10.dp, vertical = 9.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = composition.techniqueName,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = if (isSelected) PurpleSecondary else PurplePrimary
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = composition.aestheticDesc,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "${composition.steps.size} 个步骤",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = BlueAccent
-                )
+                MetaPill(text = "${composition.steps.size} 步")
+                MetaPill(text = getStepSummary(composition))
             }
         }
     }
+}
+
+@Composable
+private fun SelectionChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    isSelected: Boolean
+) {
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(
+                if (isSelected) PurplePrimary.copy(alpha = 0.92f) else Color.Black.copy(alpha = 0.42f)
+            )
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+
+        Text(
+            text = text,
+            color = Color.White,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold
+            )
+        )
+    }
+}
+
+@Composable
+private fun MetaPill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.06f))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    ) {
+        Text(
+            text = text,
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
+
+private fun getStepSummary(composition: CompositionResult): String {
+    val firstAction = composition.steps.firstOrNull()?.actionType ?: return "参考构图"
+    return when (firstAction) {
+        "Shift" -> "先移动机位"
+        "Zoom" -> "先调整远近"
+        "View-change" -> "先改变视角"
+        else -> "按步骤调整"
+    }
+}
+
+private fun compactAestheticDesc(text: String): String {
+    val trimmed = text
+        .replace("\n", " ")
+        .replace("，", " ")
+        .replace("。", " ")
+        .trim()
+        .replace(Regex("\\s+"), " ")
+
+    return trimmed.take(22)
 }
