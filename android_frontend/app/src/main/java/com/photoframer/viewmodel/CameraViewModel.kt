@@ -7,7 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.photoframer.data.api.CompositionResult
 import com.photoframer.data.repository.CompositionRepository
+import com.photoframer.inframe.InFrameCompositionGuideBuilder
+import com.photoframer.inframe.InFrameGuideValidationConfig
 import com.photoframer.ui.state.CameraUiState
+import com.photoframer.utils.AnalysisImagePreprocessor
 import com.photoframer.vision.StepValidationResult
 import com.photoframer.vision.StepValidator
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +52,12 @@ class CameraViewModel : ViewModel() {
     
     // 缓存解码后的图片 (使用 technique 作为 key)
     private val imageCache = mutableMapOf<String, Bitmap>()
+
+    // 用于本地验证的参考图；AI 构图与缩略图一致，画面内构图则使用上传分析图
+    private val validationImageCache = mutableMapOf<String, Bitmap>()
+
+    // 画面内构图的引导参数（center / target zoom）
+    private val inFrameGuideConfigCache = mutableMapOf<String, InFrameGuideValidationConfig>()
     
     // 缓存候选方案状态（用于返回）
     private var cachedCandidatesState: CameraUiState.Candidates? = null
@@ -73,37 +82,112 @@ class CameraViewModel : ViewModel() {
         analysisJob?.cancel()  // 取消之前的分析任务
         analysisJob = viewModelScope.launch {
             _uiState.value = CameraUiState.Analyzing
-            
-            repository.analyzeComposition(imageFile)
-                .onSuccess { response ->
-                    if (response.applicableCount > 0 && response.compositions.isNotEmpty()) {
-                        // 预解码图片 (使用 technique 作为 key)
-                        response.compositions.forEach { comp ->
-                            comp.imageBase64?.let { base64 ->
-                                decodeBase64Image(base64)?.let { bitmap ->
-                                    imageCache[comp.technique] = bitmap
+
+            val preparedImage = try {
+                withContext(Dispatchers.IO) {
+                    AnalysisImagePreprocessor.prepare(imageFile)
+                }
+            } catch (error: Exception) {
+                _uiState.value = CameraUiState.Error(
+                    error.message ?: "图片预处理失败"
+                )
+                return@launch
+            }
+
+            try {
+                repository.analyzeComposition(preparedImage.file)
+                    .onSuccess { response ->
+                        if (response.applicableCount > 0 && response.compositions.isNotEmpty()) {
+                            imageCache.clear()
+                            validationImageCache.clear()
+                            inFrameGuideConfigCache.clear()
+
+                            // 预解码图片 (使用 technique 作为 key)
+                            response.compositions.forEach { comp ->
+                                comp.imageBase64?.let { base64 ->
+                                    decodeBase64Image(base64)?.let { bitmap ->
+                                        imageCache[comp.technique] = bitmap
+                                        validationImageCache[comp.technique] = bitmap
+                                    }
                                 }
                             }
+                            val candidatesState = CameraUiState.Candidates(
+                                totalTechniques = response.totalTechniques,
+                                applicableCount = response.applicableCount,
+                                totalTimeMs = response.totalTimeMs,
+                                compositions = response.compositions
+                            )
+                            cachedCandidatesState = candidatesState
+                            _uiState.value = candidatesState
+                        } else {
+                            _uiState.value = CameraUiState.Error(
+                                response.message ?: "未能生成适用的构图方案"
+                            )
                         }
-                        val candidatesState = CameraUiState.Candidates(
-                            totalTechniques = response.totalTechniques,
-                            applicableCount = response.applicableCount,
-                            totalTimeMs = response.totalTimeMs,
-                            compositions = response.compositions
-                        )
-                        cachedCandidatesState = candidatesState
-                        _uiState.value = candidatesState
-                    } else {
+                    }
+                    .onFailure { error ->
                         _uiState.value = CameraUiState.Error(
-                            response.message ?: "未能生成适用的构图方案"
+                            error.message ?: "网络错误，请检查连接"
                         )
                     }
-                }
-                .onFailure { error ->
-                    _uiState.value = CameraUiState.Error(
-                        error.message ?: "网络错误，请检查连接"
+            } finally {
+                preparedImage.cleanup()
+            }
+        }
+    }
+
+    /**
+     * 画面内构图分析
+     */
+    fun analyzeInFrameComposition(imageFile: File) {
+        analysisJob?.cancel()
+        analysisJob = viewModelScope.launch {
+            _uiState.value = CameraUiState.Analyzing
+
+            val preparedImage = try {
+                withContext(Dispatchers.IO) {
+                    AnalysisImagePreprocessor.prepare(
+                        sourceFile = imageFile,
+                        requireBitmap = true
                     )
                 }
+            } catch (error: Exception) {
+                _uiState.value = CameraUiState.Error(
+                    error.message ?: "图片预处理失败"
+                )
+                return@launch
+            }
+
+            try {
+                val result = repository.analyzeInFrameComposition(preparedImage.file)
+                val response = result.getOrElse { error ->
+                    _uiState.value = CameraUiState.Error(
+                        error.message ?: "画面内构图分析失败"
+                    )
+                    return@launch
+                }
+
+                val guide = withContext(Dispatchers.Default) {
+                    val sourceBitmap = preparedImage.bitmap ?: BitmapFactory.decodeFile(preparedImage.file.absolutePath)
+                        ?: return@withContext null
+                    InFrameCompositionGuideBuilder.build(sourceBitmap, response)
+                }
+
+                if (guide != null) {
+                    imageCache.clear()
+                    validationImageCache.clear()
+                    inFrameGuideConfigCache.clear()
+                    cachedCandidatesState = null
+                    imageCache[guide.composition.technique] = guide.previewBitmap
+                    validationImageCache[guide.composition.technique] = guide.validationBitmap
+                    inFrameGuideConfigCache[guide.composition.technique] = guide.validationConfig
+                    selectComposition(guide.composition)
+                } else {
+                    _uiState.value = CameraUiState.Error("未能生成有效的画面内参考构图")
+                }
+            } finally {
+                preparedImage.cleanup()
+            }
         }
     }
     
@@ -124,9 +208,13 @@ class CameraViewModel : ViewModel() {
         stepValidator?.close()
 
         // 获取目标图片并创建验证器 (使用 technique 作为 key)
-        val targetBitmap = imageCache[composition.technique]
+        val targetBitmap = validationImageCache[composition.technique] ?: imageCache[composition.technique]
+        val inFrameGuideConfig = inFrameGuideConfigCache[composition.technique]
         if (targetBitmap != null) {
-            stepValidator = StepValidator(targetBitmap)
+            stepValidator = StepValidator(
+                targetBitmap = targetBitmap,
+                inFrameGuideConfig = inFrameGuideConfig
+            )
         } else {
             stepValidator = null
         }
@@ -287,6 +375,8 @@ class CameraViewModel : ViewModel() {
     fun backToPreview() {
         invalidateGuidanceSession()
         imageCache.clear()
+        validationImageCache.clear()
+        inFrameGuideConfigCache.clear()
         stepValidator?.close()  // 释放 ML Kit 资源
         stepValidator = null
         _validationResult.value = null

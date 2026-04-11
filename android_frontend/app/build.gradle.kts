@@ -36,6 +36,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     
     // 配置 packaging 以处理 16KB 对齐问题

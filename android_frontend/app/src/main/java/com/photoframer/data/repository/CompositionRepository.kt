@@ -1,6 +1,8 @@
 package com.photoframer.data.repository
 
 import com.photoframer.data.api.AnalysisResponse
+import com.photoframer.data.api.ApiConfig
+import com.photoframer.data.api.InFrameCompositionResponse
 import com.photoframer.data.api.RetrofitClient
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -39,6 +41,35 @@ class CompositionRepository {
                 Result.success(response)
             } else {
                 Result.failure(Exception(response.message ?: "分析失败"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 画面内构图分析
+     */
+    suspend fun analyzeInFrameComposition(
+        imageFile: File
+    ): Result<InFrameCompositionResponse> {
+        return try {
+            val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
+            val imagePart = MultipartBody.Part.createFormData(
+                "image",
+                imageFile.name,
+                requestFile
+            )
+
+            val response = api.analyzeInFrameComposition(
+                url = ApiConfig.IN_FRAME_COMPOSITION_URL,
+                image = imagePart
+            )
+
+            if (response.box.size >= 4) {
+                Result.success(response)
+            } else {
+                Result.failure(Exception("画面内构图未返回有效裁切框"))
             }
         } catch (e: Exception) {
             Result.failure(e)

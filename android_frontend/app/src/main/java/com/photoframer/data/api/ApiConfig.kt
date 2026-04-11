@@ -13,6 +13,7 @@ object ApiConfig {
     private const val PORT = "8000"
     
     const val BASE_URL = "http://$HOST:$PORT/"
+    const val IN_FRAME_COMPOSITION_URL = "https://crop.312237.xyz/predict?return_preview=0"
     
     // API 超时设置（秒）
     const val CONNECT_TIMEOUT = 10L

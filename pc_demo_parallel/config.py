@@ -9,12 +9,10 @@ from typing import Dict
 
 # ==================== API 配置 ==================== #
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MAX_CONCURRENCY = int(os.environ.get("GEMINI_MAX_CONCURRENCY", "2"))
-GEMINI_MAX_RETRIES = int(os.environ.get("GEMINI_MAX_RETRIES", "1"))
-GEMINI_RETRY_BASE_DELAY = float(os.environ.get("GEMINI_RETRY_BASE_DELAY", "0.8"))
 
 # ==================== 模型配置 ==================== #
 MODEL_NAME = "gemini-3.1-flash-image-preview"
+# MODEL_NAME = "gemini-2.5-flash-image"
 
 # ==================== 路径配置 ==================== #
 BASE_DIR = Path(__file__).parent
@@ -43,9 +41,9 @@ SYSTEM_INSTRUCTION = """
       # Constraints (核心约束)
       1. 真实性约束：你生成的参考图必须是对原图的构图重塑。如需进行画面视角的改变或边缘扩展(Outpainting)，必须严格符合原图的光照逻辑、物理规律和场景连贯性。严禁突兀地添加原图中不存在的主体元素或改变季节/时间。
       2. 动作限制：指导步骤只能包含以下三种物理相机操作：
-         - Shift (2D位移与旋转): 相机在平行平面内上下左右平移，或微调水平。
-         - Zoom (2D缩放): 调整焦距(Zoom in/Zoom out)。
-         - View-change (视角改变): 改变俯仰角(高低机位)或轻微侧方位移动。
+         - Shift task. Given a poorly composed image,adjusts the framing to properly place the subject, levels the image, and removes border distractions.
+         - Zoom-in task. Given an original image, generates a tighter crop with improved composition. 
+         - View-change task. Given a captured scene, selects a new vantage point or camera pose to reframe the scene and generates the corresponding image.
       3. 适用性判断：如果画面缺乏明确主体、极度杂乱，或当前画面已完美符合该构图且无需任何调整，应将 `is_applicable` 设为 `false`。
 
       # Workflow & Format (工作流与输出格式)
@@ -53,9 +51,6 @@ SYSTEM_INSTRUCTION = """
       
       - 若 `is_applicable` 为 `true`: 必须基于JSON 中的指导步骤，生成那张重构后的高美感参考图。
       - 若 `is_applicable` 为 `false`: 绝对不生成任何图片
-      - `guide_text` 会直接显示给普通中文用户，必须是自然、人话、能立刻执行的提示。
-      - 严禁在 `guide_text` 中出现 `CW`、`CCW`、`Rotate-CW`、`Rotate-CCW`、`Shift`、`Zoom`、`View-change` 这类内部术语。
-      - 若需要表达微调水平，只能用类似“手机稍微向左转一点”“把画面放平”这样的中文表达。
 
       请严格按照以下 JSON 结构输出：
       ```json

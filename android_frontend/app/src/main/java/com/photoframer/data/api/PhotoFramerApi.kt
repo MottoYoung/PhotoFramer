@@ -19,6 +19,17 @@ interface PhotoFramerApi {
     suspend fun analyzeComposition(
         @Part image: MultipartBody.Part
     ): AnalysisResponse
+
+    /**
+     * 画面内构图
+     * POST https://crop.312237.xyz/predict?return_preview=0
+     */
+    @Multipart
+    @POST
+    suspend fun analyzeInFrameComposition(
+        @Url url: String,
+        @Part image: MultipartBody.Part
+    ): InFrameCompositionResponse
     
     /**
      * 健康检查

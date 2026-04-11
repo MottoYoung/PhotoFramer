@@ -81,3 +81,47 @@ data class HealthResponse(
     @SerializedName("techniques")
     val techniques: List<String>? = null  // 支持的构图技术列表
 )
+
+/**
+ * 画面内构图响应
+ */
+data class InFrameCompositionResponse(
+    @SerializedName("file_name")
+    val fileName: String? = null,
+
+    @SerializedName("scene_type")
+    val sceneType: String? = null,
+
+    @SerializedName("used_model")
+    val usedModel: String? = null,
+
+    @SerializedName("image_size")
+    val imageSize: List<Int> = emptyList(),
+
+    @SerializedName("stage1_box")
+    val stage1Box: List<Int>? = null,
+
+    @SerializedName("stage1_score")
+    val stage1Score: Float? = null,
+
+    @SerializedName("score")
+    val score: Float? = null,
+
+    @SerializedName("box")
+    val box: List<Int> = emptyList(),
+
+    @SerializedName("center")
+    val center: List<Float> = emptyList(),
+
+    @SerializedName("crop_size")
+    val cropSize: List<Int> = emptyList(),
+
+    @SerializedName("normalized_box")
+    val normalizedBox: List<Float>? = null,
+
+    @SerializedName("normalized_center")
+    val normalizedCenter: List<Float>? = null,
+
+    @SerializedName("cropped_preview_jpeg_base64")
+    val croppedPreviewJpegBase64: String? = null
+)

@@ -2,8 +2,12 @@ package com.photoframer.vision
 
 import android.graphics.Bitmap
 import android.util.Log
+import com.photoframer.inframe.InFrameGuideValidationConfig
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.exp
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 private const val TAG = "StepValidator"
 
@@ -26,7 +30,8 @@ data class StepValidationResult(
  * 步骤验证器
  */
 class StepValidator(
-    targetBitmap: Bitmap
+    targetBitmap: Bitmap,
+    private val inFrameGuideConfig: InFrameGuideValidationConfig? = null
 ) {
     private val featureMatcher = FeatureMatcher()
     private val homographyAnalyzer = HomographyAnalyzer()
@@ -85,6 +90,8 @@ class StepValidator(
         currentZoomRatio: Float = 1.0f
     ): StepValidationResult {
         Log.d(TAG, "开始验证: actionType=$actionType, direction=$direction, zoom=$currentZoomRatio")
+        val normalizedActionType = actionType.lowercase()
+        val isInFrameZoomStep = inFrameGuideConfig != null && normalizedActionType == "zoom"
         
         // 计算单应性矩阵
         val result = featureMatcher.computeHomography(currentFrame)
@@ -103,6 +110,9 @@ class StepValidator(
 
         // 策略：如果当前帧识别失败，但在有效期内，则使用上一次的有效数据
         if (components == null) {
+            if (isInFrameZoomStep) {
+                return validateInFrameZoom(direction, matchQuality, currentZoomRatio)
+            }
             if (currentTime - lastValidTime < PERSISTENCE_DURATION && lastValidComponents != null) {
                 // 使用缓存数据，但稍微降低匹配质量
                 components = lastValidComponents
@@ -136,9 +146,21 @@ class StepValidator(
                 "scale=${components.scaleFactor}, rotation=${components.rotationAngle}")
         
         // 根据操作类型判定
-        return when (actionType.lowercase()) {
-            "shift" -> validateShift(components, direction, matchQuality)
-            "zoom" -> validateZoom(components, direction, matchQuality, currentZoomRatio)
+        return when (normalizedActionType) {
+            "shift" -> {
+                if (inFrameGuideConfig != null) {
+                    validateInFrameShift(components, direction, matchQuality)
+                } else {
+                    validateShift(components, direction, matchQuality)
+                }
+            }
+            "zoom" -> {
+                if (inFrameGuideConfig != null) {
+                    validateInFrameZoom(direction, matchQuality, currentZoomRatio)
+                } else {
+                    validateZoom(components, direction, matchQuality, currentZoomRatio)
+                }
+            }
             "view-change" -> validateViewChange(components, direction, matchQuality)
             else -> {
                 validateShift(components, direction, matchQuality)
@@ -197,6 +219,59 @@ class StepValidator(
             matchQuality = matchQuality
         )
     }
+
+    /**
+     * 画面内构图的平移验证：
+     * 使用“原始整图 -> 当前帧”的相似变换，把推荐裁切中心投影到当前帧，
+     * 再判断它与画面中心的偏差。
+     */
+    private fun validateInFrameShift(
+        components: HomographyComponents,
+        direction: String,
+        matchQuality: Float
+    ): StepValidationResult {
+        val guide = inFrameGuideConfig ?: return validateShift(components, direction, matchQuality)
+
+        val projectedTargetCenter = projectNormalizedPoint(
+            xNorm = guide.targetCenterXNormalized,
+            yNorm = guide.targetCenterYNormalized,
+            components = components
+        )
+
+        val frameCenterX = targetReferenceBitmap.width / 2.0
+        val frameCenterY = targetReferenceBitmap.height / 2.0
+        val offsetX = projectedTargetCenter.first - frameCenterX
+        val offsetY = projectedTargetCenter.second - frameCenterY
+        val distance = sqrt(offsetX * offsetX + offsetY * offsetY)
+        val rollAngle = components.rotationAngle
+
+        val isCompleted = distance < SHIFT_THRESHOLD &&
+            abs(rollAngle) < ROLL_THRESHOLD * 2
+
+        val rollProgress = (1.0 / (1.0 + exp((abs(rollAngle) - ROLL_THRESHOLD) / 2.0)))
+        val shiftProgress = (1.0 / (1.0 + exp((distance - SHIFT_THRESHOLD) / 15.0)))
+        val progress = ((rollProgress + shiftProgress) / 2.0).toFloat()
+
+        val feedbackText = if (isCompleted) {
+            "✓ 中心已对齐"
+        } else if (abs(rollAngle) > ROLL_THRESHOLD * 2) {
+            if (rollAngle > 0) "手机稍微向右转，把画面放平" else "手机稍微向左转，把画面放平"
+        } else {
+            generateShiftFeedback(offsetX, offsetY, distance, direction)
+        }
+
+        return StepValidationResult(
+            isCompleted = isCompleted,
+            progress = progress,
+            feedbackText = feedbackDebouncer.debounce(feedbackText),
+            shiftDistance = distance.toFloat(),
+            tx = offsetX.toFloat(),
+            ty = offsetY.toFloat(),
+            scaleFactor = components.scaleFactor.toFloat(),
+            rotationAngle = rollAngle.toFloat(),
+            matchQuality = matchQuality
+        )
+    }
     
     /**
      * 验证缩放步骤
@@ -250,6 +325,65 @@ class StepValidator(
             ty = null,
             scaleFactor = components.scaleFactor.toFloat(),
             rotationAngle = components.rotationAngle.toFloat(),
+            matchQuality = matchQuality
+        )
+    }
+
+    /**
+     * 画面内构图的缩放验证：
+     * 直接比较当前系统变焦与推荐裁切所需的目标变焦，避免裁切框带来的几何耦合。
+     */
+    private fun validateInFrameZoom(
+        direction: String,
+        matchQuality: Float,
+        currentZoom: Float
+    ): StepValidationResult {
+        val guide = inFrameGuideConfig ?: return StepValidationResult(
+            isCompleted = false,
+            progress = 0f,
+            feedbackText = "正在准备变焦参考...",
+            shiftDistance = null,
+            tx = null,
+            ty = null,
+            scaleFactor = null,
+            rotationAngle = null,
+            matchQuality = matchQuality
+        )
+
+        val targetZoom = guide.targetZoomRatio.coerceIn(1.0f, 8.0f)
+        val zoomRatio = (currentZoom / targetZoom).coerceAtLeast(1e-3f)
+        val relativeError = abs(1.0f - zoomRatio)
+
+        val isCompleted = relativeError < ZOOM_THRESHOLD
+        val progress = (1.0 / (1.0 + exp((relativeError - ZOOM_THRESHOLD) / 0.1))).toFloat()
+
+        val feedbackText = if (isCompleted) {
+            "✓ 焦距已对齐"
+        } else {
+            val needZoomIn = direction.lowercase() == "in"
+            when {
+                needZoomIn && currentZoom < targetZoom - 0.05f ->
+                    "放大变焦至 %.1fx".format(targetZoom)
+                needZoomIn && currentZoom > targetZoom + 0.05f ->
+                    "已超过目标，缩回至 %.1fx".format(targetZoom)
+                needZoomIn -> "再放大一点"
+                !needZoomIn && currentZoom > targetZoom + 0.05f ->
+                    "缩小变焦至 %.1fx".format(targetZoom)
+                !needZoomIn && currentZoom < targetZoom - 0.05f ->
+                    "已超过目标，放大至 %.1fx".format(targetZoom)
+                else -> "微调焦距"
+            }
+        }
+
+        return StepValidationResult(
+            isCompleted = isCompleted,
+            progress = progress,
+            feedbackText = feedbackDebouncer.debounce(feedbackText),
+            shiftDistance = null,
+            tx = zoomRatio,
+            ty = null,
+            scaleFactor = targetZoom,
+            rotationAngle = null,
             matchQuality = matchQuality
         )
     }
@@ -461,6 +595,26 @@ class StepValidator(
         val dx = a.first - b.first
         val dy = a.second - b.second
         return kotlin.math.sqrt(dx * dx + dy * dy)
+    }
+
+    private fun projectNormalizedPoint(
+        xNorm: Float,
+        yNorm: Float,
+        components: HomographyComponents
+    ): Pair<Double, Double> {
+        val sourceX = xNorm.toDouble() * targetReferenceBitmap.width.toDouble()
+        val sourceY = yNorm.toDouble() * targetReferenceBitmap.height.toDouble()
+        val radians = Math.toRadians(components.rotationAngle)
+        val scale = components.scaleFactor
+
+        val projectedX = scale * cos(radians) * sourceX -
+            scale * sin(radians) * sourceY +
+            components.translationX
+        val projectedY = scale * sin(radians) * sourceX +
+            scale * cos(radians) * sourceY +
+            components.translationY
+
+        return projectedX to projectedY
     }
     
     /**

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -50,7 +51,7 @@ enum class FlashMode {
 /**
  * 相机顶部功能栏 - 贴近系统相机的极简控制区
  * 
- * 布局: [闪光灯] [网格]  ...空间...  [AI按钮]
+ * 布局: [闪光灯] [网格]  ...空间...  [画面内构图] [AI按钮]
  * 纯黑背景，独立区域
  */
 @Composable
@@ -59,7 +60,8 @@ fun CameraTopBar(
     onFlashModeChange: (FlashMode) -> Unit,
     gridEnabled: Boolean,
     onGridToggle: () -> Unit,
-    showAiButton: Boolean = true,
+    showAnalysisButtons: Boolean = true,
+    onInFrameClick: () -> Unit = {},
     onAiClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -99,9 +101,15 @@ fun CameraTopBar(
             
         }
         
-        // 右侧 AI 按钮
-        if (showAiButton) {
-            AiAnalysisButton(onClick = onAiClick)
+        // 右侧分析按钮
+        if (showAnalysisButtons) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                InFrameCompositionButton(onClick = onInFrameClick)
+                AiAnalysisButton(onClick = onAiClick)
+            }
         }
     }
 }
@@ -111,6 +119,30 @@ fun CameraTopBar(
  */
 @Composable
 private fun AiAnalysisButton(
+    onClick: () -> Unit
+) {
+    AnalysisPillButton(
+        icon = Icons.Default.AutoAwesome,
+        label = "AI",
+        onClick = onClick
+    )
+}
+
+@Composable
+private fun InFrameCompositionButton(
+    onClick: () -> Unit
+) {
+    AnalysisPillButton(
+        icon = Icons.Default.Crop,
+        label = "画面内",
+        onClick = onClick
+    )
+}
+
+@Composable
+private fun AnalysisPillButton(
+    icon: ImageVector,
+    label: String,
     onClick: () -> Unit
 ) {
     Row(
@@ -131,14 +163,14 @@ private fun AiAnalysisButton(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.AutoAwesome,
-            contentDescription = "AI 分析",
+            imageVector = icon,
+            contentDescription = label,
             tint = Color.White,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text = "AI",
+            text = label,
             color = Color.White,
             style = androidx.compose.material3.MaterialTheme.typography.labelLarge
         )

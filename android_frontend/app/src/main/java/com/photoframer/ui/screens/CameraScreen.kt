@@ -105,7 +105,12 @@ fun CameraScreen(
                 },
                 gridEnabled = gridEnabled,
                 onGridToggle = { gridEnabled = !gridEnabled },
-                showAiButton = uiState !is CameraUiState.Analyzing,  // 分析时隐藏 AI 按钮
+                showAnalysisButtons = uiState !is CameraUiState.Analyzing,
+                onInFrameClick = {
+                    captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
+                        viewModel.analyzeInFrameComposition(file)
+                    }
+                },
                 onAiClick = {
                     captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
                         viewModel.analyzeImage(file)

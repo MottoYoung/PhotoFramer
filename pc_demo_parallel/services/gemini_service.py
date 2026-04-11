@@ -128,14 +128,11 @@ class GeminiService:
                 system_instruction=SYSTEM_INSTRUCTION,
                 temperature=MODEL_TEMPERATURE,
                 top_k=MODEL_TOP_K,
-                top_p=MODEL_TOP_P,
-                maxOutputTokens=MODEL_MAX_TOKENS,
-                image_config=types.ImageConfig(
-                image_size=IMAGE_SIZE
-                ),
-                thinking_config=types.ThinkingConfig(
-                    thinking_level=THINKING_LEVEL
-                )
+                top_p=MODEL_TOP_P
+                # maxOutputTokens=MODEL_MAX_TOKENS,
+                # image_config=types.ImageConfig(
+                # image_size=IMAGE_SIZE
+                # )
             )
             
             # 使用 asyncio.to_thread 将同步调用转为异步
@@ -145,8 +142,8 @@ class GeminiService:
                 contents=contents,
                 config=config
             )
-            response = None
-            last_error: Optional[Exception] = None
+            
+           
 
 
             
