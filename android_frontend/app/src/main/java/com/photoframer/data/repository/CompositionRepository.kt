@@ -66,11 +66,7 @@ class CompositionRepository {
                 image = imagePart
             )
 
-            if (response.box.size >= 4) {
-                Result.success(response)
-            } else {
-                Result.failure(Exception("画面内构图未返回有效裁切框"))
-            }
+            Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }

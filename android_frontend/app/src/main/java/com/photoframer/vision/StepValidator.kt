@@ -33,9 +33,9 @@ class StepValidator(
     targetBitmap: Bitmap,
     private val inFrameGuideConfig: InFrameGuideValidationConfig? = null
 ) {
-    private val featureMatcher = FeatureMatcher()
+    private val featureMatcher = FeatureMatcher(FeatureMatcherProfile.REALTIME_ORB)
     private val homographyAnalyzer = HomographyAnalyzer()
-    private val targetViewMatcher = FeatureMatcher()
+    private val targetViewMatcher = FeatureMatcher(FeatureMatcherProfile.ROBUST_SIFT)
     private val targetReferenceBitmap: Bitmap
     private var viewChangeSourceMatcher: FeatureMatcher? = null
     private var viewChangeAnalyzer: ViewChangeAnalyzer? = null
@@ -95,76 +95,80 @@ class StepValidator(
         
         // 计算单应性矩阵
         val result = featureMatcher.computeHomography(currentFrame)
-        
-        Log.d(TAG, "匹配结果: matchCount=${result.matchCount}, message=${result.message}")
-        
-        val currentTime = System.currentTimeMillis()
-        var components: HomographyComponents? = null
-        var matchQuality = 0f
 
-        if (result.homography != null && result.matchCount >= MIN_MATCH_QUALITY) {
-             // 分解单应性矩阵
-            components = homographyAnalyzer.decompose(result.homography)
-            matchQuality = (result.matchCount.toFloat() / 50f).coerceIn(0f, 1f)
-        }
+        try {
+            Log.d(TAG, "匹配结果: matchCount=${result.matchCount}, message=${result.message}")
 
-        // 策略：如果当前帧识别失败，但在有效期内，则使用上一次的有效数据
-        if (components == null) {
-            if (isInFrameZoomStep) {
-                return validateInFrameZoom(direction, matchQuality, currentZoomRatio)
+            val currentTime = System.currentTimeMillis()
+            var components: HomographyComponents? = null
+            var matchQuality = 0f
+
+            if (result.homography != null && result.matchCount >= MIN_MATCH_QUALITY) {
+                 // 分解单应性矩阵
+                components = homographyAnalyzer.decompose(result.homography)
+                matchQuality = (result.matchCount.toFloat() / 50f).coerceIn(0f, 1f)
             }
-            if (currentTime - lastValidTime < PERSISTENCE_DURATION && lastValidComponents != null) {
-                // 使用缓存数据，但稍微降低匹配质量
-                components = lastValidComponents
-                matchQuality = 0.3f // 标记为缓存数据
-                Log.d(TAG, "处于保持期，使用缓存数据")
-            } else {
-                // 确实丢失了
-                return StepValidationResult(
-                    isCompleted = false,
-                    progress = 0f,
-                    feedbackText = "", // 丢失时返回空，UI显示静态引导
-                    shiftDistance = null,
-                    tx = null,
-                    ty = null,
-                    scaleFactor = null,
-                    rotationAngle = null,
-                    matchQuality = 0f
-                )
-            }
-        } else {
-            // 当前帧有效，更新缓存和时间
-            // 应用平滑滤波
-            val smoothed = smoothingFilter.filter(components)
-            components = smoothed
-            
-            lastValidComponents = smoothed
-            lastValidTime = currentTime
-        }
-        
-        Log.d(TAG, "验证数据: tx=${components!!.translationX}, ty=${components.translationY}, " +
-                "scale=${components.scaleFactor}, rotation=${components.rotationAngle}")
-        
-        // 根据操作类型判定
-        return when (normalizedActionType) {
-            "shift" -> {
-                if (inFrameGuideConfig != null) {
-                    validateInFrameShift(components, direction, matchQuality)
+
+            // 策略：如果当前帧识别失败，但在有效期内，则使用上一次的有效数据
+            if (components == null) {
+                if (isInFrameZoomStep) {
+                    return validateInFrameZoom(direction, matchQuality, currentZoomRatio)
+                }
+                if (currentTime - lastValidTime < PERSISTENCE_DURATION && lastValidComponents != null) {
+                    // 使用缓存数据，但稍微降低匹配质量
+                    components = lastValidComponents
+                    matchQuality = 0.3f // 标记为缓存数据
+                    Log.d(TAG, "处于保持期，使用缓存数据")
                 } else {
+                    // 确实丢失了
+                    return StepValidationResult(
+                        isCompleted = false,
+                        progress = 0f,
+                        feedbackText = "", // 丢失时返回空，UI显示静态引导
+                        shiftDistance = null,
+                        tx = null,
+                        ty = null,
+                        scaleFactor = null,
+                        rotationAngle = null,
+                        matchQuality = 0f
+                    )
+                }
+            } else {
+                // 当前帧有效，更新缓存和时间
+                // 应用平滑滤波
+                val smoothed = smoothingFilter.filter(components)
+                components = smoothed
+
+                lastValidComponents = smoothed
+                lastValidTime = currentTime
+            }
+
+            Log.d(TAG, "验证数据: tx=${components!!.translationX}, ty=${components.translationY}, " +
+                    "scale=${components.scaleFactor}, rotation=${components.rotationAngle}")
+
+            // 根据操作类型判定
+            return when (normalizedActionType) {
+                "shift" -> {
+                    if (inFrameGuideConfig != null) {
+                        validateInFrameShift(components, direction, matchQuality)
+                    } else {
+                        validateShift(components, direction, matchQuality)
+                    }
+                }
+                "zoom" -> {
+                    if (inFrameGuideConfig != null) {
+                        validateInFrameZoom(direction, matchQuality, currentZoomRatio)
+                    } else {
+                        validateZoom(components, direction, matchQuality, currentZoomRatio)
+                    }
+                }
+                "view-change" -> validateViewChange(components, direction, matchQuality)
+                else -> {
                     validateShift(components, direction, matchQuality)
                 }
             }
-            "zoom" -> {
-                if (inFrameGuideConfig != null) {
-                    validateInFrameZoom(direction, matchQuality, currentZoomRatio)
-                } else {
-                    validateZoom(components, direction, matchQuality, currentZoomRatio)
-                }
-            }
-            "view-change" -> validateViewChange(components, direction, matchQuality)
-            else -> {
-                validateShift(components, direction, matchQuality)
-            }
+        } finally {
+            result.release()
         }
     }
     
@@ -468,13 +472,20 @@ class StepValidator(
 
         val sourcePerspectiveResult = sourceMatcher.computePerspectiveHomography(currentFrame)
         val targetPerspectiveResult = targetViewMatcher.computePerspectiveHomography(currentFrame)
+        val perspectiveDepartureScore: Float
+        val targetFeatureScore: Float
 
-        val perspectiveDepartureScore = computePerspectiveDepartureScore(
-            result = sourcePerspectiveResult,
-            frameWidth = currentFrame.width,
-            frameHeight = currentFrame.height
-        )
-        val targetFeatureScore = (targetPerspectiveResult.matchCount.toFloat() / 28f).coerceIn(0f, 1f)
+        try {
+            perspectiveDepartureScore = computePerspectiveDepartureScore(
+                result = sourcePerspectiveResult,
+                frameWidth = currentFrame.width,
+                frameHeight = currentFrame.height
+            )
+            targetFeatureScore = (targetPerspectiveResult.matchCount.toFloat() / 28f).coerceIn(0f, 1f)
+        } finally {
+            sourcePerspectiveResult.release()
+            targetPerspectiveResult.release()
+        }
 
         analyzer.analyze(
             currentFrame = currentFrame,
@@ -504,7 +515,8 @@ class StepValidator(
         }
 
         viewChangeBaselineStepKey = stepKey
-        viewChangeSourceMatcher = FeatureMatcher().apply {
+        viewChangeSourceMatcher?.close()
+        viewChangeSourceMatcher = FeatureMatcher(FeatureMatcherProfile.ROBUST_SIFT).apply {
             setTargetImage(currentFrame)
         }
         viewChangeAnalyzer?.close()
@@ -732,6 +744,11 @@ class StepValidator(
      * 释放资源
      */
     fun close() {
+        featureMatcher.close()
+        targetViewMatcher.close()
+        viewChangeSourceMatcher?.close()
+        viewChangeSourceMatcher = null
         viewChangeAnalyzer?.close()
+        viewChangeAnalyzer = null
     }
 }

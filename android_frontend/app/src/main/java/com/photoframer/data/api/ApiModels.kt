@@ -85,6 +85,35 @@ data class HealthResponse(
 /**
  * 画面内构图响应
  */
+data class InFrameCropCandidate(
+    @SerializedName("rank")
+    val rank: Int? = null,
+
+    @SerializedName("score")
+    val score: Float? = null,
+
+    @SerializedName("query_index")
+    val queryIndex: Int? = null,
+
+    @SerializedName("box")
+    val box: List<Int> = emptyList(),
+
+    @SerializedName("center")
+    val center: List<Float> = emptyList(),
+
+    @SerializedName("crop_size")
+    val cropSize: List<Int> = emptyList(),
+
+    @SerializedName("normalized_box")
+    val normalizedBox: List<Float>? = null,
+
+    @SerializedName("normalized_center")
+    val normalizedCenter: List<Float>? = null,
+
+    @SerializedName("cropped_preview_jpeg_base64")
+    val croppedPreviewJpegBase64: String? = null
+)
+
 data class InFrameCompositionResponse(
     @SerializedName("file_name")
     val fileName: String? = null,
@@ -103,6 +132,9 @@ data class InFrameCompositionResponse(
 
     @SerializedName("stage1_score")
     val stage1Score: Float? = null,
+
+    @SerializedName("crops")
+    val crops: List<InFrameCropCandidate> = emptyList(),
 
     @SerializedName("score")
     val score: Float? = null,

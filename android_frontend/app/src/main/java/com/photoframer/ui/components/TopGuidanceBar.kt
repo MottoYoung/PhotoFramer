@@ -71,15 +71,19 @@ fun TopGuidanceBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
+                    val effectiveDirection = resolveEffectiveDirection(
+                        step = step,
+                        validationResult = validationResult
+                    )
                     Icon(
-                        imageVector = getActionIcon(step.actionType, step.direction),
+                        imageVector = getActionIcon(step.actionType, effectiveDirection),
                         contentDescription = step.actionType,
                         tint = PurplePrimary,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = getPrimaryInstruction(step),
+                        text = getPrimaryInstruction(step, effectiveDirection),
                         style = MaterialTheme.typography.titleLarge,
                         color = Color.White
                     )
@@ -192,6 +196,23 @@ private fun getActionIcon(actionType: String, direction: String): ImageVector {
     }
 }
 
+private fun resolveEffectiveDirection(
+    step: CompositionStep,
+    validationResult: com.photoframer.vision.StepValidationResult?
+): String {
+    val originalDirection = step.direction
+    if (!step.actionType.equals("zoom", ignoreCase = true)) {
+        return originalDirection
+    }
+
+    val feedback = validationResult?.feedbackText?.lowercase().orEmpty()
+    return when {
+        "缩小" in feedback || "缩回" in feedback -> "out"
+        "放大" in feedback -> "in"
+        else -> originalDirection
+    }
+}
+
 private fun getViewChangeHelperText(direction: String): String {
     return when (direction.lowercase()) {
         "high-angle" -> "抬高手机，从更高的角度看向主体"
@@ -202,9 +223,9 @@ private fun getViewChangeHelperText(direction: String): String {
     }
 }
 
-private fun getPrimaryInstruction(step: CompositionStep): String {
+private fun getPrimaryInstruction(step: CompositionStep, effectiveDirection: String = step.direction): String {
     val actionType = step.actionType.lowercase()
-    val direction = step.direction.lowercase()
+    val direction = effectiveDirection.lowercase()
 
     return when (actionType) {
         "shift" -> when (direction) {

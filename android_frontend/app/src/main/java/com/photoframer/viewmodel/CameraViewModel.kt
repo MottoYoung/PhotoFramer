@@ -6,11 +6,14 @@ import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.photoframer.data.api.CompositionResult
+import com.photoframer.data.api.InFrameCompositionResponse
 import com.photoframer.data.repository.CompositionRepository
 import com.photoframer.inframe.InFrameCompositionGuideBuilder
+import com.photoframer.inframe.InFrameCompositionGuide
 import com.photoframer.inframe.InFrameGuideValidationConfig
 import com.photoframer.ui.state.CameraUiState
 import com.photoframer.utils.AnalysisImagePreprocessor
+import com.photoframer.utils.ImageFileDecoder
 import com.photoframer.vision.StepValidationResult
 import com.photoframer.vision.StepValidator
 import kotlinx.coroutines.Dispatchers
@@ -167,21 +170,40 @@ class CameraViewModel : ViewModel() {
                     return@launch
                 }
 
-                val guide = withContext(Dispatchers.Default) {
-                    val sourceBitmap = preparedImage.bitmap ?: BitmapFactory.decodeFile(preparedImage.file.absolutePath)
-                        ?: return@withContext null
-                    InFrameCompositionGuideBuilder.build(sourceBitmap, response)
+                if (isNonTargetInFrameScene(response)) {
+                    _uiState.value = CameraUiState.Error(
+                        title = "当前场景不适合",
+                        message = "当前场景无明显主体，换个场景试试吧～",
+                        actionText = "返回"
+                    )
+                    return@launch
                 }
 
-                if (guide != null) {
+                val guides = withContext(Dispatchers.Default) {
+                    val sourceBitmap = preparedImage.bitmap ?: ImageFileDecoder.decodeBitmapRespectingExif(preparedImage.file)
+                        ?: return@withContext emptyList()
+                    InFrameCompositionGuideBuilder.buildAll(sourceBitmap, response)
+                }
+
+                if (guides.isNotEmpty()) {
                     imageCache.clear()
                     validationImageCache.clear()
                     inFrameGuideConfigCache.clear()
-                    cachedCandidatesState = null
-                    imageCache[guide.composition.technique] = guide.previewBitmap
-                    validationImageCache[guide.composition.technique] = guide.validationBitmap
-                    inFrameGuideConfigCache[guide.composition.technique] = guide.validationConfig
-                    selectComposition(guide.composition)
+                    cacheInFrameGuides(guides)
+
+                    if (guides.size == 1) {
+                        cachedCandidatesState = null
+                        selectComposition(guides.first().composition)
+                    } else {
+                        val candidatesState = CameraUiState.Candidates(
+                            totalTechniques = guides.size,
+                            applicableCount = guides.size,
+                            totalTimeMs = 0f,
+                            compositions = guides.map { it.composition }
+                        )
+                        cachedCandidatesState = candidatesState
+                        _uiState.value = candidatesState
+                    }
                 } else {
                     _uiState.value = CameraUiState.Error("未能生成有效的画面内参考构图")
                 }
@@ -422,6 +444,24 @@ class CameraViewModel : ViewModel() {
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun cacheInFrameGuides(guides: List<InFrameCompositionGuide>) {
+        guides.forEach { guide ->
+            imageCache[guide.composition.technique] = guide.previewBitmap
+            validationImageCache[guide.composition.technique] = guide.validationBitmap
+            inFrameGuideConfigCache[guide.composition.technique] = guide.validationConfig
+        }
+    }
+
+    private fun isNonTargetInFrameScene(response: InFrameCompositionResponse): Boolean {
+        val sceneType = response.sceneType
+            ?.trim()
+            ?.lowercase()
+            ?.takeIf { it.isNotBlank() }
+            ?: return false
+
+        return sceneType in setOf("notarget", "no_target", "no-target")
     }
 
     private fun beginGuidanceSession() {

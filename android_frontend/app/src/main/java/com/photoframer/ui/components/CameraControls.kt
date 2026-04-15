@@ -162,7 +162,7 @@ fun CandidatesBottomPanel(
             )
 
             Text(
-                text = "共生成 $applicableCount 个可用方案  ·  ${totalTimeMs.toInt()}ms",
+                text = buildCandidatesStatsText(applicableCount, totalTimeMs),
                 color = Color.White.copy(alpha = 0.46f),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 14.dp)
@@ -262,4 +262,11 @@ fun CandidatesBottomPanel(
 
 private fun buildSelectionSummary(composition: CompositionResult): String {
     return "预计 ${composition.steps.size} 步完成"
+}
+
+private fun buildCandidatesStatsText(applicableCount: Int, totalTimeMs: Float): String {
+    if (totalTimeMs <= 0f) {
+        return "共生成 $applicableCount 个可用方案"
+    }
+    return "共生成 $applicableCount 个可用方案  ·  ${totalTimeMs.toInt()}ms"
 }

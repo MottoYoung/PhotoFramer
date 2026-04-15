@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import java.util.concurrent.Executors
+import com.photoframer.utils.ImageFileDecoder
 
 private const val TAG = "CameraScreen"
 
@@ -82,7 +83,7 @@ fun CameraScreen(
 
     val captureGuidedPhoto = {
         captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
-            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+            val bitmap = ImageFileDecoder.decodeBitmapRespectingExif(file)
             if (bitmap != null) {
                 lastPhotoThumbnail = bitmap
                 kotlinx.coroutines.GlobalScope.launch {
@@ -303,7 +304,9 @@ fun CameraScreen(
             } else if (uiState is CameraUiState.Error) {
                 val errorState = uiState as CameraUiState.Error
                 ErrorOverlay(
+                    title = errorState.title,
                     message = errorState.message,
+                    actionText = errorState.actionText,
                     onRetry = { viewModel.backToPreview() }
                 )
             }
@@ -342,7 +345,7 @@ fun CameraScreen(
                         onShutterClick = {
                             // 普通拍照
                             captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
-                                val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                                val bitmap = ImageFileDecoder.decodeBitmapRespectingExif(file)
                                 if (bitmap != null) {
                                     lastPhotoThumbnail = bitmap
                                     kotlinx.coroutines.GlobalScope.launch {
@@ -452,7 +455,9 @@ fun CameraScreen(
  */
 @Composable
 private fun ErrorOverlay(
+    title: String,
     message: String,
+    actionText: String,
     onRetry: () -> Unit
 ) {
     Box(
@@ -466,7 +471,7 @@ private fun ErrorOverlay(
             modifier = Modifier.padding(32.dp)
         ) {
             Text(
-                text = "出错了",
+                text = title,
                 style = MaterialTheme.typography.titleLarge,
                 color = ErrorRed
             )
@@ -488,7 +493,7 @@ private fun ErrorOverlay(
                     containerColor = PurplePrimary
                 )
             ) {
-                Text("重试")
+                Text(actionText)
             }
         }
     }

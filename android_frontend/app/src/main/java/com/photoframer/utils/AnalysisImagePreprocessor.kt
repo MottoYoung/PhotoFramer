@@ -43,7 +43,10 @@ object AnalysisImagePreprocessor {
 
         val sourceMaxDimension = max(sourceWidth, sourceHeight)
         val needsResize = sourceMaxDimension > MAX_DIMENSION
-        val needsRecompress = needsResize || sourceFile.length() > MAX_UPLOAD_FILE_BYTES
+        val needsOrientationNormalization = ImageFileDecoder.requiresOrientationNormalization(sourceFile)
+        val needsRecompress = needsResize ||
+            sourceFile.length() > MAX_UPLOAD_FILE_BYTES ||
+            needsOrientationNormalization
 
         if (!needsRecompress && !requireBitmap) {
             return PreparedAnalysisImage(file = sourceFile)
@@ -54,7 +57,7 @@ object AnalysisImagePreprocessor {
             inPreferredConfig = Bitmap.Config.ARGB_8888
         }
 
-        val decodedBitmap = BitmapFactory.decodeFile(sourceFile.absolutePath, decodeOptions)
+        val decodedBitmap = ImageFileDecoder.decodeBitmapRespectingExif(sourceFile, decodeOptions)
             ?: throw IllegalArgumentException("无法解码图片")
         val scaledBitmap = scaleBitmapIfNeeded(decodedBitmap, MAX_DIMENSION)
 
