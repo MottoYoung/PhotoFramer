@@ -3,100 +3,243 @@ package com.photoframer.ui.screens
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import androidx.camera.core.*
+import androidx.camera.core.CameraControl
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.photoframer.ui.components.*
+import com.photoframer.ui.components.AllStepsCompletedBanner
+import com.photoframer.ui.components.AspectRatioOption
+import com.photoframer.ui.components.CameraBottomBar
+import com.photoframer.ui.components.CameraEntryMode
+import com.photoframer.ui.components.CameraMode
+import com.photoframer.ui.components.CameraTopBar
+import com.photoframer.ui.components.CandidatesBottomPanel
+import com.photoframer.ui.components.CaptureTimer
+import com.photoframer.ui.components.FlashMode
+import com.photoframer.ui.components.GridOverlay
+import com.photoframer.ui.components.GuidanceOverlay
+import com.photoframer.ui.components.GuidingBottomBar
+import com.photoframer.ui.components.LoadingOverlay
+import com.photoframer.ui.components.SideToolBar
+import com.photoframer.ui.components.TopGuidanceBar
+import com.photoframer.ui.components.ZoomSelector
 import com.photoframer.ui.state.CameraUiState
-import com.photoframer.ui.theme.*
+import com.photoframer.ui.theme.BackgroundDark
+import com.photoframer.ui.theme.ErrorRed
+import com.photoframer.ui.theme.PurplePrimary
+import com.photoframer.ui.theme.SurfaceDark
+import com.photoframer.ui.theme.TextSecondary
+import com.photoframer.utils.ImageFileDecoder
+import com.photoframer.utils.ImageSaver
 import com.photoframer.viewmodel.CameraViewModel
 import java.io.File
 import java.io.FileOutputStream
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.ui.input.pointer.pointerInput
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import com.photoframer.utils.ImageFileDecoder
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val TAG = "CameraScreen"
 
-/**
- * 相机主界面 - 专业相机风格
- */
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
     val validationResult by viewModel.validationResult.collectAsState()
     val allStepsCompleted by viewModel.allStepsCompleted.collectAsState()
-    
-    // 相机相关
+
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
     var zoomRatio by remember { mutableFloatStateOf(1f) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
-    
-    // ========== 相机功能状态 ==========
+
     var flashMode by remember { mutableStateOf(FlashMode.OFF) }
     var gridEnabled by remember { mutableStateOf(false) }
     var useFrontCamera by remember { mutableStateOf(false) }
     var lastPhotoThumbnail by remember { mutableStateOf<Bitmap?>(null) }
-    
-    // 帧分析计数器（每隔N帧分析一次，避免过于频繁）
-    var frameCounter by remember { mutableStateOf(0) }
-    val analyzeEveryNFrames = 10  // 每10帧分析一次
-    
-    // 上次分析时间（限制分析频率）
+
+    var touchScreenPhotoEnabled by remember { mutableStateOf(false) }
+    var backgroundBlurEnabled by remember { mutableStateOf(false) }
+    var selectedRatio by remember { mutableStateOf(AspectRatioOption.RATIO_4_3) }
+    var selectedTimer by remember { mutableStateOf(CaptureTimer.OFF) }
+    var countdownValue by remember { mutableStateOf<Int?>(null) }
+    var burstCount by remember { mutableIntStateOf(0) }
+    var isBursting by remember { mutableStateOf(false) }
+    var activeEntryMode by remember { mutableStateOf(CameraEntryMode.NONE) }
+
+    var frameCounter by remember { mutableIntStateOf(0) }
     var lastAnalysisTime by remember { mutableStateOf(0L) }
-    val minAnalysisInterval = 100L  // 提升到 100ms 以增强实时性
+    val analyzeEveryNFrames = 10
+    val minAnalysisInterval = 100L
+
+    LaunchedEffect(uiState) {
+        if (uiState is CameraUiState.Preview) {
+            activeEntryMode = CameraEntryMode.NONE
+            countdownValue = null
+            isBursting = false
+            burstCount = 0
+        }
+    }
+
+    fun saveCapturedPhoto(file: File, namePrefix: String) {
+        val adjustedFile = applyAspectRatioToCapturedFile(context, file, selectedRatio)
+        val bitmap = ImageFileDecoder.decodeBitmapRespectingExif(adjustedFile) ?: return
+        scope.launch {
+            lastPhotoThumbnail = bitmap
+            ImageSaver.saveImageToGallery(context, bitmap, namePrefix)
+        }
+    }
+
+    fun capturePreviewPhoto() {
+        captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
+            saveCapturedPhoto(file, "photoframer")
+        }
+    }
+
+    fun startCountdownCapture() {
+        if (countdownValue != null) return
+        val timerSeconds = selectedTimer.seconds
+        if (timerSeconds <= 0) {
+            capturePreviewPhoto()
+            return
+        }
+
+        countdownValue = timerSeconds
+        scope.launch {
+            while ((countdownValue ?: 0) > 0) {
+                delay(1000)
+                val next = (countdownValue ?: 0) - 1
+                countdownValue = if (next > 0) next else null
+            }
+            if (uiState is CameraUiState.Preview) {
+                capturePreviewPhoto()
+            }
+        }
+    }
+
+    val startBurst = startBurst@{
+        if (isBursting) {
+            return@startBurst
+        }
+        isBursting = true
+        burstCount = 0
+        countdownValue = null
+        scope.launch {
+            while (isBursting) {
+                captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
+                    saveCapturedPhoto(file, "photoframer_burst")
+                }
+                burstCount += 1
+                delay(200)
+            }
+        }
+    }
+
+    val stopBurst = {
+        isBursting = false
+    }
 
     val captureGuidedPhoto = {
         captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
-            val bitmap = ImageFileDecoder.decodeBitmapRespectingExif(file)
-            if (bitmap != null) {
-                lastPhotoThumbnail = bitmap
-                kotlinx.coroutines.GlobalScope.launch {
-                    com.photoframer.utils.ImageSaver.saveImageToGallery(context, bitmap, "photoframer_final")
-                }
+            saveCapturedPhoto(file, "photoframer_final")
+            scope.launch {
+                viewModel.backToPreview()
             }
-            viewModel.backToPreview()
         }
     }
-    
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // 1. 顶部栏（纯黑背景，独立区域）
-        // 在分析中时也显示顶部栏，但隐藏 AI 按钮
+
+    val startInFrameComposition = {
+        activeEntryMode = CameraEntryMode.IN_FRAME
+        countdownValue = null
+        captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
+            val adjustedFile = applyAspectRatioToCapturedFile(context, file, selectedRatio)
+            viewModel.analyzeInFrameComposition(adjustedFile)
+        }
+    }
+
+    val startAiAnalysis = {
+        activeEntryMode = CameraEntryMode.AI
+        countdownValue = null
+        captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
+            val adjustedFile = applyAspectRatioToCapturedFile(context, file, selectedRatio)
+            viewModel.analyzeImage(adjustedFile)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
         if (uiState !is CameraUiState.Guiding) {
             CameraTopBar(
                 flashMode = flashMode,
@@ -106,28 +249,21 @@ fun CameraScreen(
                 },
                 gridEnabled = gridEnabled,
                 onGridToggle = { gridEnabled = !gridEnabled },
-                showAnalysisButtons = uiState !is CameraUiState.Analyzing,
-                onInFrameClick = {
-                    captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
-                        viewModel.analyzeInFrameComposition(file)
-                    }
-                },
-                onAiClick = {
-                    captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
-                        viewModel.analyzeImage(file)
-                    }
-                }
+                activeEntryMode = activeEntryMode,
+                showInFrameButton = uiState !is CameraUiState.Analyzing,
+                onInFrameClick = startInFrameComposition,
+                showAiButton = uiState !is CameraUiState.Analyzing,
+                onAiClick = startAiAnalysis
             )
         }
-        
-        // 2. 中间部分：相机预览区域 (权重 1f)
+
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .clipToBounds()  // 防止预览内容溢出遮挡顶部栏
+                .clipToBounds()
                 .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
+                    detectTransformGestures { _, _, zoom, _ ->
                         val currentZoom = zoomRatio
                         val newZoom = (currentZoom * zoom).coerceIn(1f, 8f)
                         if (newZoom != currentZoom) {
@@ -135,9 +271,18 @@ fun CameraScreen(
                         }
                     }
                 }
+                .pointerInput(touchScreenPhotoEnabled, uiState, countdownValue, isBursting) {
+                    if (touchScreenPhotoEnabled &&
+                        uiState is CameraUiState.Preview &&
+                        countdownValue == null &&
+                        !isBursting
+                    ) {
+                        detectTapGestures {
+                            startCountdownCapture()
+                        }
+                    }
+                }
         ) {
-            // A. 相机预览 View
-            // 使用 key() 强制重组：当 useFrontCamera 或 flashMode 变化时，重新创建 AndroidView 并绑定相机
             key(useFrontCamera, flashMode) {
                 AndroidView(
                     factory = { ctx ->
@@ -146,18 +291,20 @@ fun CameraScreen(
                                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                                 android.view.ViewGroup.LayoutParams.MATCH_PARENT
                             )
-                            // 使用 TextureView (兼容模式) 避免黑屏问题
-                            implementationMode = androidx.camera.view.PreviewView.ImplementationMode.COMPATIBLE
+                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                             scaleType = PreviewView.ScaleType.FILL_CENTER
+
                             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                             cameraProviderFuture.addListener({
                                 val cameraProvider = cameraProviderFuture.get()
-                                val preview = Preview.Builder().build().also { it.surfaceProvider = surfaceProvider }
+                                val preview = Preview.Builder().build().also {
+                                    it.surfaceProvider = surfaceProvider
+                                }
                                 imageCapture = ImageCapture.Builder()
                                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                                     .setFlashMode(flashMode.toImageCaptureFlashMode())
                                     .build()
-                                
+
                                 val imageAnalyzer = ImageAnalysis.Builder()
                                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                     .build()
@@ -165,18 +312,22 @@ fun CameraScreen(
                                         analysis.setAnalyzer(cameraExecutor) { imageProxy ->
                                             val currentState = viewModel.uiState.value
                                             if (currentState is CameraUiState.Guiding) {
-                                                frameCounter++
+                                                frameCounter += 1
                                                 val currentTime = System.currentTimeMillis()
                                                 if (frameCounter % analyzeEveryNFrames == 0 &&
-                                                    currentTime - lastAnalysisTime > minAnalysisInterval) {
+                                                    currentTime - lastAnalysisTime > minAnalysisInterval
+                                                ) {
                                                     lastAnalysisTime = currentTime
-                                                    val bitmap = com.photoframer.vision.ImageConverter.imageProxyToBitmap(imageProxy)
-                                                    if (bitmap != null) {
-                                                        // 统一到固定宽度坐标系，保证验证阈值与引导 UI 一致
-                                                        val scaledBitmap = com.photoframer.vision.ImageConverter.scaleBitmapToWidth(
-                                                            bitmap,
-                                                            com.photoframer.vision.StepValidator.VALIDATION_FRAME_WIDTH
+                                                    val bitmap =
+                                                        com.photoframer.vision.ImageConverter.imageProxyToBitmap(
+                                                            imageProxy
                                                         )
+                                                    if (bitmap != null) {
+                                                        val scaledBitmap =
+                                                            com.photoframer.vision.ImageConverter.scaleBitmapToWidth(
+                                                                bitmap,
+                                                                com.photoframer.vision.StepValidator.VALIDATION_FRAME_WIDTH
+                                                            )
                                                         viewModel.validateCurrentFrame(scaledBitmap, zoomRatio)
                                                     }
                                                 }
@@ -184,13 +335,26 @@ fun CameraScreen(
                                             imageProxy.close()
                                         }
                                     }
-                                
-                                val cameraSelector = if (useFrontCamera) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+
+                                val cameraSelector = if (useFrontCamera) {
+                                    CameraSelector.DEFAULT_FRONT_CAMERA
+                                } else {
+                                    CameraSelector.DEFAULT_BACK_CAMERA
+                                }
+
                                 try {
                                     cameraProvider.unbindAll()
-                                    val camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture, imageAnalyzer)
+                                    val camera = cameraProvider.bindToLifecycle(
+                                        lifecycleOwner,
+                                        cameraSelector,
+                                        preview,
+                                        imageCapture,
+                                        imageAnalyzer
+                                    )
                                     cameraControl = camera.cameraControl
-                                    camera.cameraInfo.zoomState.observe(lifecycleOwner) { state -> zoomRatio = state.zoomRatio }
+                                    camera.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
+                                        zoomRatio = state.zoomRatio
+                                    }
                                 } catch (e: Exception) {
                                     Log.e(TAG, "相机绑定失败", e)
                                 }
@@ -200,29 +364,30 @@ fun CameraScreen(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            
-            // 网格线叠加层
+
             if (gridEnabled) {
-                GridOverlay(
+                GridOverlay(modifier = Modifier.fillMaxSize())
+            }
+
+            if (selectedRatio != AspectRatioOption.FULL) {
+                AspectRatioMaskOverlay(
+                    selectedRatio = selectedRatio,
                     modifier = Modifier.fillMaxSize()
                 )
             }
 
-            // B. 覆盖层 (Guidance Arrows, Glow) - 只在预览区显示
             if (uiState is CameraUiState.Guiding) {
                 val guidingState = uiState as CameraUiState.Guiding
-                
-                // 动态箭头
+
                 if (!allStepsCompleted) {
-                    guidingState.currentStep?.let { step -> 
+                    guidingState.currentStep?.let { step ->
                         GuidanceOverlay(
                             step = step,
                             validationResult = validationResult
-                        ) 
+                        )
                     }
                 }
-                
-                // 顶部引导条 (悬浮在预览区顶部)
+
                 if (!allStepsCompleted) {
                     guidingState.currentStep?.let { step ->
                         TopGuidanceBar(
@@ -230,70 +395,77 @@ fun CameraScreen(
                             currentStepIndex = guidingState.currentStepIndex,
                             totalSteps = guidingState.totalSteps,
                             onPreviousStep = { viewModel.previousStep() },
-                            onNextStep = { 
-                                if (guidingState.isLastStep) {
-                                    /* Handle in bottom panel */
-                                } else {
+                            onNextStep = {
+                                if (!guidingState.isLastStep) {
                                     viewModel.nextStep()
                                 }
                             },
                             isFirstStep = guidingState.isFirstStep,
                             isLastStep = guidingState.isLastStep,
                             validationResult = validationResult,
-                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp)
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 16.dp)
                         )
                     }
                 } else {
-                     AllStepsCompletedBanner(
+                    AllStepsCompletedBanner(
                         onTakePhoto = captureGuidedPhoto,
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 80.dp)
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 80.dp)
                     )
                 }
 
-                // 左下角缩略图（按原比例显示）
                 val targetBitmap = viewModel.getCachedImage(guidingState.composition.technique)
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = targetBitmap != null,
-                    enter = fadeIn() + scaleIn(initialScale = 0.8f),
+
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 16.dp, bottom = 80.dp)
                 ) {
-                    if (targetBitmap != null) {
-                        val aspectRatio = targetBitmap.width.toFloat() / targetBitmap.height.toFloat()
-                        val thumbnailHeight = 120.dp
-                        val thumbnailWidth = (120 * aspectRatio).dp
-                        
-                        Card(
-                            modifier = Modifier
-                                .width(thumbnailWidth)
-                                .height(thumbnailHeight)
-                                .border(1.5.dp, PurplePrimary, RoundedCornerShape(12.dp)),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = SurfaceDark.copy(alpha = 0.8f))
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                Image(
-                                    bitmap = targetBitmap.asImageBitmap(),
-                                    contentDescription = "参考构图",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Fit
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = targetBitmap != null,
+                        enter = fadeIn() + scaleIn(initialScale = 0.8f)
+                    ) {
+                        if (targetBitmap != null) {
+                            val aspectRatio =
+                                targetBitmap.width.toFloat() / targetBitmap.height.toFloat()
+                            val thumbnailHeight = 120.dp
+                            val thumbnailWidth = (120 * aspectRatio).dp
+
+                            Card(
+                                modifier = Modifier
+                                    .width(thumbnailWidth)
+                                    .height(thumbnailHeight)
+                                    .border(1.5.dp, PurplePrimary, RoundedCornerShape(12.dp)),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = SurfaceDark.copy(alpha = 0.8f)
                                 )
-                                
-                                // 底部标签
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .fillMaxWidth()
-                                        .background(Color.Black.copy(alpha = 0.5f))
-                                        .padding(vertical = 4.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "参考图",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.labelSmall
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    Image(
+                                        bitmap = targetBitmap.asImageBitmap(),
+                                        contentDescription = "参考构图",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Fit
                                     )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .fillMaxWidth()
+                                            .background(Color.Black.copy(alpha = 0.5f))
+                                            .padding(vertical = 4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "参考图",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -310,24 +482,54 @@ fun CameraScreen(
                     onRetry = { viewModel.backToPreview() }
                 )
             }
-            
-            // 变焦控制（悬浮在预览区底部）- 仅在预览和候选模式显示
-            androidx.compose.animation.AnimatedVisibility(
-                visible = uiState is CameraUiState.Preview || uiState is CameraUiState.Candidates,
-                enter = fadeIn(),
-                exit = fadeOut(),
+
+            countdownValue?.let { value ->
+                Box(
+                    modifier = Modifier.align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = value.toString(),
+                        color = Color.White,
+                        style = MaterialTheme.typography.displayLarge
+                    )
+                }
+            }
+
+            if (uiState is CameraUiState.Preview) {
+                SideToolBar(
+                    selectedRatio = selectedRatio,
+                    onRatioChange = { selectedRatio = it },
+                    selectedTimer = selectedTimer,
+                    onTimerChange = { selectedTimer = it },
+                    touchScreenPhotoEnabled = touchScreenPhotoEnabled,
+                    onTouchScreenPhotoToggle = { touchScreenPhotoEnabled = !touchScreenPhotoEnabled },
+                    backgroundBlurEnabled = backgroundBlurEnabled,
+                    onBackgroundBlurToggle = { backgroundBlurEnabled = !backgroundBlurEnabled },
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 12.dp, top = 32.dp, bottom = 96.dp)
+                )
+            }
+
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp)
             ) {
-                ZoomSelector(
-                    currentZoom = zoomRatio,
-                    onZoomChange = { cameraControl?.setZoomRatio(it) }
-                )
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = uiState is CameraUiState.Preview || uiState is CameraUiState.Candidates,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    ZoomSelector(
+                        currentZoom = zoomRatio,
+                        onZoomChange = { cameraControl?.setZoomRatio(it) }
+                    )
+                }
             }
         }
 
-        // 3. 底部控制栏 — 使用 AnimatedContent 实现过渡动画
         AnimatedContent(
             targetState = uiState,
             transitionSpec = {
@@ -339,29 +541,19 @@ fun CameraScreen(
         ) { state ->
             when (state) {
                 is CameraUiState.Preview -> {
-                    // 预览模式：专业相机底部栏
                     CameraBottomBar(
                         currentMode = CameraMode.PHOTO,
-                        onShutterClick = {
-                            // 普通拍照
-                            captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
-                                val bitmap = ImageFileDecoder.decodeBitmapRespectingExif(file)
-                                if (bitmap != null) {
-                                    lastPhotoThumbnail = bitmap
-                                    kotlinx.coroutines.GlobalScope.launch {
-                                        com.photoframer.utils.ImageSaver.saveImageToGallery(context, bitmap, "photoframer_${System.currentTimeMillis()}")
-                                    }
-                                }
-                            }
-                        },
+                        onShutterClick = { startCountdownCapture() },
                         onCameraSwitch = { useFrontCamera = !useFrontCamera },
                         lastPhotoThumbnail = lastPhotoThumbnail,
-                        isGalleryAvailable = false
+                        isGalleryAvailable = false,
+                        onLongPressStart = startBurst,
+                        onLongPressEnd = stopBurst,
+                        burstCount = burstCount
                     )
                 }
-                
+
                 is CameraUiState.Analyzing -> {
-                    // 分析中：使用与 Preview 完全相同的布局结构
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -370,7 +562,6 @@ fun CameraScreen(
                             .padding(top = 20.dp, bottom = 20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // 1. 取消按钮区域
                         TextButton(
                             onClick = { viewModel.cancelAnalysis() },
                             modifier = Modifier.padding(bottom = 24.dp),
@@ -382,8 +573,7 @@ fun CameraScreen(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        
-                        // 2. 主控制行：与快门行完全相同的布局
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -395,46 +585,43 @@ fun CameraScreen(
                             Box(
                                 modifier = Modifier.size(72.dp),
                                 contentAlignment = Alignment.Center
-                            ) { }
+                            ) {}
                             Box(modifier = Modifier.size(48.dp))
                         }
                     }
                 }
-                
+
                 is CameraUiState.Candidates -> {
-                    // 候选方案模式
                     CandidatesBottomPanel(
                         applicableCount = state.applicableCount,
                         totalTimeMs = state.totalTimeMs,
                         compositions = state.compositions,
-                        onStartGuidance = { comp -> viewModel.selectComposition(comp) },
+                        onStartGuidance = { composition -> viewModel.selectComposition(composition) },
                         getCompositionBitmap = { technique -> viewModel.getCachedImage(technique) },
                         onSaveComposition = { technique ->
                             val bitmap = viewModel.getCachedImage(technique)
                             if (bitmap != null) {
-                                kotlinx.coroutines.GlobalScope.launch {
-                                    com.photoframer.utils.ImageSaver.saveImageToGallery(context, bitmap, "ai_ref_$technique")
+                                scope.launch {
+                                    ImageSaver.saveImageToGallery(context, bitmap, "ai_ref_$technique")
                                 }
                             }
                         },
                         onRescan = { viewModel.backToPreview() }
                     )
                 }
-                
+
                 is CameraUiState.Guiding -> {
-                    // 引导模式
                     GuidingBottomBar(
                         onCaptureClick = captureGuidedPhoto,
                         onBackClick = { viewModel.backToCandidates() },
                         isCaptureEnabled = allStepsCompleted
                     )
                 }
-                
+
                 else -> {
-                    // 错误或其他状态：显示基础底部栏
                     CameraBottomBar(
                         currentMode = CameraMode.PHOTO,
-                        onShutterClick = { },
+                        onShutterClick = {},
                         onCameraSwitch = { useFrontCamera = !useFrontCamera },
                         lastPhotoThumbnail = lastPhotoThumbnail,
                         isGalleryAvailable = false
@@ -445,14 +632,6 @@ fun CameraScreen(
     }
 }
 
-// 移除未使用的旧 Overlay 函数
-// private fun PreviewOverlay(...)
-// private fun CandidatesOverlay(...)
-// private fun GuidingOverlay(...)
-
-/**
- * 错误覆盖层
- */
 @Composable
 private fun ErrorOverlay(
     title: String,
@@ -475,23 +654,21 @@ private fun ErrorOverlay(
                 style = MaterialTheme.typography.titleLarge,
                 color = ErrorRed
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Button(
                 onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PurplePrimary
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)
             ) {
                 Text(actionText)
             }
@@ -499,27 +676,93 @@ private fun ErrorOverlay(
     }
 }
 
-/**
- * 拍照并分析
- */
+@Composable
+private fun AspectRatioMaskOverlay(
+    selectedRatio: AspectRatioOption,
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(modifier = modifier) {
+        val targetRatio = when (selectedRatio) {
+            AspectRatioOption.RATIO_4_3 -> 4f / 3f
+            AspectRatioOption.RATIO_1_1 -> 1f
+            AspectRatioOption.FULL -> maxWidth.value / maxHeight.value
+        }
+        val containerRatio = maxWidth.value / maxHeight.value
+        val maskColor = Color.Black.copy(alpha = 0.36f)
+        val borderColor = Color.White.copy(alpha = 0.45f)
+
+        if (containerRatio > targetRatio) {
+            val visibleWidth: Dp = maxHeight * targetRatio
+            val sideMask = (maxWidth - visibleWidth) / 2f
+
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(sideMask)
+                    .background(maskColor)
+                    .align(Alignment.CenterStart)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(sideMask)
+                    .background(maskColor)
+                    .align(Alignment.CenterEnd)
+            )
+            Box(
+                modifier = Modifier
+                    .width(visibleWidth)
+                    .fillMaxHeight()
+                    .border(1.dp, borderColor)
+                    .align(Alignment.Center)
+            )
+        } else {
+            val visibleHeight: Dp = maxWidth / targetRatio
+            val topMask = (maxHeight - visibleHeight) / 2f
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(topMask)
+                    .background(maskColor)
+                    .align(Alignment.TopCenter)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(topMask)
+                    .background(maskColor)
+                    .align(Alignment.BottomCenter)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(visibleHeight)
+                    .border(1.dp, borderColor)
+                    .align(Alignment.Center)
+            )
+        }
+    }
+}
+
 private fun captureAndAnalyze(
     context: Context,
     imageCapture: ImageCapture?,
-    executor: java.util.concurrent.ExecutorService,
+    executor: ExecutorService,
     onImageCaptured: (File) -> Unit
 ) {
     if (imageCapture == null) {
         Log.e(TAG, "ImageCapture 未初始化")
         return
     }
-    
+
     val photoFile = File(
         context.cacheDir,
         "capture_${System.currentTimeMillis()}.jpg"
     )
-    
+
     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-    
+
     imageCapture.takePicture(
         outputOptions,
         executor,
@@ -528,10 +771,64 @@ private fun captureAndAnalyze(
                 Log.d(TAG, "图片保存成功: ${photoFile.absolutePath}")
                 onImageCaptured(photoFile)
             }
-            
+
             override fun onError(exception: ImageCaptureException) {
                 Log.e(TAG, "拍照失败", exception)
             }
         }
     )
+}
+
+private fun applyAspectRatioToCapturedFile(
+    context: Context,
+    sourceFile: File,
+    ratioOption: AspectRatioOption
+): File {
+    if (ratioOption == AspectRatioOption.FULL) {
+        return sourceFile
+    }
+
+    val bitmap = ImageFileDecoder.decodeBitmapRespectingExif(sourceFile) ?: return sourceFile
+    val targetRatio = when (ratioOption) {
+        AspectRatioOption.RATIO_4_3 -> 4f / 3f
+        AspectRatioOption.RATIO_1_1 -> 1f
+        AspectRatioOption.FULL -> return sourceFile
+    }
+
+    val srcWidth = bitmap.width
+    val srcHeight = bitmap.height
+    if (srcWidth <= 0 || srcHeight <= 0) {
+        return sourceFile
+    }
+
+    val srcRatio = srcWidth.toFloat() / srcHeight.toFloat()
+    val (cropWidth, cropHeight) = if (srcRatio > targetRatio) {
+        Pair((srcHeight * targetRatio).toInt().coerceAtLeast(1), srcHeight)
+    } else {
+        Pair(srcWidth, (srcWidth / targetRatio).toInt().coerceAtLeast(1))
+    }
+
+    val x = ((srcWidth - cropWidth) / 2).coerceAtLeast(0)
+    val y = ((srcHeight - cropHeight) / 2).coerceAtLeast(0)
+
+    val croppedBitmap = try {
+        Bitmap.createBitmap(bitmap, x, y, cropWidth, cropHeight)
+    } catch (_: Exception) {
+        return sourceFile
+    }
+
+    val outFile = File(context.cacheDir, "capture_ratio_${System.currentTimeMillis()}.jpg")
+    return try {
+        FileOutputStream(outFile).use { output ->
+            croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)
+        }
+        outFile
+    } catch (_: Exception) {
+        sourceFile
+    } finally {
+        if (croppedBitmap !== bitmap) {
+            bitmap.recycle()
+            croppedBitmap.recycle()
+        }
+    }
 }

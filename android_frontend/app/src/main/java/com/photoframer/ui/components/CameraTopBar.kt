@@ -30,6 +30,15 @@ import androidx.compose.ui.unit.dp
 import com.photoframer.ui.theme.*
 
 /**
+ * 顶部模式入口选中态
+ */
+enum class CameraEntryMode {
+    NONE,
+    IN_FRAME,
+    AI
+}
+
+/**
  * 闪光灯模式
  */
 enum class FlashMode {
@@ -60,8 +69,10 @@ fun CameraTopBar(
     onFlashModeChange: (FlashMode) -> Unit,
     gridEnabled: Boolean,
     onGridToggle: () -> Unit,
-    showAnalysisButtons: Boolean = true,
+    activeEntryMode: CameraEntryMode = CameraEntryMode.NONE,
+    showInFrameButton: Boolean = true,
     onInFrameClick: () -> Unit = {},
+    showAiButton: Boolean = true,
     onAiClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -101,76 +112,82 @@ fun CameraTopBar(
             
         }
         
-        // 右侧分析按钮
-        if (showAnalysisButtons) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                InFrameCompositionButton(onClick = onInFrameClick)
-                AiAnalysisButton(onClick = onAiClick)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (showInFrameButton) {
+                EntryModeButton(
+                    icon = Icons.Default.Crop,
+                    text = "画面内",
+                    selected = activeEntryMode == CameraEntryMode.IN_FRAME,
+                    onClick = onInFrameClick
+                )
+            }
+
+            if (showAiButton) {
+                EntryModeButton(
+                    icon = Icons.Default.AutoAwesome,
+                    text = "AI",
+                    selected = activeEntryMode == CameraEntryMode.AI,
+                    onClick = onAiClick,
+                    useGradient = true
+                )
             }
         }
     }
 }
 
-/**
- * AI 分析按钮 - 更克制的系统风格胶囊按钮
- */
 @Composable
-private fun AiAnalysisButton(
-    onClick: () -> Unit
-) {
-    AnalysisPillButton(
-        icon = Icons.Default.AutoAwesome,
-        label = "AI",
-        onClick = onClick
-    )
-}
-
-@Composable
-private fun InFrameCompositionButton(
-    onClick: () -> Unit
-) {
-    AnalysisPillButton(
-        icon = Icons.Default.Crop,
-        label = "画面内",
-        onClick = onClick
-    )
-}
-
-@Composable
-private fun AnalysisPillButton(
+private fun EntryModeButton(
     icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    useGradient: Boolean = false
 ) {
+    val background = if (selected) {
+        Brush.linearGradient(
+            colors = listOf(
+                PurplePrimary.copy(alpha = 0.42f),
+                PurplePrimary.copy(alpha = 0.24f)
+            )
+        )
+    } else if (useGradient) {
+        Brush.linearGradient(
+            colors = listOf(
+                AiGradientStart.copy(alpha = 0.22f),
+                AiGradientEnd.copy(alpha = 0.14f)
+            )
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.12f),
+                Color.White.copy(alpha = 0.06f)
+            )
+        )
+    }
+
     Row(
         modifier = Modifier
-            .height(36.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        AiGradientStart.copy(alpha = 0.22f),
-                        AiGradientEnd.copy(alpha = 0.14f)
-                    )
-                )
-            )
-            .padding(horizontal = 12.dp)
-            .clickable(onClick = onClick),
+            .height(38.dp)
+            .clip(RoundedCornerShape(19.dp))
+            .background(background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = label,
+            contentDescription = text,
             tint = Color.White,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text = label,
+            text = text,
             color = Color.White,
             style = androidx.compose.material3.MaterialTheme.typography.labelLarge
         )

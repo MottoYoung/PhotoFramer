@@ -4,7 +4,8 @@ import android.graphics.Bitmap
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +24,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.photoframer.ui.theme.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * 保留枚举以兼容现有状态，但当前只暴露真正实现的拍照模式。
@@ -47,6 +50,9 @@ fun CameraBottomBar(
     onCameraSwitch: () -> Unit,
     lastPhotoThumbnail: Bitmap? = null,
     isGalleryAvailable: Boolean = false,
+    onLongPressStart: (() -> Unit)? = null,
+    onLongPressEnd: (() -> Unit)? = null,
+    burstCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -80,7 +86,10 @@ fun CameraBottomBar(
             
             // 中间：快门按钮
             ShutterButton(
-                onClick = onShutterClick
+                onClick = onShutterClick,
+                onLongPressStart = onLongPressStart,
+                onLongPressEnd = onLongPressEnd,
+                burstCount = burstCount
             )
             
             // 右侧：前后摄像头切换
@@ -138,12 +147,17 @@ fun ZoomSelector(
  */
 @Composable
 private fun ShutterButton(
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongPressStart: (() -> Unit)? = null,
+    onLongPressEnd: (() -> Unit)? = null,
+    burstCount: Int = 0
 ) {
     // 点击动画
     var isPressed by remember { mutableStateOf(false) }
+    var isLongPressing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val pressScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
+        targetValue = if (isPressed || isLongPressing) 0.92f else 1f,
         animationSpec = spring(dampingRatio = 0.6f),
         label = "press"
     )
@@ -155,11 +169,28 @@ private fun ShutterButton(
             .border(4.dp, Color.White, CircleShape)
             .padding(6.dp)
             .clip(CircleShape)
-            .background(Color.Transparent)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { onClick() },
+            .background(if (isLongPressing) Color.White.copy(alpha = 0.3f) else Color.Transparent)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        val job = scope.launch {
+                            delay(500)
+                            isLongPressing = true
+                            onLongPressStart?.invoke()
+                        }
+                        awaitRelease()
+                        job.cancel()
+                        if (isLongPressing) {
+                            isLongPressing = false
+                            onLongPressEnd?.invoke()
+                        } else {
+                            onClick()
+                        }
+                        isPressed = false
+                    }
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -168,6 +199,14 @@ private fun ShutterButton(
                 .clip(CircleShape)
                 .background(Color.White)
         )
+        if (burstCount > 0) {
+            Text(
+                text = burstCount.toString(),
+                color = Color.Black,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
     }
 }
 
