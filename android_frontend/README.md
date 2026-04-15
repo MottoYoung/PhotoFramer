@@ -84,3 +84,4 @@ app/src/main/java/com/photoframer/
 ```
 相机预览 → 点击分析 → 分析中(流光动画) → 选择方案 → 步骤引导 → 拍照
 ```
+测试一下
