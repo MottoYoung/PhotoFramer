@@ -5,9 +5,11 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.photoframer.arcore.CameraPoseSample
 import com.photoframer.data.api.CompositionResult
 import com.photoframer.data.api.InFrameCompositionResponse
 import com.photoframer.data.repository.CompositionRepository
+import com.photoframer.guidance.isViewpointAction
 import com.photoframer.inframe.InFrameCompositionGuideBuilder
 import com.photoframer.inframe.InFrameCompositionGuide
 import com.photoframer.inframe.InFrameGuideValidationConfig
@@ -235,7 +237,8 @@ class CameraViewModel : ViewModel() {
         if (targetBitmap != null) {
             stepValidator = StepValidator(
                 targetBitmap = targetBitmap,
-                inFrameGuideConfig = inFrameGuideConfig
+                inFrameGuideConfig = inFrameGuideConfig,
+                shotSpec = composition.shotSpec
             )
         } else {
             stepValidator = null
@@ -256,7 +259,11 @@ class CameraViewModel : ViewModel() {
      * 验证当前帧是否完成当前步骤
      * 应在相机帧回调中调用
      */
-    fun validateCurrentFrame(currentFrame: Bitmap, currentZoomRatio: Float = 1.0f) {
+    fun validateCurrentFrame(
+        currentFrame: Bitmap,
+        currentZoomRatio: Float = 1.0f,
+        cameraPoseSample: CameraPoseSample? = null
+    ) {
         val currentState = _uiState.value
         if (currentState !is CameraUiState.Guiding) return
         
@@ -272,12 +279,14 @@ class CameraViewModel : ViewModel() {
         
         viewModelScope.launch {
             // 根据操作类型选择验证方式
-            if (step.actionType.lowercase() == "view-change") {
-                // View-change 使用 ML Kit 物体检测（异步）
+            if (step.isViewpointAction()) {
+                // 视角类动作使用 source/target 双相似度 + 主体辅助分析（异步）
                 validator.validateViewChangeAsync(
                     currentFrame = currentFrame,
                     stepKey = step.stepOrder,
-                    direction = step.direction
+                    actionType = step.actionType,
+                    direction = step.direction,
+                    cameraPoseSample = cameraPoseSample
                 ) { result ->
                     applyValidationResultIfCurrent(
                         result = result,
@@ -292,6 +301,7 @@ class CameraViewModel : ViewModel() {
                 val result = withContext(Dispatchers.Default) {
                     validator.validateStep(
                         currentFrame = currentFrame,
+                        stepKey = step.stepOrder,
                         actionType = step.actionType,
                         direction = step.direction,
                         currentZoomRatio = currentZoomRatio

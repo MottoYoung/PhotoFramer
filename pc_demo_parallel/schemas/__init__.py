@@ -3,6 +3,7 @@
 """
 from .composition import (
     CompositionStep,
+    ShotSpec,
     CompositionResult,
     AnalysisResponse,
     HealthResponse,
@@ -10,6 +11,7 @@ from .composition import (
 
 __all__ = [
     "CompositionStep",
+    "ShotSpec",
     "CompositionResult",
     "AnalysisResponse",
     "HealthResponse",

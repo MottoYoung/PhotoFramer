@@ -7,7 +7,6 @@ import re
 import json
 import time
 import base64
-import ssl
 from io import BytesIO
 from typing import List, Optional, Tuple, Dict, Any
 from dataclasses import dataclass, field
@@ -22,6 +21,8 @@ from config import (
     MODEL_NAME,
     SYSTEM_INSTRUCTION,
     TECHNIQUE_CONFIGS,
+    ENABLE_ORBIT_ACTION,
+    ENABLE_STEP_ACTION,
     MODEL_TEMPERATURE,
     MODEL_TOP_K,
     MODEL_TOP_P,
@@ -29,7 +30,7 @@ from config import (
     MODEL_MAX_TOKENS,
     THINKING_LEVEL
 )
-from schemas import CompositionStep, CompositionResult
+from schemas import CompositionStep, CompositionResult, ShotSpec
 
 
 @dataclass
@@ -45,6 +46,7 @@ class SingleTechniqueResult:
     error_message: Optional[str] = None
     aesthetic_desc: str = ""
     steps: List[Dict[str, Any]] = field(default_factory=list)
+    shot_spec: Optional[Dict[str, Any]] = None
     image_base64: Optional[str] = None
 
 
@@ -91,6 +93,58 @@ class GeminiService:
         """将图片字节转换为 Base64 data URL"""
         b64_str = base64.b64encode(image_bytes).decode('utf-8')
         return f"data:{mime_type};base64,{b64_str}"
+
+    def _sanitize_composition_result(
+        self,
+        technique_id: str,
+        result: SingleTechniqueResult
+    ) -> SingleTechniqueResult:
+        """
+        服务端质量兜底：
+        - Orbit 当前设备侧验证仍不稳定，先保守过滤
+        - 对角线构图禁止依赖旋转手机/故意倾斜画面
+        """
+        if not result.is_applicable:
+            return result
+
+        normalized_steps = []
+        for step in result.steps:
+            action_type = str(step.get("action_type", "")).strip().lower()
+            direction = str(step.get("direction", "")).strip().lower()
+            normalized_steps.append((action_type, direction))
+
+        has_orbit = any(action_type == "orbit" for action_type, _ in normalized_steps)
+        has_step = any(action_type == "step" for action_type, _ in normalized_steps)
+        has_roll = any(
+            action_type == "level" or direction in {"cw", "ccw", "rotate-cw", "rotate-ccw"}
+            for action_type, direction in normalized_steps
+        )
+
+        if has_orbit and not ENABLE_ORBIT_ACTION:
+            result.is_applicable = False
+            result.image_base64 = None
+            result.steps = []
+            result.shot_spec = None
+            result.aesthetic_desc = "当前设备暂不稳定支持绕拍引导"
+            return result
+
+        if has_step and not ENABLE_STEP_ACTION:
+            result.is_applicable = False
+            result.image_base64 = None
+            result.steps = []
+            result.shot_spec = None
+            result.aesthetic_desc = "当前设备暂不稳定支持前后移动引导"
+            return result
+
+        if technique_id == "diagonal_composition" and has_roll:
+            result.is_applicable = False
+            result.image_base64 = None
+            result.steps = []
+            result.shot_spec = None
+            result.aesthetic_desc = "对角线构图不能靠歪斜画面强行实现"
+            return result
+
+        return result
     
     async def _call_single_technique(
         self,
@@ -176,9 +230,17 @@ class GeminiService:
                 
                 composition_data = parsed_json.get("composition_data", {})
                 if composition_data:
-                    result.aesthetic_desc = composition_data.get("aesthetic_desc", "")
+                    result.aesthetic_desc = (
+                        parsed_json.get("aesthetic_analysis")
+                        or composition_data.get("core_reasoning")
+                        or composition_data.get("aesthetic_desc")
+                        or ""
+                    )
                     result.steps = composition_data.get("steps", [])
-        
+                    result.shot_spec = composition_data.get("shot_spec")
+
+                result = self._sanitize_composition_result(technique_id, result)
+
         except Exception as e:
             end_ts = time.perf_counter()
             end_time = datetime.now()
@@ -247,12 +309,19 @@ class GeminiService:
                         )
                         for i, step in enumerate(r.steps)
                     ]
+                    shot_spec = None
+                    if r.shot_spec:
+                        try:
+                            shot_spec = ShotSpec(**r.shot_spec)
+                        except Exception as error:
+                            print(f"⚠️ {r.technique_id} shot_spec 解析失败: {error}")
                     
                     compositions.append(CompositionResult(
                         technique=r.technique_id,
                         technique_name=r.technique_name,
                         aesthetic_desc=r.aesthetic_desc,
                         steps=steps,
+                        shot_spec=shot_spec,
                         image_base64=r.image_base64,
                         response_time_ms=r.response_time_ms
                     ))

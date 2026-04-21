@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.photoframer.data.api.CompositionStep
+import com.photoframer.guidance.isViewpointActionType
+import com.photoframer.guidance.normalizedActionType
 
 /**
  * 动态引导层
@@ -39,11 +41,11 @@ fun GuidanceOverlay(
     // UI 层补间动画：让圆环在 60fps 下平滑移动
     val isCompleted = validationResult?.isCompleted == true
     val isZoomStep = step?.actionType.equals("zoom", ignoreCase = true)
-    val isViewChangeStep = step?.actionType.equals("view-change", ignoreCase = true)
+    val isViewChangeStep = step?.actionType?.isViewpointActionType() == true
     
-    // 各步骤类型的 tx 语义不同：
+    // 各步骤类型的 tx/uiHint 语义不同：
     // Zoom: tx = visualScale（1.0=完美匹配），默认 1.0
-    // View-change: tx = progress（0-1 完成进度），默认 0
+    // View-change: uiHintX/uiHintY = 机位偏移提示，progress 走独立字段
     // Shift: tx/ty = 位移矢量，死区时归零
     val rawTx: Float
     val rawTy: Float
@@ -53,8 +55,8 @@ fun GuidanceOverlay(
             rawTy = 0f
         }
         isViewChangeStep -> {
-            rawTx = if (isCompleted) 1.0f else (validationResult?.tx ?: 0f)
-            rawTy = if (isCompleted) 1.0f else (validationResult?.ty ?: 0f)
+            rawTx = if (isCompleted) 0f else (validationResult?.uiHintX ?: 0f)
+            rawTy = if (isCompleted) 0f else (validationResult?.uiHintY ?: 0f)
         }
         else -> {
             val rawDistance = kotlin.math.sqrt(
@@ -71,6 +73,18 @@ fun GuidanceOverlay(
     val animSpec: AnimationSpec<Float> = tween(durationMillis = 150, easing = FastOutSlowInEasing)
     val animTx by animateFloatAsState(targetValue = rawTx, animationSpec = animSpec, label = "tx")
     val animTy by animateFloatAsState(targetValue = rawTy, animationSpec = animSpec, label = "ty")
+    val animViewChangeProgress by animateFloatAsState(
+        targetValue = if (isCompleted) 1f else (validationResult?.progress ?: 0f),
+        animationSpec = animSpec,
+        label = "view_progress"
+    )
+    val animViewChangeDirectionConfidence by animateFloatAsState(
+        targetValue = if (isCompleted) 1f else (validationResult?.directionConfidence ?: 0f),
+        animationSpec = animSpec,
+        label = "view_direction_confidence"
+    )
+    val uiSpaceWidth = (validationResult?.uiSpaceWidth ?: 360f).coerceAtLeast(1f)
+    val uiSpaceHeight = (validationResult?.uiSpaceHeight ?: uiSpaceWidth).coerceAtLeast(1f)
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val centerX = size.width / 2
@@ -117,10 +131,11 @@ fun GuidanceOverlay(
             val tx = animTx
             val ty = animTy
             
-            val scaleFactor = size.width / 360f
+            val scaleFactorX = size.width / uiSpaceWidth
+            val scaleFactorY = size.height / uiSpaceHeight
             
-            var targetX = centerX + tx * scaleFactor
-            var targetY = centerY + ty * scaleFactor
+            var targetX = centerX + tx * scaleFactorX
+            var targetY = centerY + ty * scaleFactorY
             
             val margin = 40f
             targetX = targetX.coerceIn(margin, size.width - margin)
@@ -209,16 +224,75 @@ fun GuidanceOverlay(
             )
         }
 
-        // ======== 进度弧环 (仅 View-change) ========
-        if (step?.actionType.equals("view-change", ignoreCase = true)) {
-            // validationResult.tx 存放 progress（0-1 完成进度）
-            val progress = animTx.coerceIn(0f, 1f)
-            val directionConfidence = animTy.coerceIn(0f, 1f)
+        // ======== 机位变化目标圈 + 进度弧环 (仅 View-change) ========
+        if (step?.actionType?.isViewpointActionType() == true) {
+            val progress = animViewChangeProgress.coerceIn(0f, 1f)
+            val directionConfidence = animViewChangeDirectionConfidence.coerceIn(0f, 1f)
             val viewChangeDirection = step?.direction.orEmpty()
+            val actionType = step?.actionType.orEmpty()
+            val hintX = animTx
+            val hintY = animTy
             
             val arcRadius = armEnd + 12f  // 准星外围
             val arcStroke = 4f
             val sweepAngle = progress * 360f  // 弧长 = 进度 × 360°
+
+            if (actionType.normalizedActionType() != "step") {
+                val scaleFactorX = size.width / uiSpaceWidth
+                val scaleFactorY = size.height / uiSpaceHeight
+                var targetX = centerX + hintX * scaleFactorX
+                var targetY = centerY + hintY * scaleFactorY
+                val margin = 44f
+                targetX = targetX.coerceIn(margin, size.width - margin)
+                targetY = targetY.coerceIn(margin, size.height - margin)
+
+                val dist = kotlin.math.sqrt(
+                    (targetX - centerX) * (targetX - centerX) +
+                        (targetY - centerY) * (targetY - centerY)
+                )
+
+                if (dist > 12f) {
+                    val dx = (targetX - centerX) / dist
+                    val dy = (targetY - centerY) / dist
+                    val lineStart = armEnd + 4f
+                    val lineEnd = arcRadius + 16f
+                    val lx1 = centerX + dx * lineStart
+                    val ly1 = centerY + dy * lineStart
+                    val lx2 = targetX - dx * lineEnd
+                    val ly2 = targetY - dy * lineEnd
+                    val dashEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                        intervals = floatArrayOf(10f, 8f), phase = 0f
+                    )
+                    drawLine(
+                        shadow,
+                        Offset(lx1, ly1),
+                        Offset(lx2, ly2),
+                        strokeWidth = lineStroke + shadowExtra,
+                        pathEffect = dashEffect
+                    )
+                    drawLine(
+                        color.copy(alpha = 0.62f),
+                        Offset(lx1, ly1),
+                        Offset(lx2, ly2),
+                        strokeWidth = lineStroke,
+                        pathEffect = dashEffect
+                    )
+                }
+
+                val ringPulse = if (isCompleted) pulseScale else 1f
+                drawCircle(
+                    shadow,
+                    ringRadius * ringPulse,
+                    Offset(targetX, targetY),
+                    style = Stroke(ringStroke + shadowExtra)
+                )
+                drawCircle(
+                    color,
+                    ringRadius * ringPulse,
+                    Offset(targetX, targetY),
+                    style = Stroke(ringStroke)
+                )
+            }
             
             // 底层轨道圈（灰色虚线，标识完整路径）
             val trackDash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
@@ -271,6 +345,7 @@ fun GuidanceOverlay(
                 centerX = centerX,
                 centerY = centerY,
                 arcRadius = arcRadius + 22f,
+                actionType = actionType,
                 direction = viewChangeDirection,
                 confidence = directionConfidence,
                 color = color,
@@ -284,6 +359,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawViewChangeDirec
     centerX: Float,
     centerY: Float,
     arcRadius: Float,
+    actionType: String,
     direction: String,
     confidence: Float,
     color: Color,
@@ -305,9 +381,59 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawViewChangeDirec
         drawPath(path = path, color = tint, style = Stroke(width = stroke, cap = StrokeCap.Round))
     }
 
-    val normalized = direction.lowercase()
-    drawChevron(centerX, centerY - arcRadius, 0f, -1f, normalized == "high-angle")
-    drawChevron(centerX, centerY + arcRadius, 0f, 1f, normalized == "low-angle")
-    drawChevron(centerX - arcRadius, centerY, -1f, 0f, normalized == "side-view-left")
-    drawChevron(centerX + arcRadius, centerY, 1f, 0f, normalized == "side-view-right")
+    val normalizedAction = actionType.normalizedActionType()
+    val normalizedDirection = direction.lowercase()
+    drawChevron(
+        centerX,
+        centerY - arcRadius,
+        0f,
+        -1f,
+        normalizedAction == "raisecamera" || normalizedDirection == "high-angle"
+    )
+    drawChevron(
+        centerX,
+        centerY + arcRadius,
+        0f,
+        1f,
+        normalizedAction == "lowercamera" || normalizedDirection == "low-angle"
+    )
+    drawChevron(
+        centerX - arcRadius,
+        centerY,
+        -1f,
+        0f,
+        (normalizedAction == "orbit" && normalizedDirection == "left") || normalizedDirection == "side-view-left"
+    )
+    drawChevron(
+        centerX + arcRadius,
+        centerY,
+        1f,
+        0f,
+        (normalizedAction == "orbit" && normalizedDirection == "right") || normalizedDirection == "side-view-right"
+    )
+
+    if (normalizedAction == "step") {
+        val tint = color.copy(alpha = activeAlpha.coerceIn(0f, 1f))
+        val innerRadius = arcRadius * 0.42f
+        val outerRadius = arcRadius * 0.78f
+        val isForward = normalizedDirection != "backward"
+        val sourceRadius = if (isForward) outerRadius else innerRadius
+        val targetRadius = if (isForward) innerRadius else outerRadius
+
+        drawCircle(shadow, sourceRadius, Offset(centerX, centerY), style = Stroke(width = stroke + 2f))
+        drawCircle(tint, sourceRadius, Offset(centerX, centerY), style = Stroke(width = stroke))
+
+        drawCircle(
+            color = shadow,
+            radius = targetRadius,
+            center = Offset(centerX, centerY),
+            style = Stroke(width = stroke + 2f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 6f)))
+        )
+        drawCircle(
+            color = tint.copy(alpha = 0.55f),
+            radius = targetRadius,
+            center = Offset(centerX, centerY),
+            style = Stroke(width = stroke, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 6f)))
+        )
+    }
 }
