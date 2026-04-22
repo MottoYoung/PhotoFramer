@@ -44,7 +44,7 @@ import com.photoframer.ui.theme.ControlSelectedBackground
 import com.photoframer.ui.theme.PillBackground
 
 enum class AspectRatioOption(val label: String) {
-    RATIO_4_3("4:3"),
+    RATIO_4_3("3:4"),
     RATIO_1_1("1:1"),
     FULL("全屏")
 }
