@@ -562,7 +562,7 @@ fun CameraScreen(
                             validationResult = validationResult,
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
-                                .padding(top = 16.dp)
+                                .padding(top = 6.dp)
                         )
                     }
                 } else {
