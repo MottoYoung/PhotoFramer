@@ -1,22 +1,37 @@
 package com.photoframer.ui.components
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.unit.dp
 import com.photoframer.data.api.CompositionStep
+import com.photoframer.ui.theme.BlueAccent
+import com.photoframer.ui.theme.SuccessGreen
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * 动态引导层
- * 在屏幕中心绘制指示箭头，使用 Compose 动画平滑圆环移动
+ * 在屏幕中心绘制更贴近相机辅助线风格的准星与目标圈
  */
 @Composable
 fun GuidanceOverlay(
@@ -25,26 +40,41 @@ fun GuidanceOverlay(
     modifier: Modifier = Modifier
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "ring_anim")
-    
+
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.1f,
+        targetValue = 1.08f,
         animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
+            animation = tween(900, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse_scale"
     )
 
-    // UI 层补间动画：让圆环在 60fps 下平滑移动
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 0.88f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
+    val orbitPhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "orbit_phase"
+    )
+
     val isCompleted = validationResult?.isCompleted == true
     val isZoomStep = step?.actionType.equals("zoom", ignoreCase = true)
     val isViewChangeStep = step?.actionType.equals("view-change", ignoreCase = true)
-    
-    // 各步骤类型的 tx 语义不同：
-    // Zoom: tx = visualScale（1.0=完美匹配），默认 1.0
-    // View-change: tx = progress（0-1 完成进度），默认 0
-    // Shift: tx/ty = 位移矢量，死区时归零
+
     val rawTx: Float
     val rawTy: Float
     when {
@@ -57,17 +87,16 @@ fun GuidanceOverlay(
             rawTy = if (isCompleted) 1.0f else (validationResult?.ty ?: 0f)
         }
         else -> {
-            val rawDistance = kotlin.math.sqrt(
+            val rawDistance = sqrt(
                 ((validationResult?.tx ?: 0f) * (validationResult?.tx ?: 0f) +
-                 (validationResult?.ty ?: 0f) * (validationResult?.ty ?: 0f)).toDouble()
+                    (validationResult?.ty ?: 0f) * (validationResult?.ty ?: 0f)).toDouble()
             ).toFloat()
-            val inDeadZone = isCompleted || rawDistance < 25f  // 25 = SHIFT_THRESHOLD
+            val inDeadZone = isCompleted || rawDistance < 25f
             rawTx = if (inDeadZone) 0f else (validationResult?.tx ?: 0f)
             rawTy = if (inDeadZone) 0f else (validationResult?.ty ?: 0f)
         }
     }
-    
-    // 用 tween 而非 spring，确保动画时长固定且与文字防抖(500ms)节奏一致
+
     val animSpec: AnimationSpec<Float> = tween(durationMillis = 150, easing = FastOutSlowInEasing)
     val animTx by animateFloatAsState(targetValue = rawTx, animationSpec = animSpec, label = "tx")
     val animTy by animateFloatAsState(targetValue = rawTy, animationSpec = animSpec, label = "ty")
@@ -75,212 +104,322 @@ fun GuidanceOverlay(
     Canvas(modifier = modifier.fillMaxSize()) {
         val centerX = size.width / 2
         val centerY = size.height / 2
-        
-        // ====== 尺寸（2x 放大，提升可见性） ======
-        
-        // 十字准星：中心空心圆 + 四根短线
-        val crossHoleRadius = 12f
-        val crossLineLength = 20f
-        val crossGap = 6f
-        val crossStroke = 3f
-        
-        // 目标圆环
-        val ringRadius = 28f
-        val ringStroke = 4f
-        
-        // 连线
-        val lineStroke = 2.5f
-        
-        // 颜色 — 前景 + 黑色描边衬底（确保亮背景下可见）
-        val color = if (isCompleted) com.photoframer.ui.theme.SuccessGreen else Color.White.copy(alpha = 0.85f)
-        val shadow = Color.Black.copy(alpha = 0.5f)
-        val shadowExtra = 3f  // 描边比前景宽多少
+        val center = Offset(centerX, centerY)
 
-        // ======== 十字准星 ========
-        // 衬底层（黑色，更粗）
-        drawCircle(shadow, crossHoleRadius, Offset(centerX, centerY), style = Stroke(crossStroke + shadowExtra))
-        val armStart = crossHoleRadius + crossGap
-        val armEnd = armStart + crossLineLength
-        drawLine(shadow, Offset(centerX + armStart, centerY), Offset(centerX + armEnd, centerY), strokeWidth = crossStroke + shadowExtra)
-        drawLine(shadow, Offset(centerX - armStart, centerY), Offset(centerX - armEnd, centerY), strokeWidth = crossStroke + shadowExtra)
-        drawLine(shadow, Offset(centerX, centerY + armStart), Offset(centerX, centerY + armEnd), strokeWidth = crossStroke + shadowExtra)
-        drawLine(shadow, Offset(centerX, centerY - armStart), Offset(centerX, centerY - armEnd), strokeWidth = crossStroke + shadowExtra)
-        // 前景层（白/绿色）
-        drawCircle(color, crossHoleRadius, Offset(centerX, centerY), style = Stroke(crossStroke))
-        drawLine(color, Offset(centerX + armStart, centerY), Offset(centerX + armEnd, centerY), strokeWidth = crossStroke)
-        drawLine(color, Offset(centerX - armStart, centerY), Offset(centerX - armEnd, centerY), strokeWidth = crossStroke)
-        drawLine(color, Offset(centerX, centerY + armStart), Offset(centerX, centerY + armEnd), strokeWidth = crossStroke)
-        drawLine(color, Offset(centerX, centerY - armStart), Offset(centerX, centerY - armEnd), strokeWidth = crossStroke)
+        val accentColor = if (isCompleted) SuccessGreen else BlueAccent.copy(alpha = 0.96f)
+        val neutralColor = Color.White.copy(alpha = 0.92f)
+        val faintColor = Color.White.copy(alpha = 0.16f)
+        val microGlow = accentColor.copy(alpha = 0.07f * pulseAlpha)
+        val glowColor = accentColor.copy(alpha = 0.11f * pulseAlpha)
+        val shadow = Color.Black.copy(alpha = 0.44f)
 
-        // ======== 目标圆环 + 连线 (仅 Shift) ========
+        drawCircle(
+            color = microGlow,
+            radius = 34f * pulseScale,
+            center = center
+        )
+        drawCircle(
+            color = glowColor,
+            radius = 56f * pulseScale,
+            center = center
+        )
+
+        drawReticle(
+            center = center,
+            accentColor = accentColor,
+            neutralColor = neutralColor,
+            faintColor = faintColor,
+            shadowColor = shadow,
+            pulseScale = pulseScale,
+            orbitPhase = orbitPhase
+        )
+
         if (step?.actionType.equals("shift", ignoreCase = true)) {
-            val tx = animTx
-            val ty = animTy
-            
             val scaleFactor = size.width / 360f
-            
-            var targetX = centerX + tx * scaleFactor
-            var targetY = centerY + ty * scaleFactor
-            
-            val margin = 40f
+            var targetX = centerX + animTx * scaleFactor
+            var targetY = centerY + animTy * scaleFactor
+            val margin = 44f
+
             targetX = targetX.coerceIn(margin, size.width - margin)
             targetY = targetY.coerceIn(margin, size.height - margin)
 
-            val dist = kotlin.math.sqrt((targetX - centerX) * (targetX - centerX) + (targetY - centerY) * (targetY - centerY))
-            
-            // 连线
-            val minDist = armEnd + ringRadius + 8f
-            if (dist > minDist) {
-                val dx = (targetX - centerX) / dist
-                val dy = (targetY - centerY) / dist
-                
-                val lx1 = centerX + dx * (armEnd + 4f)
-                val ly1 = centerY + dy * (armEnd + 4f)
-                val lx2 = targetX - dx * (ringRadius + 4f)
-                val ly2 = targetY - dy * (ringRadius + 4f)
+            val target = Offset(targetX, targetY)
+            val distance = center.distanceTo(target)
+            val ringRadius = if (isCompleted) 32f * pulseScale else 32f
 
-                val dashEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
-                    intervals = floatArrayOf(10f, 8f), phase = 0f
-                )
-                // 衬底
-                drawLine(shadow, Offset(lx1, ly1), Offset(lx2, ly2),
-                    strokeWidth = lineStroke + shadowExtra,
+            if (distance > 52f) {
+                val dx = (targetX - centerX) / distance
+                val dy = (targetY - centerY) / distance
+                val start = Offset(centerX + dx * 31f, centerY + dy * 31f)
+                val end = Offset(targetX - dx * (ringRadius + 10f), targetY - dy * (ringRadius + 10f))
+                val dashEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f), orbitPhase / 10f)
+
+                drawLine(
+                    color = shadow,
+                    start = start,
+                    end = end,
+                    strokeWidth = 5.6f,
+                    cap = StrokeCap.Round,
                     pathEffect = dashEffect
                 )
-                // 前景
-                drawLine(color.copy(alpha = 0.6f), Offset(lx1, ly1), Offset(lx2, ly2),
-                    strokeWidth = lineStroke,
+                drawLine(
+                    color = neutralColor.copy(alpha = 0.48f),
+                    start = start,
+                    end = end,
+                    strokeWidth = 2.5f,
+                    cap = StrokeCap.Round,
                     pathEffect = dashEffect
                 )
             }
-            
-            // 目标圆环
-            val r = if (isCompleted) ringRadius * pulseScale else ringRadius
-            // 衬底
-            drawCircle(shadow, r, Offset(targetX, targetY), style = Stroke(ringStroke + shadowExtra))
-            // 前景
-            drawCircle(color, r, Offset(targetX, targetY), style = Stroke(ringStroke))
+
+            drawTargetRing(
+                center = target,
+                radius = ringRadius,
+                accentColor = accentColor,
+                neutralColor = neutralColor,
+                shadowColor = shadow,
+                pulseAlpha = pulseAlpha
+            )
         }
 
-        // ======== 同心双圆环 (仅 Zoom) ========
         if (step?.actionType.equals("zoom", ignoreCase = true)) {
-            // validationResult.tx 存放 visualScale（当前视觉缩放比，1.0=完美）
-            val visualScale = animTx.coerceIn(0.3f, 3.0f)  // 安全范围
-            
-            // 内圈 = 目标参考圈（固定大小）
-            val innerRadius = 40f
-            // 外圈 = 当前状态圈（半径 = innerRadius * visualScale）
-            // visualScale > 1 → 画面偏大 → 外圈比内圈大
-            // visualScale < 1 → 画面偏小 → 外圈比内圈小
-            val rawOuterRadius = innerRadius * visualScale
-            val outerRadius = if (isCompleted) {
-                innerRadius  // 完成时合一
-            } else {
-                rawOuterRadius * pulseScale  // 脉冲动画
-            }
-            
-            val zoomRingStroke = 3f
-            
-            // 内圈（目标参考）— 白色虚线
-            val innerDash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
-                intervals = floatArrayOf(8f, 6f), phase = 0f
-            )
-            // 衬底
+            val visualScale = animTx.coerceIn(0.3f, 3.0f)
+            val innerRadius = 42f
+            val outerRadius = if (isCompleted) innerRadius else innerRadius * visualScale * pulseScale
+            val guideDash = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), orbitPhase / 12f)
+
             drawCircle(
-                shadow, innerRadius, Offset(centerX, centerY),
-                style = Stroke(zoomRingStroke + shadowExtra, pathEffect = innerDash)
+                color = shadow,
+                radius = innerRadius,
+                center = center,
+                style = Stroke(width = 5f, pathEffect = guideDash)
             )
-            // 前景
             drawCircle(
-                color.copy(alpha = 0.5f), innerRadius, Offset(centerX, centerY),
-                style = Stroke(zoomRingStroke, pathEffect = innerDash)
+                color = faintColor,
+                radius = innerRadius,
+                center = center,
+                style = Stroke(width = 2.2f, pathEffect = guideDash)
             )
-            
-            // 外圈（当前状态）— 实线
-            // 衬底
             drawCircle(
-                shadow, outerRadius, Offset(centerX, centerY),
-                style = Stroke(zoomRingStroke + 1f + shadowExtra)
+                color = glowColor,
+                radius = outerRadius + 9f,
+                center = center
             )
-            // 前景
             drawCircle(
-                color, outerRadius, Offset(centerX, centerY),
-                style = Stroke(zoomRingStroke + 1f)
+                color = shadow,
+                radius = outerRadius,
+                center = center,
+                style = Stroke(width = 6f)
+            )
+            drawCircle(
+                color = accentColor,
+                radius = outerRadius,
+                center = center,
+                style = Stroke(width = 2.8f)
+            )
+
+            drawOrbitDot(
+                center = center,
+                radius = outerRadius,
+                angleDegrees = orbitPhase,
+                color = accentColor
             )
         }
 
-        // ======== 进度弧环 (仅 View-change) ========
         if (step?.actionType.equals("view-change", ignoreCase = true)) {
-            // validationResult.tx 存放 progress（0-1 完成进度）
             val progress = animTx.coerceIn(0f, 1f)
             val directionConfidence = animTy.coerceIn(0f, 1f)
-            val viewChangeDirection = step?.direction.orEmpty()
-            
-            val arcRadius = armEnd + 12f  // 准星外围
-            val arcStroke = 4f
-            val sweepAngle = progress * 360f  // 弧长 = 进度 × 360°
-            
-            // 底层轨道圈（灰色虚线，标识完整路径）
-            val trackDash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
-                intervals = floatArrayOf(6f, 5f), phase = 0f
-            )
+            val arcRadius = 48f
+            val arcStroke = 4.5f
+            val sweepAngle = progress * 360f
+            val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 7f), orbitPhase / 10f)
+
             drawCircle(
-                Color.White.copy(alpha = 0.15f), arcRadius, Offset(centerX, centerY),
-                style = Stroke(arcStroke, pathEffect = trackDash)
+                color = faintColor,
+                radius = arcRadius,
+                center = center,
+                style = Stroke(width = 2.2f, pathEffect = dash)
             )
-            
+
             if (sweepAngle > 0.5f) {
-                // 进度弧线（从顶部 -90° 开始，顺时针）
-                val arcRect = androidx.compose.ui.geometry.Rect(
-                    centerX - arcRadius, centerY - arcRadius,
-                    centerX + arcRadius, centerY + arcRadius
+                val rect = Rect(
+                    left = centerX - arcRadius,
+                    top = centerY - arcRadius,
+                    right = centerX + arcRadius,
+                    bottom = centerY + arcRadius
                 )
-                val finalSweep = if (isCompleted) 360f * pulseScale.coerceAtMost(1f) else sweepAngle
-                
-                // 衬底
+                val finalSweep = if (isCompleted) 360f else sweepAngle
+
                 drawArc(
                     color = shadow,
                     startAngle = -90f,
                     sweepAngle = finalSweep,
                     useCenter = false,
-                    topLeft = androidx.compose.ui.geometry.Offset(
-                        arcRect.left, arcRect.top
-                    ),
-                    size = androidx.compose.ui.geometry.Size(
-                        arcRect.width, arcRect.height
-                    ),
-                    style = Stroke(arcStroke + shadowExtra, cap = StrokeCap.Round)
+                    topLeft = Offset(rect.left, rect.top),
+                    size = Size(rect.width, rect.height),
+                    style = Stroke(width = arcStroke + 2.5f, cap = StrokeCap.Round)
                 )
-                // 前景
                 drawArc(
-                    color = color,
+                    color = accentColor,
                     startAngle = -90f,
                     sweepAngle = finalSweep,
                     useCenter = false,
-                    topLeft = androidx.compose.ui.geometry.Offset(
-                        arcRect.left, arcRect.top
-                    ),
-                    size = androidx.compose.ui.geometry.Size(
-                        arcRect.width, arcRect.height
-                    ),
-                    style = Stroke(arcStroke, cap = StrokeCap.Round)
+                    topLeft = Offset(rect.left, rect.top),
+                    size = Size(rect.width, rect.height),
+                    style = Stroke(width = arcStroke, cap = StrokeCap.Round)
+                )
+                drawOrbitDot(
+                    center = center,
+                    radius = arcRadius,
+                    angleDegrees = -90f + finalSweep,
+                    color = accentColor
                 )
             }
 
             drawViewChangeDirectionHint(
                 centerX = centerX,
                 centerY = centerY,
-                arcRadius = arcRadius + 22f,
-                direction = viewChangeDirection,
+                arcRadius = arcRadius + 24f,
+                direction = step?.direction.orEmpty(),
                 confidence = directionConfidence,
-                color = color,
+                color = accentColor,
                 shadow = shadow
             )
         }
     }
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawViewChangeDirectionHint(
+private fun DrawScope.drawReticle(
+    center: Offset,
+    accentColor: Color,
+    neutralColor: Color,
+    faintColor: Color,
+    shadowColor: Color,
+    pulseScale: Float,
+    orbitPhase: Float
+) {
+    val innerDotRadius = 3.5f
+    val ringRadius = 14f
+    val ringStroke = 2.2f
+    val armStart = 21f
+    val armEnd = 35f
+    val armStroke = 3.2f
+    val orbitalRadius = 23f * pulseScale
+    val guideDash = PathEffect.dashPathEffect(floatArrayOf(18f, 20f), orbitPhase / 9f)
+
+    drawCircle(
+        color = shadowColor,
+        radius = ringRadius,
+        center = center,
+        style = Stroke(width = ringStroke + 2.4f)
+    )
+    drawCircle(
+        color = neutralColor,
+        radius = ringRadius,
+        center = center,
+        style = Stroke(width = ringStroke)
+    )
+    drawCircle(
+        color = faintColor,
+        radius = orbitalRadius,
+        center = center,
+        style = Stroke(width = 1.2f, pathEffect = guideDash)
+    )
+    drawCircle(
+        color = accentColor,
+        radius = innerDotRadius,
+        center = center
+    )
+
+    val segments = listOf(
+        Offset(1f, 0f),
+        Offset(-1f, 0f),
+        Offset(0f, 1f),
+        Offset(0f, -1f)
+    )
+
+    segments.forEach { direction ->
+        val start = Offset(center.x + direction.x * armStart, center.y + direction.y * armStart)
+        val end = Offset(center.x + direction.x * armEnd, center.y + direction.y * armEnd)
+        drawLine(
+            color = shadowColor,
+            start = start,
+            end = end,
+            strokeWidth = armStroke + 2f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = neutralColor,
+            start = start,
+            end = end,
+            strokeWidth = armStroke,
+            cap = StrokeCap.Round
+        )
+    }
+
+    drawOrbitDot(
+        center = center,
+        radius = orbitalRadius,
+        angleDegrees = orbitPhase,
+        color = accentColor
+    )
+}
+
+private fun DrawScope.drawTargetRing(
+    center: Offset,
+    radius: Float,
+    accentColor: Color,
+    neutralColor: Color,
+    shadowColor: Color,
+    pulseAlpha: Float
+) {
+    drawCircle(
+        color = accentColor.copy(alpha = 0.14f * pulseAlpha),
+        radius = radius + 9f,
+        center = center
+    )
+    drawCircle(
+        color = shadowColor,
+        radius = radius,
+        center = center,
+        style = Stroke(width = 6f)
+    )
+    drawCircle(
+        color = accentColor,
+        radius = radius,
+        center = center,
+        style = Stroke(width = 2.8f)
+    )
+    drawCircle(
+        color = neutralColor.copy(alpha = 0.34f),
+        radius = radius - 9f,
+        center = center,
+        style = Stroke(width = 1.4f)
+    )
+
+    val cornerLength = 10f
+    val offset = radius + 8f
+    val stroke = 2.4f
+    val corners = listOf(
+        Pair(-1f, -1f),
+        Pair(1f, -1f),
+        Pair(-1f, 1f),
+        Pair(1f, 1f)
+    )
+    corners.forEach { (sx, sy) ->
+        val px = center.x + sx * offset
+        val py = center.y + sy * offset
+        val horizontalStart = Offset(px, py)
+        val horizontalEnd = Offset(px - sx * cornerLength, py)
+        val verticalEnd = Offset(px, py - sy * cornerLength)
+        drawLine(shadowColor, horizontalStart, horizontalEnd, strokeWidth = stroke + 1.8f, cap = StrokeCap.Round)
+        drawLine(shadowColor, horizontalStart, verticalEnd, strokeWidth = stroke + 1.8f, cap = StrokeCap.Round)
+        drawLine(accentColor, horizontalStart, horizontalEnd, strokeWidth = stroke, cap = StrokeCap.Round)
+        drawLine(accentColor, horizontalStart, verticalEnd, strokeWidth = stroke, cap = StrokeCap.Round)
+    }
+}
+
+private fun DrawScope.drawViewChangeDirectionHint(
     centerX: Float,
     centerY: Float,
     arcRadius: Float,
@@ -289,17 +428,23 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawViewChangeDirec
     color: Color,
     shadow: Color
 ) {
-    val inactiveColor = Color.White.copy(alpha = 0.18f)
-    val activeAlpha = 0.45f + confidence * 0.5f
-    val chevronSize = 18f
-    val stroke = 4f
+    val inactiveColor = Color.White.copy(alpha = 0.2f)
+    val activeAlpha = 0.42f + confidence * 0.5f
+    val chevronSize = 17f
+    val stroke = 3.6f
 
     fun drawChevron(cx: Float, cy: Float, dx: Float, dy: Float, active: Boolean) {
         val tint = if (active) color.copy(alpha = activeAlpha.coerceIn(0f, 1f)) else inactiveColor
         val path = Path().apply {
-            moveTo(cx - dx * chevronSize - dy * chevronSize * 0.55f, cy - dy * chevronSize + dx * chevronSize * 0.55f)
+            moveTo(
+                cx - dx * chevronSize - dy * chevronSize * 0.55f,
+                cy - dy * chevronSize + dx * chevronSize * 0.55f
+            )
             lineTo(cx, cy)
-            lineTo(cx - dx * chevronSize + dy * chevronSize * 0.55f, cy - dy * chevronSize - dx * chevronSize * 0.55f)
+            lineTo(
+                cx - dx * chevronSize + dy * chevronSize * 0.55f,
+                cy - dy * chevronSize - dx * chevronSize * 0.55f
+            )
         }
         drawPath(path = path, color = shadow, style = Stroke(width = stroke + 2f, cap = StrokeCap.Round))
         drawPath(path = path, color = tint, style = Stroke(width = stroke, cap = StrokeCap.Round))
@@ -310,4 +455,31 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawViewChangeDirec
     drawChevron(centerX, centerY + arcRadius, 0f, 1f, normalized == "low-angle")
     drawChevron(centerX - arcRadius, centerY, -1f, 0f, normalized == "side-view-left")
     drawChevron(centerX + arcRadius, centerY, 1f, 0f, normalized == "side-view-right")
+}
+
+private fun DrawScope.drawOrbitDot(
+    center: Offset,
+    radius: Float,
+    angleDegrees: Float,
+    color: Color
+) {
+    val angle = Math.toRadians(angleDegrees.toDouble())
+    val orbitCenter = Offset(
+        x = center.x + cos(angle).toFloat() * radius,
+        y = center.y + sin(angle).toFloat() * radius
+    )
+    drawCircle(
+        color = color.copy(alpha = 0.24f),
+        radius = 6f,
+        center = orbitCenter
+    )
+    drawCircle(
+        color = color,
+        radius = 2.6f,
+        center = orbitCenter
+    )
+}
+
+private fun Offset.distanceTo(other: Offset): Float {
+    return sqrt((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y))
 }

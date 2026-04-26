@@ -1,23 +1,52 @@
 package com.photoframer.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.OpenWith
+import androidx.compose.material.icons.filled.Rotate90DegreesCw
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.ZoomOut
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.photoframer.data.api.CompositionStep
-import com.photoframer.ui.theme.*
+import com.photoframer.ui.theme.BlueAccent
+import com.photoframer.ui.theme.PurplePrimary
+import com.photoframer.ui.theme.SuccessGreen
 
 /**
  * 顶部引导栏组件
@@ -35,139 +64,262 @@ fun TopGuidanceBar(
     validationResult: com.photoframer.vision.StepValidationResult? = null,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    val effectiveDirection = resolveEffectiveDirection(
+        step = step,
+        validationResult = validationResult
+    )
+    val feedbackText = if (!validationResult?.feedbackText.isNullOrEmpty()) {
+        validationResult.feedbackText
+    } else {
+        getSecondaryInstruction(step)
+    }
+    val highlightColor = if (validationResult?.isCompleted == true) SuccessGreen else BlueAccent
+    val progress = ((currentStepIndex + 1).toFloat() / totalSteps.coerceAtLeast(1)).coerceIn(0f, 1f)
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.75f))
             .statusBarsPadding()
-            .padding(vertical = 12.dp, horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 18.dp, vertical = 8.dp)
     ) {
-        // 主指令区域
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // 上一步 (小图标)
-            IconButton(
-                onClick = onPreviousStep,
-                enabled = !isFirstStep,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "上一步",
-                    tint = if (!isFirstStep) Color.White else Color.Gray
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xD8182130),
+                            Color(0xC6101722),
+                            Color(0xB80B111A)
+                        )
+                    )
                 )
-            }
-
-            // 中间指令内容
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f)
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(28.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.05f),
+                                Color.White.copy(alpha = 0.015f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+                    .padding(horizontal = 10.dp, vertical = 7.dp)
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val effectiveDirection = resolveEffectiveDirection(
-                        step = step,
-                        validationResult = validationResult
+                    GuidanceNavButton(
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "上一步",
+                        enabled = !isFirstStep,
+                        onClick = onPreviousStep
                     )
-                    Icon(
-                        imageVector = getActionIcon(step.actionType, effectiveDirection),
-                        contentDescription = step.actionType,
-                        tint = PurplePrimary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = getPrimaryInstruction(step, effectiveDirection),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                // 优先显示实时反馈，如果没有则显示静态指南
-                val feedbackText = if (!validationResult?.feedbackText.isNullOrEmpty()) {
-                    validationResult.feedbackText
-                } else {
-                    getSecondaryInstruction(step)
-                }
-                val feedbackColor = if (validationResult?.isCompleted == true) SuccessGreen else Color.White.copy(alpha = 0.8f)
 
-                Text(
-                    text = feedbackText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = feedbackColor,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
-                )
-
-                if (step.actionType.equals("view-change", ignoreCase = true)) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        color = PurplePrimary.copy(alpha = 0.16f),
-                        shape = RoundedCornerShape(999.dp)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Surface(
+                                color = Color.White.copy(alpha = 0.06f),
+                                shape = RoundedCornerShape(999.dp)
+                            ) {
+                                Text(
+                                    text = getActionPillLabel(step.actionType),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = highlightColor,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "步骤 ${currentStepIndex + 1} / $totalSteps",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.68f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Transparent,
+                                modifier = Modifier
+                                    .border(1.dp, highlightColor.copy(alpha = 0.24f), CircleShape)
+                                    .background(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                highlightColor.copy(alpha = 0.18f),
+                                                highlightColor.copy(alpha = 0.035f)
+                                            )
+                                        ),
+                                        shape = CircleShape
+                                    )
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = getActionIcon(step.actionType, effectiveDirection),
+                                        contentDescription = step.actionType,
+                                        tint = highlightColor
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(horizontalAlignment = Alignment.Start) {
+                                Text(
+                                    text = getPrimaryInstruction(step, effectiveDirection),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(1.dp))
+                                Text(
+                                    text = getDirectionSubLabel(effectiveDirection),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White.copy(alpha = 0.52f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
                         Text(
-                            text = getViewChangeHelperText(step.direction),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.88f),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            text = feedbackText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (validationResult?.isCompleted == true) SuccessGreen else Color.White.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center,
+                            maxLines = 2
                         )
+
+                        if (step.actionType.equals("view-change", ignoreCase = true)) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                color = Color.White.copy(alpha = 0.05f),
+                                shape = RoundedCornerShape(999.dp)
+                            ) {
+                                Text(
+                                    text = getViewChangeHelperText(step.direction),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White.copy(alpha = 0.84f),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        progress = { validationResult?.progress ?: 0f },
-                        modifier = Modifier
-                            .fillMaxWidth(0.72f)
-                            .height(5.dp),
-                        color = if (validationResult?.isCompleted == true) SuccessGreen else PurplePrimary,
-                        trackColor = Color.White.copy(alpha = 0.14f)
+                    GuidanceNavButton(
+                        icon = if (isLastStep) Icons.Default.Check else Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "下一步",
+                        enabled = true,
+                        tint = if (isLastStep) SuccessGreen else Color.White,
+                        onClick = onNextStep
                     )
                 }
             }
 
-            // 下一步 (小图标)
-            IconButton(
-                onClick = onNextStep,
-                modifier = Modifier.size(32.dp)
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(
-                    imageVector = if (isLastStep) Icons.Default.Check else Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "下一步",
-                    tint = if (isLastStep) SuccessGreen else Color.White
-                )
+                repeat(totalSteps) { index ->
+                    val segmentColor = when {
+                        index == currentStepIndex -> highlightColor.copy(alpha = 0.92f)
+                        index < currentStepIndex -> SuccessGreen.copy(alpha = 0.66f)
+                        else -> Color.White.copy(alpha = 0.12f)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(if (index == currentStepIndex) 1.2f else 1f)
+                            .height(if (index == currentStepIndex) 4.dp else 3.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(segmentColor)
+                    )
+                }
             }
         }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        // 步骤进度条
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
+    }
+}
+
+@Composable
+private fun GuidanceNavButton(
+    icon: ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    tint: Color = Color.White
+) {
+    Surface(
+        color = if (enabled) Color.White.copy(alpha = 0.055f) else Color.White.copy(alpha = 0.025f),
+        shape = CircleShape
+    ) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.size(40.dp)
         ) {
-            repeat(totalSteps) { index ->
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 2.dp)
-                        .weight(1f)
-                        .height(3.dp)
-                        .background(
-                            if (index == currentStepIndex) PurplePrimary
-                            else if (index < currentStepIndex) SuccessGreen
-                            else Color.Gray.copy(alpha = 0.5f),
-                            RoundedCornerShape(1.dp)
-                        )
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = if (enabled) tint else Color.White.copy(alpha = 0.28f)
+            )
         }
+    }
+}
+
+private fun getActionPillLabel(actionType: String): String {
+    return when (actionType.lowercase()) {
+        "shift" -> "取景移动"
+        "zoom" -> "焦距校准"
+        "view-change" -> "视角切换"
+        else -> "构图引导"
+    }
+}
+
+private fun getDirectionSubLabel(direction: String): String {
+    return when (direction.lowercase()) {
+        "left" -> "向画面左侧微调"
+        "right" -> "向画面右侧微调"
+        "up" -> "向更高机位调整"
+        "down" -> "向更低机位调整"
+        "in" -> "主体再靠近一点"
+        "out" -> "给画面更多留白"
+        "high-angle" -> "提升俯视感"
+        "low-angle" -> "增强仰视感"
+        "side-view-left" -> "切向左侧视角"
+        "side-view-right" -> "切向右侧视角"
+        else -> "跟随参考图继续微调"
     }
 }
 
