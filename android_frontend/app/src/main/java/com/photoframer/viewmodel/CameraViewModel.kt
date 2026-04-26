@@ -165,7 +165,9 @@ class CameraViewModel : ViewModel() {
                 val result = repository.analyzeInFrameComposition(preparedImage.file)
                 val response = result.getOrElse { error ->
                     _uiState.value = CameraUiState.Error(
-                        error.message ?: "画面内构图分析失败"
+                        message = error.message ?: "画面内构图分析失败",
+                        title = "画面内分析不可用",
+                        actionText = "返回"
                     )
                     return@launch
                 }

@@ -7,7 +7,9 @@ import com.photoframer.data.api.RetrofitClient
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.IOException
 import java.io.File
+import retrofit2.HttpException
 
 /**
  * 构图分析仓库
@@ -67,6 +69,10 @@ class CompositionRepository {
             )
 
             Result.success(response)
+        } catch (e: HttpException) {
+            Result.failure(Exception(mapInFrameHttpError(e)))
+        } catch (e: IOException) {
+            Result.failure(Exception("网络连接失败，请确认当前设备可以访问画面内分析服务"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -81,6 +87,16 @@ class CompositionRepository {
             Result.success(response.status == "healthy")
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private fun mapInFrameHttpError(error: HttpException): String {
+        return when (error.code()) {
+            404 -> "画面内分析接口不存在，请检查服务地址配置"
+            413 -> "图片太大，画面内分析服务拒绝处理"
+            429 -> "画面内分析服务当前过于繁忙，请稍后再试"
+            500, 502, 503, 504, 530 -> "画面内分析服务暂时不可用，请稍后重试"
+            else -> "画面内分析请求失败（HTTP ${error.code()}）"
         }
     }
 }

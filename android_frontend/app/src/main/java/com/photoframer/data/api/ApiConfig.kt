@@ -13,6 +13,7 @@ object ApiConfig {
     private const val PORT = "8000"
     
     const val BASE_URL = "http://$HOST:$PORT/"
+    // 画面内分析当前走独立服务；如果这个地址不稳定，可以改成你自己的可用服务地址
     const val IN_FRAME_COMPOSITION_URL = "https://crop.312237.xyz/predict?return_preview=0"
     
     // API 超时设置（秒）
