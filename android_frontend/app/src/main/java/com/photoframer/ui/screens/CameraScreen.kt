@@ -5,7 +5,9 @@ import android.graphics.Bitmap
 import android.util.Log
 import android.view.Surface
 import androidx.camera.core.CameraControl
+import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -13,17 +15,21 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -36,6 +42,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -61,14 +68,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -87,6 +100,7 @@ import com.photoframer.ui.components.CameraBottomBar
 import com.photoframer.ui.components.CameraEntryMode
 import com.photoframer.ui.components.CameraMode
 import com.photoframer.ui.components.CameraTopBar
+import com.photoframer.ui.components.CameraVisualStyle
 import com.photoframer.ui.components.CandidatesBottomPanel
 import com.photoframer.ui.components.CaptureTimer
 import com.photoframer.ui.components.FlashMode
@@ -96,7 +110,6 @@ import com.photoframer.ui.components.GuidingBottomBar
 import com.photoframer.ui.components.LoadingOverlay
 import com.photoframer.ui.components.SideToolBar
 import com.photoframer.ui.components.TopGuidanceBar
-import com.photoframer.ui.components.ZoomSelector
 import com.photoframer.ui.state.CameraUiState
 import com.photoframer.ui.theme.BackgroundDark
 import com.photoframer.ui.theme.ErrorRed
@@ -110,10 +123,12 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val TAG = "CameraScreen"
+private const val FOCUS_UI_AUTO_HIDE_DELAY_MS = 1800L
 
 @Composable
 fun CameraScreen(
@@ -148,6 +163,16 @@ fun CameraScreen(
     var burstCount by remember { mutableIntStateOf(0) }
     var isBursting by remember { mutableStateOf(false) }
     var activeEntryMode by remember { mutableStateOf(CameraEntryMode.NONE) }
+    var visualStyle by remember { mutableStateOf(CameraVisualStyle.DEFAULT) }
+    var previewSize by remember { mutableStateOf(IntSize.Zero) }
+    var focusPoint by remember { mutableStateOf<Offset?>(null) }
+    var isFocusUiVisible by remember { mutableStateOf(false) }
+    var focusUiInteractionVersion by remember { mutableIntStateOf(0) }
+    var isAdjustingExposure by remember { mutableStateOf(false) }
+    var exposureCompensationRange: IntRange by remember {
+        mutableStateOf(IntRange(0, 0))
+    }
+    var exposureCompensationIndex by remember { mutableIntStateOf(0) }
 
     var frameCounter by remember { mutableIntStateOf(0) }
     var lastAnalysisTime by remember { mutableStateOf(0L) }
@@ -235,6 +260,36 @@ fun CameraScreen(
             isBursting = false
             burstCount = 0
         }
+    }
+
+    fun refreshFocusUiAutoHide() {
+        focusUiInteractionVersion += 1
+    }
+
+    fun syncExposureState(info: CameraInfo?) {
+        val exposureState = info?.exposureState
+        exposureCompensationRange = if (exposureState != null) {
+            exposureState.exposureCompensationRange.lower..
+                exposureState.exposureCompensationRange.upper
+        } else {
+            IntRange(0, 0)
+        }
+        exposureCompensationIndex = exposureState?.exposureCompensationIndex ?: 0
+    }
+
+    fun showFocusUi(tapOffset: Offset) {
+        focusPoint = tapOffset
+        isFocusUiVisible = true
+        refreshFocusUiAutoHide()
+    }
+
+    LaunchedEffect(isFocusUiVisible, focusUiInteractionVersion, isAdjustingExposure) {
+        if (!isFocusUiVisible || isAdjustingExposure) {
+            return@LaunchedEffect
+        }
+
+        delay(FOCUS_UI_AUTO_HIDE_DELAY_MS)
+        isFocusUiVisible = false
     }
 
     fun saveCapturedPhoto(file: File, namePrefix: String) {
@@ -336,6 +391,8 @@ fun CameraScreen(
                 },
                 gridEnabled = gridEnabled,
                 onGridToggle = { gridEnabled = !gridEnabled },
+                visualStyle = visualStyle,
+                onVisualStyleChange = { visualStyle = it },
                 activeEntryMode = activeEntryMode,
                 showInFrameButton = uiState !is CameraUiState.Analyzing,
                 onInFrameClick = startInFrameComposition,
@@ -348,6 +405,7 @@ fun CameraScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .onSizeChanged { previewSize = it }
                 .clipToBounds()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, _, zoom, _ ->
@@ -366,6 +424,38 @@ fun CameraScreen(
                     ) {
                         detectTapGestures {
                             startCountdownCapture()
+                        }
+                    }
+                }
+                .pointerInput(
+                    previewView,
+                    cameraControl,
+                    uiState,
+                    touchScreenPhotoEnabled,
+                    countdownValue,
+                    isBursting
+                ) {
+                    if (
+                        uiState is CameraUiState.Preview &&
+                        !touchScreenPhotoEnabled &&
+                        countdownValue == null &&
+                        !isBursting
+                    ) {
+                        detectTapGestures { tapOffset ->
+                            val currentPreviewView = previewView ?: return@detectTapGestures
+                            val currentCameraControl = cameraControl ?: return@detectTapGestures
+                            val meteringPoint = currentPreviewView.meteringPointFactory
+                                .createPoint(tapOffset.x, tapOffset.y)
+                            val focusAction = FocusMeteringAction.Builder(
+                                meteringPoint,
+                                FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
+                            )
+                                .setAutoCancelDuration(3, TimeUnit.SECONDS)
+                                .build()
+
+                            currentCameraControl.startFocusAndMetering(focusAction)
+                            syncExposureState(cameraInfo)
+                            showFocusUi(tapOffset)
                         }
                     }
                 }
@@ -457,13 +547,17 @@ fun CameraScreen(
                                         imageCapture,
                                         imageAnalyzer
                                     )
+                                    previewView = cameraPreviewView
                                     cameraControl = camera.cameraControl
+                                    cameraInfo = camera.cameraInfo
+                                    syncExposureState(camera.cameraInfo)
                                     camera.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
                                         zoomRatio = state.zoomRatio
                                     }
                                 } catch (e: Exception) {
                                     Log.e(TAG, "相机绑定失败", e)
                                 }
+                                Unit
                             }, ContextCompat.getMainExecutor(ctx))
                         }
                     },
@@ -474,6 +568,66 @@ fun CameraScreen(
 
             if (gridEnabled) {
                 GridOverlay(modifier = Modifier.fillMaxSize())
+            }
+
+            var focusOverlaySettled by remember(focusUiInteractionVersion) { mutableStateOf(false) }
+            LaunchedEffect(focusUiInteractionVersion, isFocusUiVisible) {
+                if (isFocusUiVisible && focusPoint != null) {
+                    focusOverlaySettled = false
+                    delay(85)
+                    if (isFocusUiVisible) {
+                        focusOverlaySettled = true
+                    }
+                }
+            }
+
+            val showFocusOverlay = uiState is CameraUiState.Preview && focusPoint != null
+            val focusOverlayAlpha by animateFloatAsState(
+                targetValue = when {
+                    !showFocusOverlay || !isFocusUiVisible -> 0f
+                    focusOverlaySettled -> 1f
+                    else -> 0.58f
+                },
+                animationSpec = tween(durationMillis = if (isFocusUiVisible) 180 else 220),
+                label = "focus_overlay_alpha"
+            )
+            val focusOverlayScale by animateFloatAsState(
+                targetValue = when {
+                    !showFocusOverlay || !isFocusUiVisible -> 0.97f
+                    focusOverlaySettled -> 1f
+                    else -> 1.1f
+                },
+                animationSpec = tween(durationMillis = if (isFocusUiVisible) 180 else 220),
+                label = "focus_overlay_scale"
+            )
+
+            if (showFocusOverlay) {
+                focusPoint?.let { point ->
+                    FocusExposureOverlay(
+                        tapPoint = point,
+                        containerSize = previewSize,
+                        currentExposureIndex = exposureCompensationIndex,
+                        exposureRange = exposureCompensationRange,
+                        onExposureChange = { newIndex ->
+                            exposureCompensationIndex = newIndex
+                            cameraControl?.setExposureCompensationIndex(newIndex)
+                        },
+                        onExposureAdjustStart = {
+                            isAdjustingExposure = true
+                        },
+                        onExposureAdjustEnd = {
+                            isAdjustingExposure = false
+                            refreshFocusUiAutoHide()
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                alpha = focusOverlayAlpha
+                                scaleX = focusOverlayScale
+                                scaleY = focusOverlayScale
+                            }
+                    )
+                }
             }
 
             if (selectedRatio != AspectRatioOption.FULL) {
@@ -628,22 +782,6 @@ fun CameraScreen(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
-            ) {
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = uiState is CameraUiState.Preview || uiState is CameraUiState.Candidates,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    ZoomSelector(
-                        currentZoom = zoomRatio,
-                        onZoomChange = { cameraControl?.setZoomRatio(it) }
-                    )
-                }
-            }
         }
 
         AnimatedContent(
@@ -659,6 +797,9 @@ fun CameraScreen(
                 is CameraUiState.Preview -> {
                     CameraBottomBar(
                         currentMode = CameraMode.PHOTO,
+                        visualStyle = visualStyle,
+                        currentZoom = zoomRatio,
+                        onZoomChange = { cameraControl?.setZoomRatio(it) },
                         onShutterClick = { startCountdownCapture() },
                         onCameraSwitch = { useFrontCamera = !useFrontCamera },
                         lastPhotoThumbnail = lastPhotoThumbnail,
@@ -737,6 +878,9 @@ fun CameraScreen(
                 else -> {
                     CameraBottomBar(
                         currentMode = CameraMode.PHOTO,
+                        visualStyle = visualStyle,
+                        currentZoom = zoomRatio,
+                        onZoomChange = { cameraControl?.setZoomRatio(it) },
                         onShutterClick = {},
                         onCameraSwitch = { useFrontCamera = !useFrontCamera },
                         lastPhotoThumbnail = lastPhotoThumbnail,
@@ -854,7 +998,7 @@ private fun AspectRatioMaskOverlay(
 ) {
     BoxWithConstraints(modifier = modifier) {
         val targetRatio = when (selectedRatio) {
-            AspectRatioOption.RATIO_4_3 -> 4f / 3f
+            AspectRatioOption.RATIO_4_3 -> 3f / 4f
             AspectRatioOption.RATIO_1_1 -> 1f
             AspectRatioOption.FULL -> maxWidth.value / maxHeight.value
         }
@@ -913,6 +1057,215 @@ private fun AspectRatioMaskOverlay(
                     .align(Alignment.Center)
             )
         }
+    }
+}
+
+@Composable
+private fun FocusExposureOverlay(
+    tapPoint: Offset,
+    containerSize: IntSize,
+    currentExposureIndex: Int,
+    exposureRange: IntRange,
+    onExposureChange: (Int) -> Unit,
+    onExposureAdjustStart: () -> Unit,
+    onExposureAdjustEnd: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val focusFrameSize = 54.dp
+    val sliderWidth = 30.dp
+    val sliderHeight = 104.dp
+    val focusSizePx = with(density) { focusFrameSize.roundToPx() }
+    val sliderWidthPx = with(density) { sliderWidth.roundToPx() }
+    val sliderHeightPx = with(density) { sliderHeight.roundToPx() }
+    val sliderGapPx = with(density) { 8.dp.roundToPx() }
+    val sliderSupported = exposureRange.first != exposureRange.last
+
+    Box(modifier = modifier) {
+        val focusOffsetX = (tapPoint.x - focusSizePx / 2f)
+            .coerceIn(0f, (containerSize.width - focusSizePx).coerceAtLeast(0).toFloat())
+        val focusOffsetY = (tapPoint.y - focusSizePx / 2f)
+            .coerceIn(0f, (containerSize.height - focusSizePx).coerceAtLeast(0).toFloat())
+
+        Box(
+            modifier = Modifier
+                .offset {
+                    IntOffset(
+                        x = focusOffsetX.toInt(),
+                        y = focusOffsetY.toInt()
+                    )
+                }
+                .size(focusFrameSize)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 2.2.dp.toPx()
+                val cornerLength = size.minDimension * 0.24f
+                val color = Color.White
+
+                drawLine(color, Offset(0f, cornerLength), Offset(0f, 0f), strokeWidth)
+                drawLine(color, Offset(0f, 0f), Offset(cornerLength, 0f), strokeWidth)
+                drawLine(color, Offset(size.width - cornerLength, 0f), Offset(size.width, 0f), strokeWidth)
+                drawLine(color, Offset(size.width, 0f), Offset(size.width, cornerLength), strokeWidth)
+                drawLine(color, Offset(0f, size.height - cornerLength), Offset(0f, size.height), strokeWidth)
+                drawLine(color, Offset(0f, size.height), Offset(cornerLength, size.height), strokeWidth)
+                drawLine(
+                    color,
+                    Offset(size.width - cornerLength, size.height),
+                    Offset(size.width, size.height),
+                    strokeWidth
+                )
+                drawLine(
+                    color,
+                    Offset(size.width, size.height - cornerLength),
+                    Offset(size.width, size.height),
+                    strokeWidth
+                )
+            }
+        }
+
+        if (sliderSupported && containerSize != IntSize.Zero) {
+            val rawSliderX = if (tapPoint.x + focusSizePx / 2f + sliderGapPx + sliderWidthPx <= containerSize.width) {
+                tapPoint.x + focusSizePx / 2f + sliderGapPx
+            } else {
+                tapPoint.x - focusSizePx / 2f - sliderGapPx - sliderWidthPx
+            }
+            val sliderX = rawSliderX
+                .coerceIn(0f, (containerSize.width - sliderWidthPx).coerceAtLeast(0).toFloat())
+            val sliderY = (tapPoint.y - sliderHeightPx / 2f)
+                .coerceIn(0f, (containerSize.height - sliderHeightPx).coerceAtLeast(0).toFloat())
+
+            ExposureAdjustmentSlider(
+                currentValue = currentExposureIndex,
+                valueRange = exposureRange,
+                onValueChange = onExposureChange,
+                onInteractionStart = onExposureAdjustStart,
+                onInteractionEnd = onExposureAdjustEnd,
+                modifier = Modifier.offset {
+                    IntOffset(sliderX.toInt(), sliderY.toInt())
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExposureAdjustmentSlider(
+    currentValue: Int,
+    valueRange: IntRange,
+    onValueChange: (Int) -> Unit,
+    onInteractionStart: () -> Unit,
+    onInteractionEnd: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val sliderWidth = 30.dp
+    val sliderHeight = 104.dp
+    val topPadding = 10.dp
+    val bottomPadding = 8.dp
+    val iconSize = 11.dp
+    val thumbSize = 10.dp
+    val trackWidth = 2.dp
+    val sliderHeightPx = with(density) { sliderHeight.toPx() }
+    val topPaddingPx = with(density) { topPadding.toPx() }
+    val bottomPaddingPx = with(density) { bottomPadding.toPx() }
+    val iconSizePx = with(density) { iconSize.toPx() }
+    val thumbSizePx = with(density) { thumbSize.toPx() }
+    val trackTopPx = topPaddingPx + iconSizePx + with(density) { 8.dp.toPx() }
+    val trackBottomPx = sliderHeightPx - bottomPaddingPx
+    val thumbTravelPx = (trackBottomPx - trackTopPx - thumbSizePx).coerceAtLeast(1f)
+
+    fun thumbOffsetToValue(offset: Float): Int {
+        val normalized = 1f - (offset / thumbTravelPx).coerceIn(0f, 1f)
+        val rawValue = valueRange.first + normalized * (valueRange.last - valueRange.first)
+        return rawValue.toInt().coerceIn(valueRange.first, valueRange.last)
+    }
+
+    val normalizedValue = if (valueRange.first == valueRange.last) {
+        0.5f
+    } else {
+        (currentValue - valueRange.first).toFloat() / (valueRange.last - valueRange.first).toFloat()
+    }.coerceIn(0f, 1f)
+    val thumbOffset = thumbTravelPx * (1f - normalizedValue)
+
+    Box(
+        modifier = modifier
+            .size(width = sliderWidth, height = sliderHeight)
+            .border(1.dp, Color.White.copy(alpha = 0.82f), RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(18.dp))
+            .pointerInput(valueRange) {
+                var dragY = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { startOffset ->
+                        onInteractionStart()
+                        dragY = (startOffset.y - trackTopPx - thumbSizePx / 2f)
+                            .coerceIn(0f, thumbTravelPx)
+                        onValueChange(thumbOffsetToValue(dragY))
+                    },
+                    onVerticalDrag = { _, dragAmount ->
+                        dragY = (dragY + dragAmount).coerceIn(0f, thumbTravelPx)
+                        onValueChange(thumbOffsetToValue(dragY))
+                    },
+                    onDragEnd = onInteractionEnd,
+                    onDragCancel = onInteractionEnd
+                )
+            },
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Canvas(
+            modifier = Modifier
+                .padding(top = topPadding)
+                .size(iconSize)
+        ) {
+            val strokeWidth = 1.35.dp.toPx()
+            val coreRadius = size.minDimension * 0.19f
+            val rayInnerRadius = size.minDimension * 0.34f
+            val rayOuterRadius = size.minDimension * 0.48f
+            val c = center
+
+            drawCircle(
+                color = Color.White.copy(alpha = 0.98f),
+                radius = coreRadius,
+                center = c
+            )
+
+            repeat(8) { index ->
+                val angle = (index * 45f) * (Math.PI / 180f).toFloat()
+                val start = Offset(
+                    x = c.x + kotlin.math.cos(angle) * rayInnerRadius,
+                    y = c.y + kotlin.math.sin(angle) * rayInnerRadius
+                )
+                val end = Offset(
+                    x = c.x + kotlin.math.cos(angle) * rayOuterRadius,
+                    y = c.y + kotlin.math.sin(angle) * rayOuterRadius
+                )
+                drawLine(
+                    color = Color.White.copy(alpha = 0.98f),
+                    start = start,
+                    end = end,
+                    strokeWidth = strokeWidth
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .padding(top = topPadding + iconSize + 10.dp)
+                .width(trackWidth)
+                .height(with(density) { (trackBottomPx - trackTopPx).toDp() })
+                .background(Color.White.copy(alpha = 0.88f), RoundedCornerShape(999.dp))
+        )
+
+        Box(
+            modifier = Modifier
+                .offset {
+                    IntOffset(
+                        x = 0,
+                        y = (trackTopPx + thumbOffset).toInt()
+                    )
+                }
+                .size(thumbSize)
+                .background(Color.White, RoundedCornerShape(999.dp))
+        )
     }
 }
 
