@@ -12,6 +12,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -23,6 +24,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.photoframer.data.api.CompositionStep
+import com.photoframer.guidance.isViewpointActionType
+import com.photoframer.guidance.normalizedActionType
 import com.photoframer.ui.theme.BlueAccent
 import com.photoframer.ui.theme.SuccessGreen
 import kotlin.math.cos
@@ -73,7 +76,7 @@ fun GuidanceOverlay(
 
     val isCompleted = validationResult?.isCompleted == true
     val isZoomStep = step?.actionType.equals("zoom", ignoreCase = true)
-    val isViewChangeStep = step?.actionType.equals("view-change", ignoreCase = true)
+    val isViewChangeStep = step?.actionType?.isViewpointActionType() == true
 
     val rawTx: Float
     val rawTy: Float
@@ -83,8 +86,8 @@ fun GuidanceOverlay(
             rawTy = 0f
         }
         isViewChangeStep -> {
-            rawTx = if (isCompleted) 1.0f else (validationResult?.tx ?: 0f)
-            rawTy = if (isCompleted) 1.0f else (validationResult?.ty ?: 0f)
+            rawTx = if (isCompleted) 0f else (validationResult?.uiHintX ?: 0f)
+            rawTy = if (isCompleted) 0f else (validationResult?.uiHintY ?: 0f)
         }
         else -> {
             val rawDistance = sqrt(
@@ -100,6 +103,22 @@ fun GuidanceOverlay(
     val animSpec: AnimationSpec<Float> = tween(durationMillis = 150, easing = FastOutSlowInEasing)
     val animTx by animateFloatAsState(targetValue = rawTx, animationSpec = animSpec, label = "tx")
     val animTy by animateFloatAsState(targetValue = rawTy, animationSpec = animSpec, label = "ty")
+    val animViewChangeProgress by animateFloatAsState(
+        targetValue = if (isCompleted) 1f else (validationResult?.progress ?: 0f),
+        animationSpec = animSpec,
+        label = "view_progress"
+    )
+    val animViewChangeDirectionConfidence by animateFloatAsState(
+        targetValue = if (isCompleted) 1f else (validationResult?.directionConfidence ?: 0f),
+        animationSpec = animSpec,
+        label = "view_direction_confidence"
+    )
+    val animViewChangeSubjectConfidence by animateFloatAsState(
+        targetValue = if (isCompleted) 1f else (validationResult?.subjectConfidence ?: 0f),
+        animationSpec = animSpec,
+        label = "view_subject_confidence"
+    )
+    val hasTrackedSubject = validationResult?.hasSubject != false
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val centerX = size.width / 2
@@ -226,64 +245,40 @@ fun GuidanceOverlay(
             )
         }
 
-        if (step?.actionType.equals("view-change", ignoreCase = true)) {
-            val progress = animTx.coerceIn(0f, 1f)
-            val directionConfidence = animTy.coerceIn(0f, 1f)
-            val arcRadius = 48f
-            val arcStroke = 4.5f
-            val sweepAngle = progress * 360f
-            val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 7f), orbitPhase / 10f)
-
-            drawCircle(
-                color = faintColor,
-                radius = arcRadius,
-                center = center,
-                style = Stroke(width = 2.2f, pathEffect = dash)
-            )
-
-            if (sweepAngle > 0.5f) {
-                val rect = Rect(
-                    left = centerX - arcRadius,
-                    top = centerY - arcRadius,
-                    right = centerX + arcRadius,
-                    bottom = centerY + arcRadius
-                )
-                val finalSweep = if (isCompleted) 360f else sweepAngle
-
-                drawArc(
-                    color = shadow,
-                    startAngle = -90f,
-                    sweepAngle = finalSweep,
-                    useCenter = false,
-                    topLeft = Offset(rect.left, rect.top),
-                    size = Size(rect.width, rect.height),
-                    style = Stroke(width = arcStroke + 2.5f, cap = StrokeCap.Round)
-                )
-                drawArc(
-                    color = accentColor,
-                    startAngle = -90f,
-                    sweepAngle = finalSweep,
-                    useCenter = false,
-                    topLeft = Offset(rect.left, rect.top),
-                    size = Size(rect.width, rect.height),
-                    style = Stroke(width = arcStroke, cap = StrokeCap.Round)
-                )
-                drawOrbitDot(
-                    center = center,
-                    radius = arcRadius,
-                    angleDegrees = -90f + finalSweep,
-                    color = accentColor
-                )
+        if (isViewChangeStep) {
+            val progress = animViewChangeProgress.coerceIn(0f, 1f)
+            val directionConfidence = animViewChangeDirectionConfidence.coerceIn(0f, 1f)
+            val subjectConfidence = animViewChangeSubjectConfidence.coerceIn(0f, 1f)
+            val actionType = step?.actionType.orEmpty()
+            val subjectColor = when {
+                isCompleted -> SuccessGreen
+                !hasTrackedSubject -> Color(0xFFFFB454)
+                subjectConfidence >= 0.72f -> Color(0xFF7BE495)
+                subjectConfidence >= 0.42f -> Color(0xFFFFD166)
+                else -> Color(0xFFFF8A65)
             }
+            val guideStrength = (0.35f + directionConfidence * 0.65f).coerceIn(0.35f, 1f)
 
-            drawViewChangeDirectionHint(
+            drawViewChangeSubjectAnchor(
                 centerX = centerX,
                 centerY = centerY,
-                arcRadius = arcRadius + 24f,
-                direction = step?.direction.orEmpty(),
-                confidence = directionConfidence,
-                color = accentColor,
+                confidence = subjectConfidence,
+                hasTrackedSubject = hasTrackedSubject,
+                color = subjectColor,
                 shadow = shadow
+            )
+            drawViewChangeActionGuide(
+                centerX = centerX,
+                centerY = centerY,
+                actionType = actionType,
+                direction = step?.direction.orEmpty(),
+                progress = progress,
+                guideStrength = guideStrength,
+                pulseScale = pulseScale,
+                isCompleted = isCompleted,
+                color = accentColor,
+                shadow = shadow,
+                subjectColor = subjectColor
             )
         }
     }
@@ -419,42 +414,381 @@ private fun DrawScope.drawTargetRing(
     }
 }
 
-private fun DrawScope.drawViewChangeDirectionHint(
+private fun DrawScope.drawViewChangeSubjectAnchor(
     centerX: Float,
     centerY: Float,
-    arcRadius: Float,
-    direction: String,
     confidence: Float,
+    hasTrackedSubject: Boolean,
     color: Color,
     shadow: Color
 ) {
-    val inactiveColor = Color.White.copy(alpha = 0.2f)
-    val activeAlpha = 0.42f + confidence * 0.5f
-    val chevronSize = 17f
-    val stroke = 3.6f
+    val outerRadius = 34f
+    val innerRadius = 18f
+    val bracketRadius = 48f
+    val stroke = 3.5f
+    val tint = color.copy(alpha = (0.42f + confidence * 0.5f).coerceIn(0.32f, 0.95f))
 
-    fun drawChevron(cx: Float, cy: Float, dx: Float, dy: Float, active: Boolean) {
-        val tint = if (active) color.copy(alpha = activeAlpha.coerceIn(0f, 1f)) else inactiveColor
-        val path = Path().apply {
-            moveTo(
-                cx - dx * chevronSize - dy * chevronSize * 0.55f,
-                cy - dy * chevronSize + dx * chevronSize * 0.55f
-            )
-            lineTo(cx, cy)
-            lineTo(
-                cx - dx * chevronSize + dy * chevronSize * 0.55f,
-                cy - dy * chevronSize - dx * chevronSize * 0.55f
-            )
-        }
-        drawPath(path = path, color = shadow, style = Stroke(width = stroke + 2f, cap = StrokeCap.Round))
-        drawPath(path = path, color = tint, style = Stroke(width = stroke, cap = StrokeCap.Round))
+    drawCircle(shadow, outerRadius, Offset(centerX, centerY), style = Stroke(width = stroke + 2f))
+    drawCircle(tint, outerRadius, Offset(centerX, centerY), style = Stroke(width = stroke))
+    drawCircle(color.copy(alpha = if (hasTrackedSubject) 0.18f else 0.08f), innerRadius, Offset(centerX, centerY))
+
+    fun drawBracket(dx: Float, dy: Float) {
+        val sx = centerX + dx * 14f
+        val sy = centerY + dy * 14f
+        val ex = centerX + dx * bracketRadius
+        val ey = centerY + dy * bracketRadius
+        drawLine(shadow, Offset(sx, ey), Offset(ex, ey), strokeWidth = stroke + 2f, cap = StrokeCap.Round)
+        drawLine(shadow, Offset(ex, sy), Offset(ex, ey), strokeWidth = stroke + 2f, cap = StrokeCap.Round)
+        drawLine(tint, Offset(sx, ey), Offset(ex, ey), strokeWidth = stroke, cap = StrokeCap.Round)
+        drawLine(tint, Offset(ex, sy), Offset(ex, ey), strokeWidth = stroke, cap = StrokeCap.Round)
+    }
+    drawBracket(-1f, -1f)
+    drawBracket(1f, -1f)
+    drawBracket(-1f, 1f)
+    drawBracket(1f, 1f)
+
+    if (!hasTrackedSubject) {
+        val lost = 12f
+        drawLine(shadow, Offset(centerX - lost, centerY - lost), Offset(centerX + lost, centerY + lost), strokeWidth = stroke + 2f)
+        drawLine(shadow, Offset(centerX + lost, centerY - lost), Offset(centerX - lost, centerY + lost), strokeWidth = stroke + 2f)
+        drawLine(color, Offset(centerX - lost, centerY - lost), Offset(centerX + lost, centerY + lost), strokeWidth = stroke)
+        drawLine(color, Offset(centerX + lost, centerY - lost), Offset(centerX - lost, centerY + lost), strokeWidth = stroke)
+    }
+}
+
+private fun DrawScope.drawViewChangeActionGuide(
+    centerX: Float,
+    centerY: Float,
+    actionType: String,
+    direction: String,
+    progress: Float,
+    guideStrength: Float,
+    pulseScale: Float,
+    isCompleted: Boolean,
+    color: Color,
+    shadow: Color,
+    subjectColor: Color
+) {
+    when (actionType.normalizedActionType()) {
+        "raisecamera", "lowercamera" -> drawElevationGuide(
+            centerX = centerX,
+            centerY = centerY,
+            moveUp = actionType.normalizedActionType() == "raisecamera" || direction.equals("high-angle", ignoreCase = true),
+            progress = progress,
+            guideStrength = guideStrength,
+            pulseScale = pulseScale,
+            isCompleted = isCompleted,
+            color = color,
+            shadow = shadow,
+            subjectColor = subjectColor
+        )
+        "orbit" -> drawOrbitGuide(
+            centerX = centerX,
+            centerY = centerY,
+            moveRight = !direction.equals("left", ignoreCase = true),
+            progress = progress,
+            guideStrength = guideStrength,
+            pulseScale = pulseScale,
+            isCompleted = isCompleted,
+            color = color,
+            shadow = shadow,
+            subjectColor = subjectColor
+        )
+        "step" -> drawStepGuide(
+            centerX = centerX,
+            centerY = centerY,
+            moveForward = !direction.equals("backward", ignoreCase = true),
+            progress = progress,
+            guideStrength = guideStrength,
+            pulseScale = pulseScale,
+            isCompleted = isCompleted,
+            color = color,
+            shadow = shadow,
+            subjectColor = subjectColor
+        )
+        else -> drawOrbitGuide(
+            centerX = centerX,
+            centerY = centerY,
+            moveRight = true,
+            progress = progress,
+            guideStrength = guideStrength,
+            pulseScale = pulseScale,
+            isCompleted = isCompleted,
+            color = color,
+            shadow = shadow,
+            subjectColor = subjectColor
+        )
+    }
+}
+
+private fun DrawScope.drawElevationGuide(
+    centerX: Float,
+    centerY: Float,
+    moveUp: Boolean,
+    progress: Float,
+    guideStrength: Float,
+    pulseScale: Float,
+    isCompleted: Boolean,
+    color: Color,
+    shadow: Color,
+    subjectColor: Color
+) {
+    val topY = centerY - 152f
+    val bottomY = centerY + 152f
+    val laneHalfWidth = 28f
+    val activeColor = color.copy(alpha = (0.58f + guideStrength * 0.3f).coerceIn(0.55f, 0.95f))
+    val startY = if (moveUp) bottomY - 18f else topY + 18f
+    val targetY = if (moveUp) topY + 24f else bottomY - 24f
+    val markerY = if (isCompleted) targetY else lerpF(startY, targetY, progress)
+    val dash = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f)
+
+    drawLine(Color.White.copy(alpha = 0.16f), Offset(centerX, topY), Offset(centerX, bottomY), strokeWidth = 5f, pathEffect = dash)
+    drawLine(Color.White.copy(alpha = 0.12f), Offset(centerX - laneHalfWidth, topY), Offset(centerX - laneHalfWidth, bottomY), strokeWidth = 2f)
+    drawLine(Color.White.copy(alpha = 0.12f), Offset(centerX + laneHalfWidth, topY), Offset(centerX + laneHalfWidth, bottomY), strokeWidth = 2f)
+
+    drawLine(shadow, Offset(centerX, startY), Offset(centerX, markerY), strokeWidth = 8f, cap = StrokeCap.Round)
+    drawLine(activeColor, Offset(centerX, startY), Offset(centerX, markerY), strokeWidth = 4.5f, cap = StrokeCap.Round)
+
+    drawCircle(subjectColor.copy(alpha = 0.18f), 18f * if (isCompleted) pulseScale else 1f, Offset(centerX, targetY))
+    drawGuidePhone(
+        center = Offset(centerX, targetY),
+        width = 44f,
+        height = 72f,
+        color = activeColor.copy(alpha = 0.45f),
+        shadow = shadow,
+        filled = false
+    )
+    drawGuidePhone(
+        center = Offset(centerX, markerY),
+        width = 48f,
+        height = 78f,
+        color = if (isCompleted) SuccessGreen else activeColor,
+        shadow = shadow
+    )
+    val arrowY = if (moveUp) targetY - 42f else targetY + 42f
+    drawArrowTip(
+        tip = Offset(centerX, arrowY),
+        direction = if (moveUp) Offset(0f, -1f) else Offset(0f, 1f),
+        size = 16f,
+        color = activeColor,
+        shadow = shadow
+    )
+}
+
+private fun DrawScope.drawOrbitGuide(
+    centerX: Float,
+    centerY: Float,
+    moveRight: Boolean,
+    progress: Float,
+    guideStrength: Float,
+    pulseScale: Float,
+    isCompleted: Boolean,
+    color: Color,
+    shadow: Color,
+    subjectColor: Color
+) {
+    val radiusX = 122f
+    val radiusY = 98f
+    val rectTopLeft = Offset(centerX - radiusX, centerY - radiusY)
+    val rectSize = Size(radiusX * 2, radiusY * 2)
+    val startAngle = if (moveRight) 180f else 0f
+    val totalSweep = if (moveRight) 180f else -180f
+    val activeSweep = if (isCompleted) totalSweep else totalSweep * progress
+    val activeColor = color.copy(alpha = (0.58f + guideStrength * 0.28f).coerceIn(0.55f, 0.92f))
+    val trackDash = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
+
+    drawArc(
+        color = Color.White.copy(alpha = 0.15f),
+        startAngle = startAngle,
+        sweepAngle = totalSweep,
+        useCenter = false,
+        topLeft = rectTopLeft,
+        size = rectSize,
+        style = Stroke(width = 5f, pathEffect = trackDash, cap = StrokeCap.Round)
+    )
+    drawArc(
+        color = shadow,
+        startAngle = startAngle,
+        sweepAngle = activeSweep,
+        useCenter = false,
+        topLeft = rectTopLeft,
+        size = rectSize,
+        style = Stroke(width = 9f, cap = StrokeCap.Round)
+    )
+    drawArc(
+        color = activeColor,
+        startAngle = startAngle,
+        sweepAngle = activeSweep,
+        useCenter = false,
+        topLeft = rectTopLeft,
+        size = rectSize,
+        style = Stroke(width = 5f, cap = StrokeCap.Round)
+    )
+
+    val sourceAngle = if (moveRight) 180f else 0f
+    val targetAngle = if (moveRight) 360f else 180f
+    val markerAngle = if (isCompleted) targetAngle else lerpF(sourceAngle, targetAngle, progress)
+    val source = ellipsePoint(centerX, centerY, radiusX, radiusY, sourceAngle)
+    val target = ellipsePoint(centerX, centerY, radiusX, radiusY, targetAngle)
+    val marker = ellipsePoint(centerX, centerY, radiusX, radiusY, markerAngle)
+
+    drawCircle(subjectColor.copy(alpha = 0.10f), 82f, Offset(centerX, centerY))
+    drawGuidePhone(
+        center = target,
+        width = 42f,
+        height = 68f,
+        color = activeColor.copy(alpha = 0.45f),
+        shadow = shadow,
+        filled = false
+    )
+    drawGuidePhone(
+        center = marker,
+        width = 46f,
+        height = 74f,
+        color = if (isCompleted) SuccessGreen else activeColor,
+        shadow = shadow
+    )
+    drawCircle(Color.White.copy(alpha = 0.10f), 8f, source)
+
+    val arrowDirection = if (moveRight) Offset(1f, 0f) else Offset(-1f, 0f)
+    drawArrowTip(
+        tip = Offset(target.x + arrowDirection.x * 28f, target.y),
+        direction = arrowDirection,
+        size = 16f * if (isCompleted) pulseScale else 1f,
+        color = activeColor,
+        shadow = shadow
+    )
+}
+
+private fun DrawScope.drawStepGuide(
+    centerX: Float,
+    centerY: Float,
+    moveForward: Boolean,
+    progress: Float,
+    guideStrength: Float,
+    pulseScale: Float,
+    isCompleted: Boolean,
+    color: Color,
+    shadow: Color,
+    subjectColor: Color
+) {
+    val topY = centerY - 22f
+    val bottomY = centerY + 166f
+    val nearHalfWidth = 106f
+    val farHalfWidth = 42f
+    val activeColor = color.copy(alpha = (0.58f + guideStrength * 0.28f).coerceIn(0.55f, 0.92f))
+    val startY = if (moveForward) bottomY - 10f else topY + 10f
+    val targetY = if (moveForward) topY + 10f else bottomY - 10f
+    val markerY = if (isCompleted) targetY else lerpF(startY, targetY, progress)
+
+    drawLine(Color.White.copy(alpha = 0.16f), Offset(centerX - nearHalfWidth, bottomY), Offset(centerX - farHalfWidth, topY), strokeWidth = 4f)
+    drawLine(Color.White.copy(alpha = 0.16f), Offset(centerX + nearHalfWidth, bottomY), Offset(centerX + farHalfWidth, topY), strokeWidth = 4f)
+    drawLine(Color.White.copy(alpha = 0.10f), Offset(centerX, bottomY), Offset(centerX, topY), strokeWidth = 2f)
+
+    val gateFractions = listOf(0f, 0.42f, 0.76f)
+    gateFractions.forEach { fraction ->
+        val y = lerpF(bottomY, topY, fraction)
+        val halfWidth = lerpF(nearHalfWidth, farHalfWidth, fraction)
+        val height = lerpF(82f, 36f, fraction)
+        drawRoundRect(
+            color = Color.White.copy(alpha = 0.12f),
+            topLeft = Offset(centerX - halfWidth, y - height / 2f),
+            size = Size(halfWidth * 2f, height),
+            cornerRadius = CornerRadius(18f, 18f),
+            style = Stroke(width = 3f)
+        )
     }
 
-    val normalized = direction.lowercase()
-    drawChevron(centerX, centerY - arcRadius, 0f, -1f, normalized == "high-angle")
-    drawChevron(centerX, centerY + arcRadius, 0f, 1f, normalized == "low-angle")
-    drawChevron(centerX - arcRadius, centerY, -1f, 0f, normalized == "side-view-left")
-    drawChevron(centerX + arcRadius, centerY, 1f, 0f, normalized == "side-view-right")
+    drawLine(shadow, Offset(centerX, startY), Offset(centerX, markerY), strokeWidth = 8f, cap = StrokeCap.Round)
+    drawLine(activeColor, Offset(centerX, startY), Offset(centerX, markerY), strokeWidth = 4.5f, cap = StrokeCap.Round)
+
+    val targetScale = if (moveForward) 0.85f else 1f
+    drawGuidePhone(
+        center = Offset(centerX, targetY),
+        width = 44f * targetScale,
+        height = 72f * targetScale,
+        color = activeColor.copy(alpha = 0.45f),
+        shadow = shadow,
+        filled = false
+    )
+    drawGuidePhone(
+        center = Offset(centerX, markerY),
+        width = 48f * if (moveForward) lerpF(1f, 0.86f, progress) else lerpF(0.86f, 1f, progress),
+        height = 78f * if (moveForward) lerpF(1f, 0.86f, progress) else lerpF(0.86f, 1f, progress),
+        color = if (isCompleted) SuccessGreen else activeColor,
+        shadow = shadow
+    )
+
+    val arrowY = if (moveForward) topY - 32f else bottomY + 24f
+    drawArrowTip(
+        tip = Offset(centerX, arrowY),
+        direction = if (moveForward) Offset(0f, -1f) else Offset(0f, 1f),
+        size = 16f * if (isCompleted) pulseScale else 1f,
+        color = activeColor,
+        shadow = shadow
+    )
+    drawCircle(subjectColor.copy(alpha = 0.08f), 88f, Offset(centerX, centerY + 8f))
+}
+
+private fun DrawScope.drawGuidePhone(
+    center: Offset,
+    width: Float,
+    height: Float,
+    color: Color,
+    shadow: Color,
+    filled: Boolean = true
+) {
+    val radius = CornerRadius(width * 0.22f, width * 0.22f)
+    val topLeft = Offset(center.x - width / 2f, center.y - height / 2f)
+    val size = Size(width, height)
+
+    if (filled) {
+        drawRoundRect(
+            color = color.copy(alpha = 0.12f),
+            topLeft = topLeft,
+            size = size,
+            cornerRadius = radius
+        )
+    }
+
+    drawRoundRect(
+        color = shadow,
+        topLeft = topLeft,
+        size = size,
+        cornerRadius = radius,
+        style = Stroke(width = 5f)
+    )
+    drawRoundRect(
+        color = color,
+        topLeft = topLeft,
+        size = size,
+        cornerRadius = radius,
+        style = Stroke(width = 3f)
+    )
+    drawCircle(shadow, 5f, Offset(center.x, topLeft.y + 10f))
+    drawCircle(color, 3f, Offset(center.x, topLeft.y + 10f))
+}
+
+private fun DrawScope.drawArrowTip(
+    tip: Offset,
+    direction: Offset,
+    size: Float,
+    color: Color,
+    shadow: Color
+) {
+    val path = Path().apply {
+        moveTo(
+            tip.x - direction.x * size - direction.y * size * 0.58f,
+            tip.y - direction.y * size + direction.x * size * 0.58f
+        )
+        lineTo(tip.x, tip.y)
+        lineTo(
+            tip.x - direction.x * size + direction.y * size * 0.58f,
+            tip.y - direction.y * size - direction.x * size * 0.58f
+        )
+    }
+    drawPath(path = path, color = shadow, style = Stroke(width = 6f, cap = StrokeCap.Round))
+    drawPath(path = path, color = color, style = Stroke(width = 3.5f, cap = StrokeCap.Round))
 }
 
 private fun DrawScope.drawOrbitDot(
@@ -478,6 +812,24 @@ private fun DrawScope.drawOrbitDot(
         radius = 2.6f,
         center = orbitCenter
     )
+}
+
+private fun ellipsePoint(
+    centerX: Float,
+    centerY: Float,
+    radiusX: Float,
+    radiusY: Float,
+    angleDegrees: Float
+): Offset {
+    val radians = Math.toRadians(angleDegrees.toDouble())
+    return Offset(
+        x = centerX + (kotlin.math.cos(radians) * radiusX).toFloat(),
+        y = centerY + (kotlin.math.sin(radians) * radiusY).toFloat()
+    )
+}
+
+private fun lerpF(start: Float, end: Float, fraction: Float): Float {
+    return start + (end - start) * fraction.coerceIn(0f, 1f)
 }
 
 private fun Offset.distanceTo(other: Offset): Float {

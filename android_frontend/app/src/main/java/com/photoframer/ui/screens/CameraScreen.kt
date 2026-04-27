@@ -632,23 +632,6 @@ fun CameraScreen(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
-            ) {
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = uiState is CameraUiState.Preview || uiState is CameraUiState.Candidates,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    ZoomSelector(
-                        currentZoom = zoomRatio,
-                        onZoomChange = { cameraControl?.setZoomRatio(it) },
-                        visualStyle = visualStyle
-                    )
-                }
-            }
         }
 
         AnimatedContent(
