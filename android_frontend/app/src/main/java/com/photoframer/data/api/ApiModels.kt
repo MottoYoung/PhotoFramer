@@ -10,13 +10,33 @@ data class CompositionStep(
     val stepOrder: Int,
     
     @SerializedName("action_type")
-    val actionType: String,  // "Shift", "Zoom", "View-change"
+    val actionType: String,  // "Shift", "Level", "Zoom", "Orbit", "RaiseCamera"...
     
     @SerializedName("direction")
-    val direction: String,   // "Left", "Right", "In", "Out", etc.
+    val direction: String,   // "Left", "Right", "In", "Out", "Forward", "CW", etc.
     
     @SerializedName("guide_text")
     val guideText: String    // 中文指导文本
+)
+
+data class ShotSpec(
+    @SerializedName("subject_hint")
+    val subjectHint: String? = null,
+
+    @SerializedName("viewpoint_required")
+    val viewpointRequired: Boolean = false,
+
+    @SerializedName("target_subject_center")
+    val targetSubjectCenter: List<Float>? = null,
+
+    @SerializedName("target_subject_size")
+    val targetSubjectSize: Float? = null,
+
+    @SerializedName("camera_move_summary")
+    val cameraMoveSummary: String? = null,
+
+    @SerializedName("validation_notes")
+    val validationNotes: String? = null
 )
 
 /**
@@ -34,6 +54,9 @@ data class CompositionResult(
     
     @SerializedName("steps")
     val steps: List<CompositionStep>,
+
+    @SerializedName("shot_spec")
+    val shotSpec: ShotSpec? = null,
     
     @SerializedName("image_base64")
     val imageBase64: String?,        // Base64 编码的图片
