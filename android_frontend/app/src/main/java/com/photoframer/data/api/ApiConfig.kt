@@ -9,7 +9,7 @@ package com.photoframer.data.api
  */
 object ApiConfig {
     // TODO: 修改为你的电脑局域网 IP
-    private const val HOST = "172.24.198.241"  // ⬅️ 修改这里
+    private const val HOST = "172.24.225.24"  // ⬅️ 修改这里
     private const val PORT = "8000"
     
     const val BASE_URL = "http://$HOST:$PORT/"

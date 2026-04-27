@@ -21,8 +21,6 @@ from config import (
     MODEL_NAME,
     SYSTEM_INSTRUCTION,
     TECHNIQUE_CONFIGS,
-    ENABLE_ORBIT_ACTION,
-    ENABLE_STEP_ACTION,
     MODEL_TEMPERATURE,
     MODEL_TOP_K,
     MODEL_TOP_P,
@@ -101,7 +99,6 @@ class GeminiService:
     ) -> SingleTechniqueResult:
         """
         服务端质量兜底：
-        - Orbit 当前设备侧验证仍不稳定，先保守过滤
         - 对角线构图禁止依赖旋转手机/故意倾斜画面
         """
         if not result.is_applicable:
@@ -113,28 +110,10 @@ class GeminiService:
             direction = str(step.get("direction", "")).strip().lower()
             normalized_steps.append((action_type, direction))
 
-        has_orbit = any(action_type == "orbit" for action_type, _ in normalized_steps)
-        has_step = any(action_type == "step" for action_type, _ in normalized_steps)
         has_roll = any(
             action_type == "level" or direction in {"cw", "ccw", "rotate-cw", "rotate-ccw"}
             for action_type, direction in normalized_steps
         )
-
-        if has_orbit and not ENABLE_ORBIT_ACTION:
-            result.is_applicable = False
-            result.image_base64 = None
-            result.steps = []
-            result.shot_spec = None
-            result.aesthetic_desc = "当前设备暂不稳定支持绕拍引导"
-            return result
-
-        if has_step and not ENABLE_STEP_ACTION:
-            result.is_applicable = False
-            result.image_base64 = None
-            result.steps = []
-            result.shot_spec = None
-            result.aesthetic_desc = "当前设备暂不稳定支持前后移动引导"
-            return result
 
         if technique_id == "diagonal_composition" and has_roll:
             result.is_applicable = False
@@ -144,7 +123,101 @@ class GeminiService:
             result.aesthetic_desc = "对角线构图不能靠歪斜画面强行实现"
             return result
 
+        result.steps = self._normalize_steps_for_guidance(
+            steps=result.steps,
+            shot_spec=result.shot_spec
+        )
+
         return result
+
+    def _normalize_steps_for_guidance(
+        self,
+        steps: List[Dict[str, Any]],
+        shot_spec: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        if not steps:
+            return []
+
+        def normalize_action(step: Dict[str, Any]) -> str:
+            return str(step.get("action_type", "")).strip().lower()
+
+        def is_viewpoint(step: Dict[str, Any]) -> bool:
+            return normalize_action(step) in {"orbit", "raisecamera", "lowercamera", "step", "view-change"}
+
+        def is_refine(step: Dict[str, Any]) -> bool:
+            return normalize_action(step) in {"shift", "zoom", "level"}
+
+        def renumber(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            normalized = []
+            for index, step in enumerate(items, start=1):
+                cloned = dict(step)
+                cloned["step_order"] = index
+                normalized.append(cloned)
+            return normalized
+
+        first_viewpoint_index = next((i for i, step in enumerate(steps) if is_viewpoint(step)), -1)
+        if first_viewpoint_index == -1:
+            shift_like = next((dict(step) for step in steps if normalize_action(step) in {"shift", "level"}), None)
+            zoom_like = next((dict(step) for step in steps if normalize_action(step) == "zoom"), None)
+            normalized_steps: List[Dict[str, Any]] = []
+            if shift_like is not None:
+                normalized_steps.append(shift_like)
+            if zoom_like is not None and zoom_like is not shift_like:
+                normalized_steps.append(zoom_like)
+            if not normalized_steps:
+                normalized_steps = [dict(step) for step in steps[:2]]
+            return renumber(normalized_steps[:2])
+
+        viewpoint_step = dict(steps[first_viewpoint_index])
+        trailing_steps = steps[first_viewpoint_index + 1:]
+        shift_refine = next(
+            (dict(step) for step in trailing_steps if normalize_action(step) in {"shift", "level"}),
+            None
+        )
+        zoom_refine = next(
+            (dict(step) for step in trailing_steps if normalize_action(step) == "zoom"),
+            None
+        )
+
+        normalized_steps = [viewpoint_step]
+        if shift_refine is None:
+            shift_refine = self._build_synthetic_shift_step(shot_spec)
+        if shift_refine is not None:
+            normalized_steps.append(shift_refine)
+        if zoom_refine is not None:
+            normalized_steps.append(zoom_refine)
+
+        return renumber(normalized_steps[:3])
+
+    def _build_synthetic_shift_step(
+        self,
+        shot_spec: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        if not shot_spec:
+            return None
+
+        target_center = shot_spec.get("target_subject_center")
+        if not isinstance(target_center, list) or len(target_center) < 2:
+            return None
+
+        try:
+            center_x = float(target_center[0])
+            center_y = float(target_center[1])
+        except (TypeError, ValueError):
+            return None
+
+        delta_x = center_x - 0.5
+        delta_y = center_y - 0.5
+        if abs(delta_x) >= abs(delta_y):
+            direction = "Right" if delta_x >= 0 else "Left"
+        else:
+            direction = "Down" if delta_y >= 0 else "Up"
+
+        return {
+            "action_type": "Shift",
+            "direction": direction,
+            "guide_text": "再把主体对进圆圈"
+        }
     
     async def _call_single_technique(
         self,

@@ -11,8 +11,8 @@ from typing import Dict
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # ==================== 模型配置 ==================== #
-MODEL_NAME = "gemini-3.1-flash-image-preview"
-# MODEL_NAME = "gemini-2.5-flash-image"
+# MODEL_NAME = "gemini-3.1-flash-image-preview"
+MODEL_NAME = "gemini-2.5-flash-image"
 
 # ==================== 路径配置 ==================== #
 BASE_DIR = Path(__file__).parent
@@ -51,12 +51,16 @@ SYSTEM_INSTRUCTION = """
          - LowerCamera: 压低机位，方向固定 Down
          - Step: 身体前后移动，方向仅限 Forward / Backward
       4. 除非单纯 Shift / Level / Zoom 无法实现目标，否则不要使用 Orbit / RaiseCamera / LowerCamera / Step。
-      5. 当前产品阶段对 Orbit（左右绕拍）的验证最不稳定。只有当左右绕拍是唯一合理方案、且机位变化幅度很小、主体不会明显变形或遮挡时才可使用；否则直接设为 `is_applicable=false`。
+      5. Orbit（左右绕拍）仅在左右侧向改变视角确实必要、且机位变化幅度较小时可使用。必须确保主体始终清晰可见，不被新前景遮挡，不切换成别的主体。
       6. 禁止使用 Dutch angle / 故意滚转手机 来制造构图。Level 只能用于“把画面放平”，不能用于把主体或地平线故意倾斜。
-      7. 当前产品阶段对 Step（前后移动）的验证也不稳定。只有当远近变化是唯一合理方案、且变化幅度很小、主体不会明显变形或失真时才可使用；否则直接设为 `is_applicable=false`。
-      8. 如需改变视角，优先先给一个“粗机位”动作（RaiseCamera / LowerCamera），再给 1 个 Shift 或 Zoom 作为收尾精调。只有在确实必要时才使用 Orbit 或 Step。
-      9. 适用性判断必须保守：如果画面缺乏明确主体、极度杂乱、现有场景没有可用的真实构图元素，或当前画面已很接近目标构图且无需明显调整，应将 `is_applicable` 设为 `false`。
-      10. 宁可少给方案，也不要强行给方案。只要你对“这个构图能否在真实场景中不造假地完成”存在疑问，就设为 `false`。
+      7. Step（前后移动）仅在远近变化确实必要、且移动幅度较小时可使用。必须确保主体始终留在画面中，并避免因为前后移动导致主体被替换、丢失或严重变形。
+      8. 如需改变视角，优先先给一个“粗机位”动作（RaiseCamera / LowerCamera / Orbit / Step），再把剩余误差拆成 2D 收尾步骤。通常顺序是：先 3D 机位变化，再 Shift 对位，最后 Zoom 调整主体大小。动作幅度要小，主体要持续可见。
+      9. 面向普通用户时，优先选择“最短、最容易执行”的路径，而不是摄影师视角下最复杂的最优路径。
+      10. 默认只给 1 步。只有在必须先改变机位、再收尾微调时才给 2 步。
+      11. 当改变机位后，若剩余误差同时包含“主体位置偏差”和“主体大小偏差”，允许给 3 步：第 1 步必须是机位变化动作（RaiseCamera / LowerCamera / Orbit / Step），第 2 步优先是 Shift，第 3 步优先是 Zoom。
+      12. 禁止连续两个机位变化动作；禁止 Orbit 与 Step 组合在同一个方案里。
+      13. 适用性判断必须保守：如果画面缺乏明确主体、极度杂乱、现有场景没有可用的真实构图元素，或当前画面已很接近目标构图且无需明显调整，应将 `is_applicable` 设为 `false`。
+      14. 宁可少给方案，也不要强行给方案。只要你对“这个构图能否在真实场景中不造假地完成”存在疑问，就设为 `false`。
 
       # Workflow & Format (工作流与输出格式)
       为了确保系统稳定解析，你的文本响应必须**仅仅**包含一个纯净的 JSON 代码块，绝不能在 JSON 之外输出任何文字。在 JSON 输出完成后，如果判定适用，再触发参考图生成。
@@ -81,23 +85,30 @@ SYSTEM_INSTRUCTION = """
             }
           ],
           "shot_spec": {
-            "subject_hint": "string", // 主体提示，简短即可
-            "viewpoint_required": true,
-            "target_subject_center": [0.33, 0.52], // 若可判断则给出；否则设为 null
-            "target_subject_size": 0.28, // 若可判断则给出；否则设为 null
-            "camera_move_summary": "string",
-            "validation_notes": "string"
+            "subject_hint": "string", // 主体提示，简短即可，如“人物”“主建筑”“船”
+            "viewpoint_required": true, // 只有必须改变机位而非单纯 Shift/Zoom 时才设为 true
+            "target_subject_center": [0.34, 0.52], // 主体中心的归一化坐标，四舍五入到 0.02；不确定则设 null
+            "target_subject_size": 0.28, // 主体长边约占画面短边的归一化比例，四舍五入到 0.02；不确定则设 null
+            "camera_move_summary": "string", // 对应真实手机动作的简短摘要
+            "validation_notes": "string" // 例如“主体始终留在画面右侧”“不要让路人遮挡主体”
           }
         }
       }
       ```
 
       # Output quality rules
-      - steps 最多 5 步，能 1 步解决就不要写 2 步。
+      - steps 最多 3 步，能 1 步解决就不要写 2 或 3 步。
       - 禁止在一个步骤里混合多个主动作，比如“向左绕拍并放大并压低机位”。
+      - 如果给出 2 步，必须是“1 个机位变化动作 + 1 个 Shift/Zoom 微调动作”或“Shift + Zoom”。
+      - 如果给出 3 步，必须是“1 个机位变化动作 + 1 个 Shift 微调动作 + 1 个 Zoom 微调动作”。
+      - 不要输出两个连续的机位变化动作。
       - 如果目标主要是重新安排主体在画面中的位置，请优先使用 Shift。
       - 如果目标主要是改变拍摄角度关系（正面变侧面、平视变俯拍/仰拍），再使用 Orbit / RaiseCamera / LowerCamera。
-      - `shot_spec.target_subject_center` 和 `target_subject_size` 应描述参考图中最重要主体的大致位置和尺度。
+      - `shot_spec.target_subject_center` 和 `target_subject_size` 是给前端验证闭环用的弱几何目标，必须稳定、保守、可执行，不要伪装成像素级精度。
+      - `target_subject_center` / `target_subject_size` 只有在主体清晰明确时才填写，否则设为 null。
+      - `target_subject_center` 四舍五入到最接近的 0.02。
+      - `target_subject_size` 表示“主体长边约占画面短边的比例”，四舍五入到最接近的 0.02。
+      - `validation_notes` 优先描述“主体不要丢失 / 不要切换主体 / 不要被新前景遮挡”这类约束。
       - 如果参考图必须依赖虚构元素、虚构线条、虚构前景、移动物体位置，直接输出 `is_applicable=false`，且不要生成图片。
       - 如果构图效果需要故意把主体、建筑、地平线或竖直线拍斜，直接输出 `is_applicable=false`，不要通过旋转手机制造斜线。
       """
@@ -161,11 +172,3 @@ MODEL_TOP_P = 0.80
 MODEL_MAX_TOKENS = 1024
 IMAGE_SIZE = "512"
 THINKING_LEVEL="MINIMAL"
-
-# 设备端质量开关
-# Orbit（左右绕拍）在当前前端验证链路里仍不够稳定，先保守禁用，
-# 待 ARCore 位姿验证真正接入后再放开。
-ENABLE_ORBIT_ACTION = False
-# Step（前后移动）当前也缺少稳定的位姿闭环，先保守禁用，
-# 待 ARCore 距离/位姿验证接入后再放开。
-ENABLE_STEP_ACTION = False

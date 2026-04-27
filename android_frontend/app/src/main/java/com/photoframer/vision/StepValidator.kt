@@ -31,6 +31,8 @@ data class StepValidationResult(
     val uiHintX: Float? = null,     // 机位变化步骤的目标偏移提示
     val uiHintY: Float? = null,
     val directionConfidence: Float? = null,
+    val subjectConfidence: Float? = null,
+    val hasSubject: Boolean? = null,
     val uiSpaceWidth: Float? = null,
     val uiSpaceHeight: Float? = null
 )
@@ -229,6 +231,16 @@ class StepValidator(
         val rollAngle = components.rotationAngle  // Roll 角度（水平校正）
         val normalizedDirection = direction.lowercase()
         val isRotationStep = normalizedDirection in setOf("rotate-cw", "rotate-ccw", "cw", "ccw")
+        val primaryError = computePrimaryShiftError(
+            tx = tx,
+            ty = ty,
+            direction = direction
+        )
+        val uiVector = stabilizeShiftVectorForUi(
+            tx = tx,
+            ty = ty,
+            direction = direction
+        )
 
         // Shift 以位置对齐为主，不再被轻微 roll 卡住；
         // 真正需要转正时由 Level / rotate 步骤负责。
@@ -260,11 +272,6 @@ class StepValidator(
             direction = direction,
             components = components
         )
-        val primaryError = computePrimaryShiftError(
-            tx = tx,
-            ty = ty,
-            direction = direction
-        )
         val primaryImprovement = baseline.initialPrimaryError - primaryError
         val distanceImprovement = baseline.initialDistance - distance
         val improvementScore = computeImprovementScore(
@@ -291,7 +298,7 @@ class StepValidator(
             if (isRotationStep) {
                 "再轻轻转一点，不要停在原地"
             } else {
-                "继续按提示方向移动一点，别停在原地"
+                "继续移动一点，别停在原地"
             }
         } else {
             when {
@@ -310,8 +317,8 @@ class StepValidator(
             progress = progress,
             feedbackText = feedbackDebouncer.debounce(feedbackText),
             shiftDistance = distance.toFloat(),
-            tx = tx.toFloat(),
-            ty = ty.toFloat(),
+            tx = uiVector.first.toFloat(),
+            ty = uiVector.second.toFloat(),
             scaleFactor = components.scaleFactor.toFloat(),
             rotationAngle = rollAngle.toFloat(),
             matchQuality = matchQuality,
@@ -525,8 +532,8 @@ class StepValidator(
     }
     
     /**
-     * 验证视角变换步骤 - 使用 ML Kit 物体检测
-     * 注意：ML Kit 是异步的，此方法返回当前状态，并通过回调更新
+     * 验证视角变换步骤
+     * 真正完成判定由 validateViewChangeAsync 中的异步融合逻辑给出
      */
     private fun validateViewChange(
         components: HomographyComponents,
@@ -544,7 +551,7 @@ class StepValidator(
         
         return StepValidationResult(
             isCompleted = false,  // 需要异步验证确认
-            progress = progress * 0.5f,  // 初始进度减半，等待物体检测
+            progress = progress * 0.5f,  // 初始进度减半，等待主体/位姿融合信号
             feedbackText = initialViewChangeFeedback(actionType, direction),
             shiftDistance = components.translationDistance.toFloat(),
             tx = null, // View-change 不使用矢量UI
@@ -559,7 +566,7 @@ class StepValidator(
     
     /**
      * 异步验证 View-change 步骤
-     * 使用 ML Kit 物体检测比较主体位置
+     * 融合全局特征、透视变化、ARCore 位姿与主体连续性
      */
     fun validateViewChangeAsync(
         currentFrame: Bitmap,
@@ -583,6 +590,7 @@ class StepValidator(
                     scaleFactor = null,
                     rotationAngle = null,
                     matchQuality = 0f,
+                    subjectConfidence = 0f,
                     uiSpaceWidth = currentFrame.width.toFloat(),
                     uiSpaceHeight = currentFrame.height.toFloat()
                 )
@@ -604,6 +612,7 @@ class StepValidator(
                     scaleFactor = null,
                     rotationAngle = null,
                     matchQuality = 0f,
+                    subjectConfidence = 0f,
                     uiSpaceWidth = currentFrame.width.toFloat(),
                     uiSpaceHeight = currentFrame.height.toFloat()
                 )
@@ -648,6 +657,8 @@ class StepValidator(
                         uiHintX = result.uiHintX,
                         uiHintY = result.uiHintY,
                         directionConfidence = result.directionScore,
+                        subjectConfidence = result.subjectConfidence,
+                        hasSubject = result.hasObject,
                         uiSpaceWidth = currentFrame.width.toFloat(),
                         uiSpaceHeight = currentFrame.height.toFloat()
                     )
@@ -723,6 +734,17 @@ class StepValidator(
             "up", "down" -> abs(ty)
             else -> sqrt(tx * tx + ty * ty)
         }
+    }
+
+    private fun stabilizeShiftVectorForUi(
+        tx: Double,
+        ty: Double,
+        direction: String
+    ): Pair<Double, Double> {
+        val deadZone = 8.0
+        val uiTx = if (abs(tx) < deadZone) 0.0 else tx
+        val uiTy = if (abs(ty) < deadZone) 0.0 else ty
+        return uiTx to uiTy
     }
 
     private fun computeImprovementScore(
@@ -852,8 +874,8 @@ class StepValidator(
     }
     
     /**
-     * 生成平移方向反馈
-     * 优先提示步骤主方向 (direction) 的轴，只有主轴已接近时才提示副轴
+     * 生成二维平移反馈
+     * 用户只需要把准星带回中心圈，因此反馈直接描述当前二维偏差。
      */
     private fun generateShiftFeedback(tx: Double, ty: Double, distance: Double, direction: String): String {
         val absX = abs(tx)
@@ -864,28 +886,24 @@ class StepValidator(
             distance > 80 -> ""
             else -> " (接近)"
         }
-        
-        // 根据步骤 direction 判断主轴
-        val isHorizontalStep = direction.lowercase() in listOf("left", "right")
-        val isVerticalStep = direction.lowercase() in listOf("up", "down")
-        val primaryThreshold = 25.0  // 主轴未对齐阈值
-        
+
+        val axisThreshold = 20.0
+        val horizontalText = when {
+            absX < axisThreshold -> null
+            tx > 0 -> "向右"
+            else -> "向左"
+        }
+        val verticalText = when {
+            absY < axisThreshold -> null
+            ty > 0 -> "向下"
+            else -> "向上"
+        }
+
         return when {
-            // 主轴是水平方向 → 优先提示水平
-            isHorizontalStep && absX > primaryThreshold -> {
-                if (tx > 0) "向右移动$distanceHint →" else "向左移动$distanceHint ←"
-            }
-            // 主轴是垂直方向 → 优先提示垂直
-            isVerticalStep && absY > primaryThreshold -> {
-                if (ty > 0) "向下移动$distanceHint ↓" else "向上移动$distanceHint ↑"
-            }
-            // 主轴已接近，提示副轴
-            absX > primaryThreshold -> {
-                if (tx > 0) "微调向右$distanceHint →" else "微调向左$distanceHint ←"
-            }
-            absY > primaryThreshold -> {
-                if (ty > 0) "微调向下$distanceHint ↓" else "微调向上$distanceHint ↑"
-            }
+            horizontalText != null && verticalText != null ->
+                "${horizontalText}${verticalText}移动$distanceHint"
+            horizontalText != null -> "${horizontalText}移动$distanceHint"
+            verticalText != null -> "${verticalText}移动$distanceHint"
             distance > 25 -> "微调位置$distanceHint"
             else -> "接近目标"
         }
@@ -913,7 +931,7 @@ class StepValidator(
      * 反馈文字防抖器
      * 同一反馈至少保持 minDurationMs 才能被替换，避免文字快速跳变
      */
-    private class FeedbackDebouncer(private val minDurationMs: Long = 500L) {
+    private class FeedbackDebouncer(private val minDurationMs: Long = 250L) {
         private var lastText: String = ""
         private var lastChangeTime: Long = 0
 

@@ -151,13 +151,13 @@ fun CameraScreen(
 
     var frameCounter by remember { mutableIntStateOf(0) }
     var lastAnalysisTime by remember { mutableStateOf(0L) }
-    val analyzeEveryNFrames = 10
-    val minAnalysisInterval = 100L
     var arCoreStatus by remember { mutableStateOf(ArCoreSupport.idleStatus()) }
     var hasRequestedArCoreInstall by remember { mutableStateOf(false) }
 
     val guidingStep = (uiState as? CameraUiState.Guiding)?.currentStep
     val needsArCore = guidingStep?.isViewpointAction() == true
+    val analyzeEveryNFrames = if (needsArCore) 6 else 4
+    val minAnalysisInterval = if (needsArCore) 90L else 66L
 
     androidx.compose.runtime.DisposableEffect(
         lifecycleOwner,

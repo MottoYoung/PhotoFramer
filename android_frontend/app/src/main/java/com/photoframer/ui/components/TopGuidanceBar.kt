@@ -110,6 +110,16 @@ fun TopGuidanceBar(
                 )
 
                 if (step.actionType.isViewpointActionType()) {
+                    val subjectConfidence = (validationResult?.subjectConfidence ?: 0f).coerceIn(0f, 1f)
+                    val hasSubject = validationResult?.hasSubject != false
+                    val subjectColor = when {
+                        validationResult?.isCompleted == true -> SuccessGreen
+                        !hasSubject -> Color(0xFFFFB454)
+                        subjectConfidence >= 0.72f -> SuccessGreen
+                        subjectConfidence >= 0.42f -> Color(0xFFFFD166)
+                        else -> Color(0xFFFF8A65)
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
                         color = PurplePrimary.copy(alpha = 0.16f),
@@ -124,6 +134,24 @@ fun TopGuidanceBar(
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(0.72f),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "机位接近",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.68f)
+                        )
+                        Text(
+                            text = if (hasSubject) "主体锁定" else "主体待找回",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = subjectColor.copy(alpha = 0.92f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
                     LinearProgressIndicator(
                         progress = { validationResult?.progress ?: 0f },
                         modifier = Modifier
@@ -131,6 +159,16 @@ fun TopGuidanceBar(
                             .height(5.dp),
                         color = if (validationResult?.isCompleted == true) SuccessGreen else PurplePrimary,
                         trackColor = Color.White.copy(alpha = 0.14f)
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { subjectConfidence },
+                        modifier = Modifier
+                            .fillMaxWidth(0.72f)
+                            .height(5.dp),
+                        color = subjectColor,
+                        trackColor = Color.White.copy(alpha = 0.10f)
                     )
                 }
             }
@@ -230,23 +268,23 @@ private fun resolveEffectiveDirection(
 private fun getViewChangeHelperText(actionType: String, direction: String): String {
     return when (actionType.normalizedActionType()) {
         "orbit" -> if (direction.equals("right", ignoreCase = true)) {
-            "围绕主体向右侧移动，切到新的侧面"
+            "让手机沿着主体右侧绕过去，切到新的侧面"
         } else {
-            "围绕主体向左侧移动，切到新的侧面"
+            "让手机沿着主体左侧绕过去，切到新的侧面"
         }
-        "raisecamera" -> "先把手机整体抬高，再微微下压镜头稳住主体"
-        "lowercamera" -> "先把手机整体放低，再微微上扬镜头稳住主体"
+        "raisecamera" -> "整台手机一起抬高，不要只掰手腕"
+        "lowercamera" -> "整台手机一起放低，不要只压手腕"
         "step" -> if (direction.equals("backward", ignoreCase = true)) {
-            "带着主体一起后退一点，留出更多环境"
+            "连人带手机一起后退，给主体留出环境"
         } else {
-            "带着主体一起靠近一点，增强存在感"
+            "连人带手机一起靠近，让主体更有存在感"
         }
         else -> when (direction.lowercase()) {
-            "high-angle" -> "抬高手机，从更高的角度看向主体"
-            "low-angle" -> "压低手机，从更低的角度看向主体"
-            "side-view-left" -> "围绕主体向左侧移动，切到侧视角"
-            "side-view-right" -> "围绕主体向右侧移动，切到侧视角"
-            else -> "围绕主体移动，逐步改变拍摄视角"
+            "high-angle" -> "抬高手机，从更高的位置看向主体"
+            "low-angle" -> "压低手机，从更低的位置看向主体"
+            "side-view-left" -> "沿着主体左侧绕过去，切到侧视角"
+            "side-view-right" -> "沿着主体右侧绕过去，切到侧视角"
+            else -> "按中间轨迹移动手机，逐步换到新视角"
         }
     }
 }
