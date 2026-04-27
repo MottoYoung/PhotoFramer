@@ -2,6 +2,10 @@ package com.photoframer.vision
 
 import android.graphics.Bitmap
 import android.util.Log
+import com.photoframer.arcore.CameraPoseSample
+import com.photoframer.data.api.ShotSpec
+import com.photoframer.guidance.isViewpointActionType
+import com.photoframer.guidance.normalizedActionType
 import com.photoframer.inframe.InFrameGuideValidationConfig
 import kotlin.math.abs
 import kotlin.math.cos
@@ -23,7 +27,14 @@ data class StepValidationResult(
     val ty: Float?,                 // Y轴平移量（辅助UI指示方向）
     val scaleFactor: Float?,        // 缩放因子
     val rotationAngle: Float?,      // 旋转角度（度）
-    val matchQuality: Float         // 匹配质量 0-1
+    val matchQuality: Float,        // 匹配质量 0-1
+    val uiHintX: Float? = null,     // 机位变化步骤的目标偏移提示
+    val uiHintY: Float? = null,
+    val directionConfidence: Float? = null,
+    val subjectConfidence: Float? = null,
+    val hasSubject: Boolean? = null,
+    val uiSpaceWidth: Float? = null,
+    val uiSpaceHeight: Float? = null
 )
 
 /**
@@ -31,11 +42,12 @@ data class StepValidationResult(
  */
 class StepValidator(
     targetBitmap: Bitmap,
-    private val inFrameGuideConfig: InFrameGuideValidationConfig? = null
+    private val inFrameGuideConfig: InFrameGuideValidationConfig? = null,
+    private val shotSpec: ShotSpec? = null
 ) {
     private val featureMatcher = FeatureMatcher(FeatureMatcherProfile.REALTIME_ORB)
     private val homographyAnalyzer = HomographyAnalyzer()
-    private val targetViewMatcher = FeatureMatcher(FeatureMatcherProfile.ROBUST_SIFT)
+    private val targetViewMatcher = FeatureMatcher(FeatureMatcherProfile.REALTIME_ORB)
     private val targetReferenceBitmap: Bitmap
     private var viewChangeSourceMatcher: FeatureMatcher? = null
     private var viewChangeAnalyzer: ViewChangeAnalyzer? = null
@@ -71,11 +83,17 @@ class StepValidator(
     // 状态保持
     private var lastValidComponents: HomographyComponents? = null
     private var lastValidTime: Long = 0
-    private val PERSISTENCE_DURATION = 800L // 丢失目标后保持显示的时间 (ms)
+    private val PERSISTENCE_DURATION = 350L // 丢失目标后短暂保持，避免引导“黏住”
     
     // 平滑滤波器
-    private val smoothingFilter = SmoothingFilter(alpha = 0.5f) // alpha越小越平滑，延迟越高；0.5兼顾跟手与防抖
+    private val smoothingFilter = SmoothingFilter(alpha = 0.7f) // 提高跟手性，减少“明明对齐却迟迟不结束”
     private val feedbackDebouncer = FeedbackDebouncer()
+    private var motionBaseline: MotionBaseline? = null
+    private var motionStableFrames: Int = 0
+
+    private fun uiSpaceWidth(): Float = targetReferenceBitmap.width.toFloat()
+
+    private fun uiSpaceHeight(): Float = targetReferenceBitmap.height.toFloat()
 
     /**
      * 验证当前帧是否完成指定步骤
@@ -85,12 +103,13 @@ class StepValidator(
      */
     fun validateStep(
         currentFrame: Bitmap,
+        stepKey: Int,
         actionType: String,
         direction: String,
         currentZoomRatio: Float = 1.0f
     ): StepValidationResult {
         Log.d(TAG, "开始验证: actionType=$actionType, direction=$direction, zoom=$currentZoomRatio")
-        val normalizedActionType = actionType.lowercase()
+        val normalizedActionType = actionType.normalizedActionType()
         val isInFrameZoomStep = inFrameGuideConfig != null && normalizedActionType == "zoom"
         
         // 计算单应性矩阵
@@ -130,7 +149,9 @@ class StepValidator(
                         ty = null,
                         scaleFactor = null,
                         rotationAngle = null,
-                        matchQuality = 0f
+                        matchQuality = 0f,
+                        uiSpaceWidth = uiSpaceWidth(),
+                        uiSpaceHeight = uiSpaceHeight()
                     )
                 }
             } else {
@@ -148,23 +169,44 @@ class StepValidator(
 
             // 根据操作类型判定
             return when (normalizedActionType) {
-                "shift" -> {
+                "shift", "level" -> {
                     if (inFrameGuideConfig != null) {
                         validateInFrameShift(components, direction, matchQuality)
                     } else {
-                        validateShift(components, direction, matchQuality)
+                        validateShift(
+                            stepKey = stepKey,
+                            actionType = normalizedActionType,
+                            components = components,
+                            direction = direction,
+                            matchQuality = matchQuality
+                        )
                     }
                 }
                 "zoom" -> {
                     if (inFrameGuideConfig != null) {
                         validateInFrameZoom(direction, matchQuality, currentZoomRatio)
                     } else {
-                        validateZoom(components, direction, matchQuality, currentZoomRatio)
+                        validateZoom(
+                            stepKey = stepKey,
+                            components = components,
+                            direction = direction,
+                            matchQuality = matchQuality,
+                            currentZoom = currentZoomRatio
+                        )
                     }
                 }
-                "view-change" -> validateViewChange(components, direction, matchQuality)
                 else -> {
-                    validateShift(components, direction, matchQuality)
+                    if (normalizedActionType.isViewpointActionType()) {
+                        validateViewChange(components, actionType, direction, matchQuality)
+                    } else {
+                        validateShift(
+                            stepKey = stepKey,
+                            actionType = normalizedActionType,
+                            components = components,
+                            direction = direction,
+                            matchQuality = matchQuality
+                        )
+                    }
                 }
             }
         } finally {
@@ -177,6 +219,8 @@ class StepValidator(
      * 使用 sigmoid 函数计算进度，确保进度始终在0-1之间且有意义
      */
     private fun validateShift(
+        stepKey: Int,
+        actionType: String,
         components: HomographyComponents,
         direction: String,
         matchQuality: Float
@@ -187,24 +231,81 @@ class StepValidator(
         val rollAngle = components.rotationAngle  // Roll 角度（水平校正）
         val normalizedDirection = direction.lowercase()
         val isRotationStep = normalizedDirection in setOf("rotate-cw", "rotate-ccw", "cw", "ccw")
-        
-        // 完成条件：只看平移距离 + 水平校正，不考虑缩放（缩放留给 zoom 步骤）
-        val isCompleted = distance < SHIFT_THRESHOLD && 
-                          abs(rollAngle) < ROLL_THRESHOLD * 2
-        
-        // 使用 sigmoid 函数计算进度（综合考虑平移和 Roll）
+        val primaryError = computePrimaryShiftError(
+            tx = tx,
+            ty = ty,
+            direction = direction
+        )
+        val uiVector = stabilizeShiftVectorForUi(
+            tx = tx,
+            ty = ty,
+            direction = direction
+        )
+
+        // Shift 以位置对齐为主，不再被轻微 roll 卡住；
+        // 真正需要转正时由 Level / rotate 步骤负责。
+        val completionDistanceThreshold = if (isRotationStep) {
+            SHIFT_THRESHOLD
+        } else {
+            SHIFT_THRESHOLD * 1.16
+        }
+        val completionRollThreshold = if (isRotationStep) {
+            ROLL_THRESHOLD * 2
+        } else {
+            ROLL_THRESHOLD * 4
+        }
+        val alignedNow = distance < completionDistanceThreshold &&
+            abs(rollAngle) < completionRollThreshold
+
+        // 普通 shift 更强调平移进度，rotation step 才把 roll 权重拉高
         val rollProgress = (1.0 / (1.0 + exp((abs(rollAngle) - ROLL_THRESHOLD) / 2.0)))
         val shiftProgress = (1.0 / (1.0 + exp((distance - SHIFT_THRESHOLD) / 15.0)))
-        val progress = ((rollProgress + shiftProgress) / 2.0).toFloat()
-        
+        val currentAlignmentProgress = if (isRotationStep) {
+            ((rollProgress + shiftProgress) / 2.0).toFloat()
+        } else {
+            (shiftProgress * 0.82 + rollProgress * 0.18).toFloat()
+        }
+
+        val baseline = ensureMotionBaseline(
+            stepKey = stepKey,
+            actionType = actionType,
+            direction = direction,
+            components = components
+        )
+        val primaryImprovement = baseline.initialPrimaryError - primaryError
+        val distanceImprovement = baseline.initialDistance - distance
+        val improvementScore = computeImprovementScore(
+            improvement = maxOf(primaryImprovement, distanceImprovement),
+            baselineError = maxOf(baseline.initialPrimaryError, baseline.initialDistance),
+            targetThreshold = completionDistanceThreshold
+        )
+        val movedTowardTarget = primaryImprovement > 8.0 ||
+            distanceImprovement > 10.0 ||
+            improvementScore >= 0.18f
+        val nearPerfectHold = alignedNow &&
+            distance < completionDistanceThreshold * 0.42 &&
+            abs(rollAngle) < completionRollThreshold * 0.72 &&
+            matchQuality >= 0.45f
+        val requiredStableFrames = if (nearPerfectHold && !movedTowardTarget) 4 else 2
+        val rawCompleted = alignedNow && (movedTowardTarget || nearPerfectHold)
+        motionStableFrames = if (rawCompleted) motionStableFrames + 1 else 0
+        val isCompleted = motionStableFrames >= requiredStableFrames
+        val progress = (currentAlignmentProgress * 0.74f + improvementScore * 0.26f).coerceIn(0f, 1f)
+
         val feedbackText = if (isCompleted) {
             "✓ 位置已对齐"
+        } else if (alignedNow && !movedTowardTarget && !nearPerfectHold) {
+            if (isRotationStep) {
+                "再轻轻转一点，不要停在原地"
+            } else {
+                "继续移动一点，别停在原地"
+            }
         } else {
             when {
                 isRotationStep ->
                     generateRotationFeedback(rollAngle, distance, normalizedDirection)
-                // 只有严重倾斜(2倍阈值)才提示校正水平
-                abs(rollAngle) > ROLL_THRESHOLD * 2 ->
+                // 普通 shift 只有明显歪斜时才打断位置引导
+                abs(rollAngle) > ROLL_THRESHOLD * 4 ->
                     if (rollAngle > 0) "手机稍微向右转，把画面放平" else "手机稍微向左转，把画面放平"
                 // 常规情况：优先提示步骤主方向
                 else -> generateShiftFeedback(tx, ty, distance, direction)
@@ -216,11 +317,13 @@ class StepValidator(
             progress = progress,
             feedbackText = feedbackDebouncer.debounce(feedbackText),
             shiftDistance = distance.toFloat(),
-            tx = tx.toFloat(),
-            ty = ty.toFloat(),
+            tx = uiVector.first.toFloat(),
+            ty = uiVector.second.toFloat(),
             scaleFactor = components.scaleFactor.toFloat(),
             rotationAngle = rollAngle.toFloat(),
-            matchQuality = matchQuality
+            matchQuality = matchQuality,
+            uiSpaceWidth = uiSpaceWidth(),
+            uiSpaceHeight = uiSpaceHeight()
         )
     }
 
@@ -234,7 +337,13 @@ class StepValidator(
         direction: String,
         matchQuality: Float
     ): StepValidationResult {
-        val guide = inFrameGuideConfig ?: return validateShift(components, direction, matchQuality)
+        val guide = inFrameGuideConfig ?: return validateShift(
+            stepKey = -1,
+            actionType = "shift",
+            components = components,
+            direction = direction,
+            matchQuality = matchQuality
+        )
 
         val projectedTargetCenter = projectNormalizedPoint(
             xNorm = guide.targetCenterXNormalized,
@@ -273,7 +382,9 @@ class StepValidator(
             ty = offsetY.toFloat(),
             scaleFactor = components.scaleFactor.toFloat(),
             rotationAngle = rollAngle.toFloat(),
-            matchQuality = matchQuality
+            matchQuality = matchQuality,
+            uiSpaceWidth = uiSpaceWidth(),
+            uiSpaceHeight = uiSpaceHeight()
         )
     }
     
@@ -282,6 +393,7 @@ class StepValidator(
      * feedbackText 参考 direction 参数，确保与 TopGuidanceBar 大字方向一致
      */
     private fun validateZoom(
+        stepKey: Int,
         components: HomographyComponents,
         direction: String,
         matchQuality: Float,
@@ -292,14 +404,37 @@ class StepValidator(
         val visualScale = components.scaleFactor.coerceAtLeast(1e-3)
         val scaleError = abs(1.0 - visualScale)
         
-        val isCompleted = scaleError < ZOOM_THRESHOLD
-        val progress = (1.0 / (1.0 + exp((scaleError - ZOOM_THRESHOLD) / 0.1))).toFloat()
+        val alignedNow = scaleError < ZOOM_THRESHOLD
+        val currentAlignmentProgress = (1.0 / (1.0 + exp((scaleError - ZOOM_THRESHOLD) / 0.1))).toFloat()
+        val baseline = ensureMotionBaseline(
+            stepKey = stepKey,
+            actionType = "zoom",
+            direction = direction,
+            components = components
+        )
+        val scaleImprovement = baseline.initialScaleError - scaleError
+        val improvementScore = computeImprovementScore(
+            improvement = scaleImprovement,
+            baselineError = baseline.initialScaleError,
+            targetThreshold = ZOOM_THRESHOLD
+        )
+        val movedTowardTarget = scaleImprovement > 0.035 || improvementScore >= 0.20f
+        val nearPerfectHold = alignedNow &&
+            scaleError < ZOOM_THRESHOLD * 0.45 &&
+            matchQuality >= 0.45f
+        val requiredStableFrames = if (nearPerfectHold && !movedTowardTarget) 4 else 2
+        val rawCompleted = alignedNow && (movedTowardTarget || nearPerfectHold)
+        motionStableFrames = if (rawCompleted) motionStableFrames + 1 else 0
+        val isCompleted = motionStableFrames >= requiredStableFrames
+        val progress = (currentAlignmentProgress * 0.72f + improvementScore * 0.28f).coerceIn(0f, 1f)
         
         // targetZoom = 让 visualScale 变为 1.0 时，用户应该设置的数码变焦
         val targetZoom = (currentZoom / visualScale).coerceIn(1.0, 8.0)
         
         val feedbackText = if (isCompleted) {
             "✓ 焦距已对齐"
+        } else if (alignedNow && !movedTowardTarget && !nearPerfectHold) {
+            if (direction.lowercase() == "in") "继续放大一点，别停在原地" else "继续缩小一点，别停在原地"
         } else {
             // 根据步骤 direction 生成与大字一致的文案
             val needZoomIn = direction.lowercase() == "in"
@@ -329,7 +464,9 @@ class StepValidator(
             ty = null,
             scaleFactor = components.scaleFactor.toFloat(),
             rotationAngle = components.rotationAngle.toFloat(),
-            matchQuality = matchQuality
+            matchQuality = matchQuality,
+            uiSpaceWidth = uiSpaceWidth(),
+            uiSpaceHeight = uiSpaceHeight()
         )
     }
 
@@ -388,16 +525,19 @@ class StepValidator(
             ty = null,
             scaleFactor = targetZoom,
             rotationAngle = null,
-            matchQuality = matchQuality
+            matchQuality = matchQuality,
+            uiSpaceWidth = uiSpaceWidth(),
+            uiSpaceHeight = uiSpaceHeight()
         )
     }
     
     /**
-     * 验证视角变换步骤 - 使用 ML Kit 物体检测
-     * 注意：ML Kit 是异步的，此方法返回当前状态，并通过回调更新
+     * 验证视角变换步骤
+     * 真正完成判定由 validateViewChangeAsync 中的异步融合逻辑给出
      */
     private fun validateViewChange(
         components: HomographyComponents,
+        actionType: String,
         direction: String,
         matchQuality: Float
     ): StepValidationResult {
@@ -411,25 +551,29 @@ class StepValidator(
         
         return StepValidationResult(
             isCompleted = false,  // 需要异步验证确认
-            progress = progress * 0.5f,  // 初始进度减半，等待物体检测
-            feedbackText = "正在分析视角...",
+            progress = progress * 0.5f,  // 初始进度减半，等待主体/位姿融合信号
+            feedbackText = initialViewChangeFeedback(actionType, direction),
             shiftDistance = components.translationDistance.toFloat(),
             tx = null, // View-change 不使用矢量UI
             ty = null,
             scaleFactor = components.scaleFactor.toFloat(),
             rotationAngle = rotation.toFloat(),
-            matchQuality = matchQuality
+            matchQuality = matchQuality,
+            uiSpaceWidth = uiSpaceWidth(),
+            uiSpaceHeight = uiSpaceHeight()
         )
     }
     
     /**
      * 异步验证 View-change 步骤
-     * 使用 ML Kit 物体检测比较主体位置
+     * 融合全局特征、透视变化、ARCore 位姿与主体连续性
      */
     fun validateViewChangeAsync(
         currentFrame: Bitmap,
         stepKey: Int,
+        actionType: String,
         direction: String,
+        cameraPoseSample: CameraPoseSample? = null,
         callback: (StepValidationResult) -> Unit
     ) {
         val baselineJustInitialized = ensureViewChangeBaseline(stepKey, currentFrame)
@@ -439,13 +583,16 @@ class StepValidator(
                 StepValidationResult(
                     isCompleted = false,
                     progress = 0.05f,
-                    feedbackText = initialViewChangeFeedback(direction),
+                    feedbackText = initialViewChangeFeedback(actionType, direction),
                     shiftDistance = null,
                     tx = 0.05f,
                     ty = null,
                     scaleFactor = null,
                     rotationAngle = null,
-                    matchQuality = 0f
+                    matchQuality = 0f,
+                    subjectConfidence = 0f,
+                    uiSpaceWidth = currentFrame.width.toFloat(),
+                    uiSpaceHeight = currentFrame.height.toFloat()
                 )
             )
             return
@@ -464,7 +611,10 @@ class StepValidator(
                     ty = null,
                     scaleFactor = null,
                     rotationAngle = null,
-                    matchQuality = 0f
+                    matchQuality = 0f,
+                    subjectConfidence = 0f,
+                    uiSpaceWidth = currentFrame.width.toFloat(),
+                    uiSpaceHeight = currentFrame.height.toFloat()
                 )
             )
             return
@@ -482,30 +632,41 @@ class StepValidator(
                 frameHeight = currentFrame.height
             )
             targetFeatureScore = (targetPerspectiveResult.matchCount.toFloat() / 28f).coerceIn(0f, 1f)
+            val sourceFeatureScore = (sourcePerspectiveResult.matchCount.toFloat() / 28f).coerceIn(0f, 1f)
+
+            analyzer.analyze(
+                currentFrame = currentFrame,
+                actionType = actionType,
+                direction = direction,
+                perspectiveScore = perspectiveDepartureScore,
+                sourceSimilarityScore = sourceFeatureScore,
+                targetSimilarityScore = targetFeatureScore,
+                cameraPoseSample = cameraPoseSample
+            ) { result ->
+                callback(
+                    StepValidationResult(
+                        isCompleted = result.isCompleted,
+                        progress = result.progress,
+                        feedbackText = feedbackDebouncer.debounce(result.feedbackText),
+                        shiftDistance = null,
+                        tx = null,
+                        ty = null,
+                        scaleFactor = result.targetAlignmentScore,
+                        rotationAngle = null,
+                        matchQuality = result.targetSimilarityScore,
+                        uiHintX = result.uiHintX,
+                        uiHintY = result.uiHintY,
+                        directionConfidence = result.directionScore,
+                        subjectConfidence = result.subjectConfidence,
+                        hasSubject = result.hasObject,
+                        uiSpaceWidth = currentFrame.width.toFloat(),
+                        uiSpaceHeight = currentFrame.height.toFloat()
+                    )
+                )
+            }
         } finally {
             sourcePerspectiveResult.release()
             targetPerspectiveResult.release()
-        }
-
-        analyzer.analyze(
-            currentFrame = currentFrame,
-            direction = direction,
-            perspectiveScore = perspectiveDepartureScore,
-            targetFeatureScore = targetFeatureScore
-        ) { result ->
-            callback(
-                StepValidationResult(
-                    isCompleted = result.isCompleted,
-                    progress = result.progress,
-                    feedbackText = feedbackDebouncer.debounce(result.feedbackText),
-                    shiftDistance = null,
-                    tx = result.progress,  // 传给 UI：完成进度（用于绘制进度弧环）
-                    ty = result.directionScore,
-                    scaleFactor = result.targetAlignmentScore,
-                    rotationAngle = null,
-                    matchQuality = if (result.hasObject) targetFeatureScore else 0f
-                )
-            )
         }
     }
 
@@ -516,24 +677,107 @@ class StepValidator(
 
         viewChangeBaselineStepKey = stepKey
         viewChangeSourceMatcher?.close()
-        viewChangeSourceMatcher = FeatureMatcher(FeatureMatcherProfile.ROBUST_SIFT).apply {
+        viewChangeSourceMatcher = FeatureMatcher(FeatureMatcherProfile.REALTIME_ORB).apply {
             setTargetImage(currentFrame)
         }
         viewChangeAnalyzer?.close()
         viewChangeAnalyzer = ViewChangeAnalyzer(
             sourceBitmap = currentFrame,
-            targetBitmap = targetReferenceBitmap
+            targetBitmap = targetReferenceBitmap,
+            targetShotSpec = shotSpec
         )
         return true
     }
 
-    private fun initialViewChangeFeedback(direction: String): String {
+    private fun ensureMotionBaseline(
+        stepKey: Int,
+        actionType: String,
+        direction: String,
+        components: HomographyComponents
+    ): MotionBaseline {
+        val normalizedAction = actionType.normalizedActionType()
+        val normalizedDirection = direction.lowercase()
+        val current = motionBaseline
+        if (
+            current != null &&
+            current.stepKey == stepKey &&
+            current.actionType == normalizedAction &&
+            current.direction == normalizedDirection
+        ) {
+            return current
+        }
+
+        motionStableFrames = 0
+        return MotionBaseline(
+            stepKey = stepKey,
+            actionType = normalizedAction,
+            direction = normalizedDirection,
+            initialDistance = components.translationDistance,
+            initialPrimaryError = computePrimaryShiftError(
+                tx = components.translationX,
+                ty = components.translationY,
+                direction = direction
+            ),
+            initialScaleError = abs(1.0 - components.scaleFactor)
+        ).also {
+            motionBaseline = it
+        }
+    }
+
+    private fun computePrimaryShiftError(
+        tx: Double,
+        ty: Double,
+        direction: String
+    ): Double {
         return when (direction.lowercase()) {
-            "high-angle" -> "保持主体稳定，开始抬高机位俯拍"
-            "low-angle" -> "保持主体稳定，开始降低机位仰拍"
-            "side-view-left" -> "保持主体稳定，开始绕主体向左移动"
-            "side-view-right" -> "保持主体稳定，开始绕主体向右移动"
-            else -> "开始围绕主体改变视角"
+            "left", "right", "rotate-cw", "rotate-ccw", "cw", "ccw" -> abs(tx)
+            "up", "down" -> abs(ty)
+            else -> sqrt(tx * tx + ty * ty)
+        }
+    }
+
+    private fun stabilizeShiftVectorForUi(
+        tx: Double,
+        ty: Double,
+        direction: String
+    ): Pair<Double, Double> {
+        val deadZone = 8.0
+        val uiTx = if (abs(tx) < deadZone) 0.0 else tx
+        val uiTy = if (abs(ty) < deadZone) 0.0 else ty
+        return uiTx to uiTy
+    }
+
+    private fun computeImprovementScore(
+        improvement: Double,
+        baselineError: Double,
+        targetThreshold: Double
+    ): Float {
+        val effectiveBaseline = (baselineError - targetThreshold).coerceAtLeast(targetThreshold * 0.5)
+        if (effectiveBaseline <= 1e-6) return 0f
+        return (improvement / effectiveBaseline).toFloat().coerceIn(0f, 1f)
+    }
+
+    private fun initialViewChangeFeedback(actionType: String, direction: String): String {
+        return when (actionType.normalizedActionType()) {
+            "orbit" -> if (direction.equals("right", ignoreCase = true)) {
+                "保持主体稳定，开始向右绕拍"
+            } else {
+                "保持主体稳定，开始向左绕拍"
+            }
+            "raisecamera" -> "保持主体稳定，开始抬高机位"
+            "lowercamera" -> "保持主体稳定，先把手机整体放低"
+            "step" -> if (direction.equals("backward", ignoreCase = true)) {
+                "保持主体稳定，开始后退一点"
+            } else {
+                "保持主体稳定，开始靠近主体"
+            }
+            else -> when (direction.lowercase()) {
+                "high-angle" -> "保持主体稳定，开始抬高机位俯拍"
+                "low-angle" -> "保持主体稳定，开始降低机位仰拍"
+                "side-view-left" -> "保持主体稳定，开始绕主体向左移动"
+                "side-view-right" -> "保持主体稳定，开始绕主体向右移动"
+                else -> "开始围绕主体改变视角"
+            }
         }
     }
 
@@ -630,8 +874,8 @@ class StepValidator(
     }
     
     /**
-     * 生成平移方向反馈
-     * 优先提示步骤主方向 (direction) 的轴，只有主轴已接近时才提示副轴
+     * 生成二维平移反馈
+     * 用户只需要把准星带回中心圈，因此反馈直接描述当前二维偏差。
      */
     private fun generateShiftFeedback(tx: Double, ty: Double, distance: Double, direction: String): String {
         val absX = abs(tx)
@@ -642,28 +886,24 @@ class StepValidator(
             distance > 80 -> ""
             else -> " (接近)"
         }
-        
-        // 根据步骤 direction 判断主轴
-        val isHorizontalStep = direction.lowercase() in listOf("left", "right")
-        val isVerticalStep = direction.lowercase() in listOf("up", "down")
-        val primaryThreshold = 25.0  // 主轴未对齐阈值
-        
+
+        val axisThreshold = 20.0
+        val horizontalText = when {
+            absX < axisThreshold -> null
+            tx > 0 -> "向右"
+            else -> "向左"
+        }
+        val verticalText = when {
+            absY < axisThreshold -> null
+            ty > 0 -> "向下"
+            else -> "向上"
+        }
+
         return when {
-            // 主轴是水平方向 → 优先提示水平
-            isHorizontalStep && absX > primaryThreshold -> {
-                if (tx > 0) "向右移动$distanceHint →" else "向左移动$distanceHint ←"
-            }
-            // 主轴是垂直方向 → 优先提示垂直
-            isVerticalStep && absY > primaryThreshold -> {
-                if (ty > 0) "向下移动$distanceHint ↓" else "向上移动$distanceHint ↑"
-            }
-            // 主轴已接近，提示副轴
-            absX > primaryThreshold -> {
-                if (tx > 0) "微调向右$distanceHint →" else "微调向左$distanceHint ←"
-            }
-            absY > primaryThreshold -> {
-                if (ty > 0) "微调向下$distanceHint ↓" else "微调向上$distanceHint ↑"
-            }
+            horizontalText != null && verticalText != null ->
+                "${horizontalText}${verticalText}移动$distanceHint"
+            horizontalText != null -> "${horizontalText}移动$distanceHint"
+            verticalText != null -> "${verticalText}移动$distanceHint"
             distance > 25 -> "微调位置$distanceHint"
             else -> "接近目标"
         }
@@ -691,7 +931,7 @@ class StepValidator(
      * 反馈文字防抖器
      * 同一反馈至少保持 minDurationMs 才能被替换，避免文字快速跳变
      */
-    private class FeedbackDebouncer(private val minDurationMs: Long = 500L) {
+    private class FeedbackDebouncer(private val minDurationMs: Long = 250L) {
         private var lastText: String = ""
         private var lastChangeTime: Long = 0
 
@@ -739,6 +979,15 @@ class StepValidator(
             return result
         }
     }
+
+    private data class MotionBaseline(
+        val stepKey: Int,
+        val actionType: String,
+        val direction: String,
+        val initialDistance: Double,
+        val initialPrimaryError: Double,
+        val initialScaleError: Double
+    )
     
     /**
      * 释放资源
@@ -750,5 +999,7 @@ class StepValidator(
         viewChangeSourceMatcher = null
         viewChangeAnalyzer?.close()
         viewChangeAnalyzer = null
+        motionBaseline = null
+        motionStableFrames = 0
     }
 }
