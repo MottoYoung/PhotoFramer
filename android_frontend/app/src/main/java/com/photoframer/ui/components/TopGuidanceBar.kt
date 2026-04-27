@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.photoframer.data.api.CompositionStep
+import com.photoframer.guidance.isViewpointActionType
+import com.photoframer.guidance.normalizedActionType
 import com.photoframer.ui.theme.BlueAccent
 import com.photoframer.ui.theme.PurplePrimary
 import com.photoframer.ui.theme.SuccessGreen
@@ -219,14 +221,14 @@ fun TopGuidanceBar(
                             maxLines = 2
                         )
 
-                        if (step.actionType.equals("view-change", ignoreCase = true)) {
+                        if (step.actionType.isViewpointActionType()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Surface(
                                 color = Color.White.copy(alpha = 0.05f),
                                 shape = RoundedCornerShape(999.dp)
                             ) {
                                 Text(
-                                    text = getViewChangeHelperText(step.direction),
+                                    text = getViewChangeHelperText(step.actionType, step.direction),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color.White.copy(alpha = 0.84f),
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
@@ -299,10 +301,10 @@ private fun GuidanceNavButton(
 }
 
 private fun getActionPillLabel(actionType: String): String {
-    return when (actionType.lowercase()) {
+    return when (actionType.normalizedActionType()) {
         "shift" -> "取景移动"
         "zoom" -> "焦距校准"
-        "view-change" -> "视角切换"
+        "orbit", "raisecamera", "lowercamera", "step", "view-change" -> "视角切换"
         else -> "构图引导"
     }
 }
@@ -324,7 +326,7 @@ private fun getDirectionSubLabel(direction: String): String {
 }
 
 private fun getActionIcon(actionType: String, direction: String): ImageVector {
-    return when (actionType.lowercase()) {
+    return when (actionType.normalizedActionType()) {
         "shift" -> when (direction.lowercase()) {
             "left" -> Icons.AutoMirrored.Filled.ArrowBack
             "right" -> Icons.AutoMirrored.Filled.ArrowForward
@@ -337,13 +339,11 @@ private fun getActionIcon(actionType: String, direction: String): ImageVector {
             "out" -> Icons.Default.ZoomOut
             else -> Icons.Default.Search
         }
-        "view-change" -> when (direction.lowercase()) {
-            "high-angle" -> Icons.Default.ArrowUpward
-            "low-angle" -> Icons.Default.ArrowDownward
-            "side-view-left" -> Icons.AutoMirrored.Filled.ArrowBack
-            "side-view-right" -> Icons.AutoMirrored.Filled.ArrowForward
-            else -> Icons.Default.Rotate90DegreesCw
-        }
+        "orbit" -> if (direction.equals("left", ignoreCase = true)) Icons.AutoMirrored.Filled.ArrowBack else Icons.AutoMirrored.Filled.ArrowForward
+        "raisecamera" -> Icons.Default.ArrowUpward
+        "lowercamera" -> Icons.Default.ArrowDownward
+        "step" -> if (direction.equals("backward", ignoreCase = true)) Icons.Default.ZoomOut else Icons.Default.ZoomIn
+        "view-change" -> Icons.Default.Rotate90DegreesCw
         else -> Icons.Default.Info
     }
 }
@@ -365,18 +365,32 @@ private fun resolveEffectiveDirection(
     }
 }
 
-private fun getViewChangeHelperText(direction: String): String {
-    return when (direction.lowercase()) {
-        "high-angle" -> "抬高手机，从更高的角度看向主体"
-        "low-angle" -> "压低手机，从更低的角度看向主体"
-        "side-view-left" -> "围绕主体向左侧移动，切到侧视角"
-        "side-view-right" -> "围绕主体向右侧移动，切到侧视角"
-        else -> "围绕主体移动，逐步改变拍摄视角"
+private fun getViewChangeHelperText(actionType: String, direction: String): String {
+    return when (actionType.normalizedActionType()) {
+        "raisecamera" -> "抬高手机，让机位更高一些"
+        "lowercamera" -> "压低手机，让机位更低一些"
+        "orbit" -> if (direction.equals("left", ignoreCase = true)) {
+            "围绕主体向左绕拍，切到侧视角"
+        } else {
+            "围绕主体向右绕拍，切到侧视角"
+        }
+        "step" -> if (direction.equals("backward", ignoreCase = true)) {
+            "带着手机后退一点，拉开与主体距离"
+        } else {
+            "带着手机向前一步，靠近主体"
+        }
+        else -> when (direction.lowercase()) {
+            "high-angle" -> "抬高手机，从更高的角度看向主体"
+            "low-angle" -> "压低手机，从更低的角度看向主体"
+            "side-view-left" -> "围绕主体向左侧移动，切到侧视角"
+            "side-view-right" -> "围绕主体向右侧移动，切到侧视角"
+            else -> "围绕主体移动，逐步改变拍摄视角"
+        }
     }
 }
 
 private fun getPrimaryInstruction(step: CompositionStep, effectiveDirection: String = step.direction): String {
-    val actionType = step.actionType.lowercase()
+    val actionType = step.actionType.normalizedActionType()
     val direction = effectiveDirection.lowercase()
 
     return when (actionType) {
@@ -394,13 +408,11 @@ private fun getPrimaryInstruction(step: CompositionStep, effectiveDirection: Str
             "out" -> "缩小一点"
             else -> "调整远近"
         }
-        "view-change" -> when (direction) {
-            "high-angle" -> "抬高机位"
-            "low-angle" -> "压低机位"
-            "side-view-left" -> "向左绕拍"
-            "side-view-right" -> "向右绕拍"
-            else -> "改变视角"
-        }
+        "orbit" -> if (direction == "left") "向左绕拍" else "向右绕拍"
+        "raisecamera" -> "抬高机位"
+        "lowercamera" -> "压低机位"
+        "step" -> if (direction == "backward") "后退一步" else "向前一步"
+        "view-change" -> "改变视角"
         else -> "继续调整"
     }
 }
@@ -412,7 +424,7 @@ private fun getSecondaryInstruction(step: CompositionStep): String {
     }
 
     val direction = step.direction.lowercase()
-    return when (step.actionType.lowercase()) {
+    return when (step.actionType.normalizedActionType()) {
         "shift" -> when (direction) {
             "left" -> "把手机往左挪一点"
             "right" -> "把手机往右挪一点"
@@ -427,7 +439,7 @@ private fun getSecondaryInstruction(step: CompositionStep): String {
             "out" -> "缩小一点，留出更多画面"
             else -> "微调远近，贴近参考图"
         }
-        "view-change" -> getViewChangeHelperText(step.direction)
+        "orbit", "raisecamera", "lowercamera", "step", "view-change" -> getViewChangeHelperText(step.actionType, step.direction)
         else -> "继续按参考图调整"
     }
 }
