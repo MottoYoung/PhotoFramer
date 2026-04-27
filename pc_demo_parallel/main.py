@@ -21,7 +21,7 @@ app = FastAPI(
 
 - 🚀 **并行请求**：5 种构图方案并发分析，响应时间接近单个请求
 - 📸 **智能分析**：自动判断每种构图技术是否适用
-- 🎯 **操作指令**：生成 Shift / Zoom / View-change 操作步骤
+- 🎯 **操作指令**：生成 Shift / Level / Zoom / Orbit / RaiseCamera / LowerCamera / Step 等动作原语
 - 🖼️ **参考图像**：生成优化后的目标构图图片
 
 ### 支持的构图技术
