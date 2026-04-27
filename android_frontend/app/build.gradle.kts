@@ -84,4 +84,7 @@ dependencies {
     
     // ML Kit Object Detection for View-change validation
     implementation("com.google.mlkit:object-detection:17.0.2")
+
+    // ARCore availability / install flow groundwork for camera pose guidance
+    implementation(libs.arcore)
 }

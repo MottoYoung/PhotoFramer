@@ -3,11 +3,18 @@ package com.photoframer.viewmodel
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.photoframer.arcore.CameraPoseSample
+import com.photoframer.data.api.CompositionStep
 import com.photoframer.data.api.CompositionResult
 import com.photoframer.data.api.InFrameCompositionResponse
+import com.photoframer.data.api.ShotSpec
 import com.photoframer.data.repository.CompositionRepository
+import com.photoframer.guidance.isShiftAction
+import com.photoframer.guidance.isViewpointAction
+import com.photoframer.guidance.isZoomAction
 import com.photoframer.inframe.InFrameCompositionGuideBuilder
 import com.photoframer.inframe.InFrameCompositionGuide
 import com.photoframer.inframe.InFrameGuideValidationConfig
@@ -54,7 +61,7 @@ class CameraViewModel : ViewModel() {
     val allStepsCompleted: StateFlow<Boolean> = _allStepsCompleted.asStateFlow()
     
     // 缓存解码后的图片 (使用 technique 作为 key)
-    private val imageCache = mutableMapOf<String, Bitmap>()
+    private val imageCache = mutableStateMapOf<String, Bitmap>()
 
     // 用于本地验证的参考图；AI 构图与缩略图一致，画面内构图则使用上传分析图
     private val validationImageCache = mutableMapOf<String, Bitmap>()
@@ -104,16 +111,6 @@ class CameraViewModel : ViewModel() {
                             imageCache.clear()
                             validationImageCache.clear()
                             inFrameGuideConfigCache.clear()
-
-                            // 预解码图片 (使用 technique 作为 key)
-                            response.compositions.forEach { comp ->
-                                comp.imageBase64?.let { base64 ->
-                                    decodeBase64Image(base64)?.let { bitmap ->
-                                        imageCache[comp.technique] = bitmap
-                                        validationImageCache[comp.technique] = bitmap
-                                    }
-                                }
-                            }
                             val candidatesState = CameraUiState.Candidates(
                                 totalTechniques = response.totalTechniques,
                                 applicableCount = response.applicableCount,
@@ -122,6 +119,7 @@ class CameraViewModel : ViewModel() {
                             )
                             cachedCandidatesState = candidatesState
                             _uiState.value = candidatesState
+                            warmCandidateImagesAsync(response.compositions)
                         } else {
                             _uiState.value = CameraUiState.Error(
                                 response.message ?: "未能生成适用的构图方案"
@@ -230,14 +228,16 @@ class CameraViewModel : ViewModel() {
      */
     fun selectComposition(composition: CompositionResult) {
         stepValidator?.close()
+        val guidanceComposition = prepareCompositionForGuidance(composition)
 
         // 获取目标图片并创建验证器 (使用 technique 作为 key)
-        val targetBitmap = validationImageCache[composition.technique] ?: imageCache[composition.technique]
-        val inFrameGuideConfig = inFrameGuideConfigCache[composition.technique]
+        val targetBitmap = ensureCompositionBitmapCached(guidanceComposition)
+        val inFrameGuideConfig = inFrameGuideConfigCache[guidanceComposition.technique]
         if (targetBitmap != null) {
             stepValidator = StepValidator(
                 targetBitmap = targetBitmap,
-                inFrameGuideConfig = inFrameGuideConfig
+                inFrameGuideConfig = inFrameGuideConfig,
+                shotSpec = guidanceComposition.shotSpec
             )
         } else {
             stepValidator = null
@@ -249,16 +249,123 @@ class CameraViewModel : ViewModel() {
         _allStepsCompleted.value = false
         
         _uiState.value = CameraUiState.Guiding(
-            composition = composition,
+            composition = guidanceComposition,
             currentStepIndex = 0
         )
+    }
+
+    private fun prepareCompositionForGuidance(composition: CompositionResult): CompositionResult {
+        val normalizedSteps = normalizeGuidanceSteps(
+            steps = composition.steps,
+            shotSpec = composition.shotSpec
+        )
+        return composition.copy(steps = normalizedSteps)
+    }
+
+    private fun normalizeGuidanceSteps(
+        steps: List<CompositionStep>,
+        shotSpec: ShotSpec?
+    ): List<CompositionStep> {
+        if (steps.isEmpty()) return emptyList()
+
+        val firstViewpointIndex = steps.indexOfFirst { it.isViewpointAction() }
+        if (firstViewpointIndex == -1) {
+            val shiftLike = steps.firstOrNull { it.isShiftAction() }
+            val zoomLike = steps.firstOrNull { it.isZoomAction() }
+            val normalized = buildList {
+                if (shiftLike != null) add(simplifyRefineStep(shiftLike))
+                if (zoomLike != null) add(simplifyRefineStep(zoomLike))
+                if (isEmpty()) addAll(steps.take(2))
+            }
+            return renumberSteps(normalized.take(2))
+        }
+
+        val viewpointStep = steps[firstViewpointIndex].copy(
+            guideText = simplifyViewpointGuideText(steps[firstViewpointIndex])
+        )
+        val trailingSteps = steps.drop(firstViewpointIndex + 1)
+        val shiftRefine = trailingSteps
+            .firstOrNull { it.isShiftAction() }
+            ?.let { simplifyRefineStep(it) }
+            ?: buildSyntheticShiftRefineStep(shotSpec)
+        val zoomRefine = trailingSteps
+            .firstOrNull { it.isZoomAction() }
+            ?.let { simplifyRefineStep(it) }
+
+        val normalized = mutableListOf(viewpointStep)
+        if (shiftRefine != null) {
+            normalized += shiftRefine
+        }
+        if (zoomRefine != null) {
+            normalized += zoomRefine
+        }
+        return renumberSteps(normalized.take(3))
+    }
+
+    private fun simplifyViewpointGuideText(step: CompositionStep): String {
+        return when (step.actionType.trim().lowercase()) {
+            "orbit" -> if (step.direction.equals("right", ignoreCase = true)) {
+                "先向右绕一点"
+            } else {
+                "先向左绕一点"
+            }
+            "raisecamera" -> "先抬高机位"
+            "lowercamera" -> "先降低机位"
+            "step" -> if (step.direction.equals("backward", ignoreCase = true)) {
+                "先后退一点"
+            } else {
+                "先靠近一点"
+            }
+            else -> step.guideText
+        }
+    }
+
+    private fun simplifyRefineStep(step: CompositionStep): CompositionStep {
+        val guideText = when {
+            step.isShiftAction() -> "再把主体对进圆圈"
+            step.isZoomAction() -> "再把画面缩放到参考大小"
+            else -> step.guideText
+        }
+        return step.copy(guideText = guideText)
+    }
+
+    private fun buildSyntheticShiftRefineStep(shotSpec: ShotSpec?): CompositionStep? {
+        val targetCenter = shotSpec?.targetSubjectCenter ?: return null
+        if (targetCenter.size < 2) return null
+
+        val centerX = targetCenter[0]
+        val centerY = targetCenter[1]
+        val deltaX = centerX - 0.5f
+        val deltaY = centerY - 0.5f
+        val direction = if (kotlin.math.abs(deltaX) >= kotlin.math.abs(deltaY)) {
+            if (deltaX >= 0f) "Right" else "Left"
+        } else {
+            if (deltaY >= 0f) "Down" else "Up"
+        }
+
+        return CompositionStep(
+            stepOrder = 2,
+            actionType = "Shift",
+            direction = direction,
+            guideText = "再把主体对进圆圈"
+        )
+    }
+
+    private fun renumberSteps(steps: List<CompositionStep>): List<CompositionStep> {
+        return steps.mapIndexed { index, step ->
+            step.copy(stepOrder = index + 1)
+        }
     }
     
     /**
      * 验证当前帧是否完成当前步骤
      * 应在相机帧回调中调用
      */
-    fun validateCurrentFrame(currentFrame: Bitmap, currentZoomRatio: Float = 1.0f) {
+    fun validateCurrentFrame(
+        currentFrame: Bitmap,
+        currentZoomRatio: Float = 1.0f,
+        cameraPoseSample: CameraPoseSample? = null
+    ) {
         val currentState = _uiState.value
         if (currentState !is CameraUiState.Guiding) return
         
@@ -274,12 +381,14 @@ class CameraViewModel : ViewModel() {
         
         viewModelScope.launch {
             // 根据操作类型选择验证方式
-            if (step.actionType.lowercase() == "view-change") {
-                // View-change 使用 ML Kit 物体检测（异步）
+            if (step.isViewpointAction()) {
+                // 视角类动作使用 source/target 双相似度 + 主体辅助分析（异步）
                 validator.validateViewChangeAsync(
                     currentFrame = currentFrame,
                     stepKey = step.stepOrder,
-                    direction = step.direction
+                    actionType = step.actionType,
+                    direction = step.direction,
+                    cameraPoseSample = cameraPoseSample
                 ) { result ->
                     applyValidationResultIfCurrent(
                         result = result,
@@ -294,6 +403,7 @@ class CameraViewModel : ViewModel() {
                 val result = withContext(Dispatchers.Default) {
                     validator.validateStep(
                         currentFrame = currentFrame,
+                        stepKey = step.stepOrder,
                         actionType = step.actionType,
                         direction = step.direction,
                         currentZoomRatio = currentZoomRatio
@@ -446,6 +556,29 @@ class CameraViewModel : ViewModel() {
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun warmCandidateImagesAsync(compositions: List<CompositionResult>) {
+        viewModelScope.launch(Dispatchers.Default) {
+            compositions.forEach { composition ->
+                if (imageCache.containsKey(composition.technique)) return@forEach
+                val bitmap = composition.imageBase64?.let(::decodeBase64Image) ?: return@forEach
+                withContext(Dispatchers.Main) {
+                    imageCache[composition.technique] = bitmap
+                    validationImageCache[composition.technique] = bitmap
+                }
+            }
+        }
+    }
+
+    private fun ensureCompositionBitmapCached(composition: CompositionResult): Bitmap? {
+        val cached = validationImageCache[composition.technique] ?: imageCache[composition.technique]
+        if (cached != null) return cached
+
+        val decoded = composition.imageBase64?.let(::decodeBase64Image) ?: return null
+        imageCache[composition.technique] = decoded
+        validationImageCache[composition.technique] = decoded
+        return decoded
     }
 
     private fun cacheInFrameGuides(guides: List<InFrameCompositionGuide>) {

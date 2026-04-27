@@ -242,6 +242,16 @@ fun TopGuidanceBar(
                         tint = if (isLastStep) SuccessGreen else Color.White,
                         onClick = onNextStep
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { subjectConfidence },
+                        modifier = Modifier
+                            .fillMaxWidth(0.72f)
+                            .height(5.dp),
+                        color = subjectColor,
+                        trackColor = Color.White.copy(alpha = 0.10f)
+                    )
                 }
             }
 
@@ -324,7 +334,7 @@ private fun getDirectionSubLabel(direction: String): String {
 }
 
 private fun getActionIcon(actionType: String, direction: String): ImageVector {
-    return when (actionType.lowercase()) {
+    return when (actionType.normalizedActionType()) {
         "shift" -> when (direction.lowercase()) {
             "left" -> Icons.AutoMirrored.Filled.ArrowBack
             "right" -> Icons.AutoMirrored.Filled.ArrowForward
@@ -332,10 +342,22 @@ private fun getActionIcon(actionType: String, direction: String): ImageVector {
             "down" -> Icons.Default.ArrowDownward
             else -> Icons.Default.OpenWith
         }
+        "level" -> Icons.Default.CropRotate
         "zoom" -> when (direction.lowercase()) {
             "in" -> Icons.Default.ZoomIn
             "out" -> Icons.Default.ZoomOut
             else -> Icons.Default.Search
+        }
+        "orbit" -> when (direction.lowercase()) {
+            "left" -> Icons.AutoMirrored.Filled.ArrowBack
+            "right" -> Icons.AutoMirrored.Filled.ArrowForward
+            else -> Icons.Default.Cached
+        }
+        "raisecamera" -> Icons.Default.ArrowUpward
+        "lowercamera" -> Icons.Default.ArrowDownward
+        "step" -> when (direction.lowercase()) {
+            "backward" -> Icons.Default.ZoomOutMap
+            else -> Icons.Default.ZoomInMap
         }
         "view-change" -> when (direction.lowercase()) {
             "high-angle" -> Icons.Default.ArrowUpward
@@ -365,18 +387,32 @@ private fun resolveEffectiveDirection(
     }
 }
 
-private fun getViewChangeHelperText(direction: String): String {
-    return when (direction.lowercase()) {
-        "high-angle" -> "抬高手机，从更高的角度看向主体"
-        "low-angle" -> "压低手机，从更低的角度看向主体"
-        "side-view-left" -> "围绕主体向左侧移动，切到侧视角"
-        "side-view-right" -> "围绕主体向右侧移动，切到侧视角"
-        else -> "围绕主体移动，逐步改变拍摄视角"
+private fun getViewChangeHelperText(actionType: String, direction: String): String {
+    return when (actionType.normalizedActionType()) {
+        "orbit" -> if (direction.equals("right", ignoreCase = true)) {
+            "让手机沿着主体右侧绕过去，切到新的侧面"
+        } else {
+            "让手机沿着主体左侧绕过去，切到新的侧面"
+        }
+        "raisecamera" -> "整台手机一起抬高，不要只掰手腕"
+        "lowercamera" -> "整台手机一起放低，不要只压手腕"
+        "step" -> if (direction.equals("backward", ignoreCase = true)) {
+            "连人带手机一起后退，给主体留出环境"
+        } else {
+            "连人带手机一起靠近，让主体更有存在感"
+        }
+        else -> when (direction.lowercase()) {
+            "high-angle" -> "抬高手机，从更高的位置看向主体"
+            "low-angle" -> "压低手机，从更低的位置看向主体"
+            "side-view-left" -> "沿着主体左侧绕过去，切到侧视角"
+            "side-view-right" -> "沿着主体右侧绕过去，切到侧视角"
+            else -> "按中间轨迹移动手机，逐步换到新视角"
+        }
     }
 }
 
 private fun getPrimaryInstruction(step: CompositionStep, effectiveDirection: String = step.direction): String {
-    val actionType = step.actionType.lowercase()
+    val actionType = step.actionType.normalizedActionType()
     val direction = effectiveDirection.lowercase()
 
     return when (actionType) {
@@ -389,10 +425,26 @@ private fun getPrimaryInstruction(step: CompositionStep, effectiveDirection: Str
             "rotate-ccw", "ccw" -> "向左转正"
             else -> "调整位置"
         }
+        "level" -> when (direction) {
+            "cw", "rotate-cw" -> "向右转正"
+            "ccw", "rotate-ccw" -> "向左转正"
+            else -> "放平画面"
+        }
         "zoom" -> when (direction) {
             "in" -> "放大一点"
             "out" -> "缩小一点"
             else -> "调整远近"
+        }
+        "orbit" -> when (direction) {
+            "left" -> "向左绕拍"
+            "right" -> "向右绕拍"
+            else -> "环绕主体"
+        }
+        "raisecamera" -> "抬高机位"
+        "lowercamera" -> "压低机位"
+        "step" -> when (direction) {
+            "backward" -> "后退一点"
+            else -> "靠近一点"
         }
         "view-change" -> when (direction) {
             "high-angle" -> "抬高机位"
@@ -412,7 +464,7 @@ private fun getSecondaryInstruction(step: CompositionStep): String {
     }
 
     val direction = step.direction.lowercase()
-    return when (step.actionType.lowercase()) {
+    return when (step.actionType.normalizedActionType()) {
         "shift" -> when (direction) {
             "left" -> "把手机往左挪一点"
             "right" -> "把手机往右挪一点"
@@ -422,13 +474,21 @@ private fun getSecondaryInstruction(step: CompositionStep): String {
             "rotate-ccw", "ccw" -> "手机稍微向左转，把画面放平"
             else -> "继续微调画面位置"
         }
+        "level" -> when (direction) {
+            "rotate-cw", "cw" -> "手机稍微向右转，把画面放平"
+            "rotate-ccw", "ccw" -> "手机稍微向左转，把画面放平"
+            else -> "微调手机角度，把画面放平"
+        }
         "zoom" -> when (direction) {
             "in" -> "放大一点，让主体更靠近"
             "out" -> "缩小一点，留出更多画面"
             else -> "微调远近，贴近参考图"
         }
-        "view-change" -> getViewChangeHelperText(step.direction)
-        else -> "继续按参考图调整"
+        else -> if (step.actionType.isViewpointActionType()) {
+            getViewChangeHelperText(step.actionType, step.direction)
+        } else {
+            "继续按参考图调整"
+        }
     }
 }
 
@@ -442,6 +502,11 @@ private fun normalizeGuideText(text: String): String {
         .replace("CW", "向右转")
         .replace("View-change", "改变视角")
         .replace("view-change", "改变视角")
+        .replace("RaiseCamera", "抬高机位")
+        .replace("LowerCamera", "压低机位")
+        .replace("Orbit", "绕拍")
+        .replace("Step", "前后移动")
+        .replace("Level", "放平画面")
         .replace("Shift", "移动")
         .replace("shift", "移动")
         .replace("Zoom", "变焦")

@@ -116,6 +116,42 @@ object ImageConverter {
 
         return Bitmap.createScaledBitmap(bitmap, targetWidth, newHeight, true)
     }
+
+    /**
+     * 将 Bitmap 按目标长宽比做中心裁切。
+     * 引导阶段需要让“实时分析帧”尽量贴近用户当前看到的取景窗口。
+     */
+    fun centerCropToAspectRatio(bitmap: Bitmap, targetRatio: Float): Bitmap {
+        if (targetRatio <= 0f) {
+            return bitmap
+        }
+
+        val srcWidth = bitmap.width
+        val srcHeight = bitmap.height
+        if (srcWidth <= 0 || srcHeight <= 0) {
+            return bitmap
+        }
+
+        val srcRatio = srcWidth.toFloat() / srcHeight.toFloat()
+        if (kotlin.math.abs(srcRatio - targetRatio) < 0.01f) {
+            return bitmap
+        }
+
+        val (cropWidth, cropHeight) = if (srcRatio > targetRatio) {
+            ((srcHeight * targetRatio).toInt().coerceAtLeast(1)) to srcHeight
+        } else {
+            srcWidth to ((srcWidth / targetRatio).toInt().coerceAtLeast(1))
+        }
+
+        val x = ((srcWidth - cropWidth) / 2).coerceAtLeast(0)
+        val y = ((srcHeight - cropHeight) / 2).coerceAtLeast(0)
+
+        return try {
+            Bitmap.createBitmap(bitmap, x, y, cropWidth, cropHeight)
+        } catch (_: Exception) {
+            bitmap
+        }
+    }
     
     /**
      * 缩放 Bitmap（降低分辨率以加快处理速度）

@@ -1,0 +1,473 @@
+"""
+Gemini Stage 1 provider。
+职责：输出 JSON 分析结果，并支持 image_prompt 前置流式截取。
+"""
+import asyncio
+import base64
+from datetime import datetime
+from io import BytesIO
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+
+from google import genai
+from google.genai import types
+from PIL import Image
+
+from config import (
+    ENABLE_THINKING,
+    ENABLE_GEMINI_TECHNIQUE_PREFILTER,
+    GEMINI_API_KEY,
+    GEMINI_PREFILTER_MAX_TECHNIQUES,
+    GEMINI_PREFILTER_MODEL,
+    GEMINI_PREFILTER_TEMPERATURE,
+    GEMINI_STAGE1_FORCE_MINIMAL_THINKING,
+    GEMINI_STAGE1_MODEL,
+    GEMINI_STAGE1_THINKING_BUDGET,
+    GEMINI_STAGE1_THINKING_LEVEL,
+    GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS,
+    GEMINI_STAGE1_MAX_OUTPUT_TOKENS,
+    GEMINI_STAGE1_RESPONSE_MIME_TYPE,
+    GEMINI_STAGE1_TEMPERATURE,
+    GEMINI_STAGE1_TOP_K,
+    GEMINI_STAGE1_TOP_P,
+    MODEL_THINKING_BUDGET,
+    SYSTEM_INSTRUCTION,
+    TECHNIQUE_CONFIGS,
+)
+from schemas import CompositionResult
+from services.common import (
+    Stage1Result,
+    Stage1Timing,
+    build_stage1_result,
+    extract_complete_json_string_field,
+    image_to_data_url,
+    log_stage1_finish,
+    now_perf,
+    parse_json_from_text,
+    prepare_image_bytes,
+    to_composition_result,
+)
+from services.gemini_profiles import get_gemini_model_profile
+
+
+class GeminiStage1Provider:
+    provider_name = "gemini"
+    model_name = GEMINI_STAGE1_MODEL
+    supports_prompt_streaming_pipeline = True
+    supports_technique_prefilter = True
+
+    def __init__(self):
+        if not GEMINI_API_KEY:
+            raise ValueError("请设置 GEMINI_API_KEY 环境变量")
+        self.client = genai.Client(api_key=GEMINI_API_KEY)
+        self.profile = get_gemini_model_profile(self.model_name)
+        print("✅ GeminiStage1Provider 初始化成功")
+
+    def prepare_image_payload(self, image_bytes: bytes) -> Tuple[bytes, str, str]:
+        processed, mime = prepare_image_bytes(image_bytes)
+        return processed, mime, image_to_data_url(processed, mime)
+
+    def _image_from_data_url(self, image_data_url: str) -> Image.Image:
+        prefix, b64 = image_data_url.split("base64,", 1)
+        image_bytes = base64.b64decode(b64)
+        image = Image.open(BytesIO(image_bytes))
+        if image.mode == "RGBA":
+            image = image.convert("RGB")
+        return image
+
+    def _build_config(self) -> types.GenerateContentConfig:
+        config_kwargs = {
+            "system_instruction": SYSTEM_INSTRUCTION,
+            "temperature": GEMINI_STAGE1_TEMPERATURE,
+            "top_p": GEMINI_STAGE1_TOP_P,
+            "response_modalities": list(self.profile.default_response_modalities),
+            "response_mime_type": GEMINI_STAGE1_RESPONSE_MIME_TYPE,
+        }
+        if self.profile.supports_top_k:
+            config_kwargs["top_k"] = GEMINI_STAGE1_TOP_K
+        if (
+            self.profile.supports_max_output_tokens
+            and not GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS
+        ):
+            config_kwargs["max_output_tokens"] = GEMINI_STAGE1_MAX_OUTPUT_TOKENS
+        if self.profile.supports_thinking:
+            thinking_config = None
+            normalized_model = self.model_name.strip().lower()
+            if ENABLE_THINKING:
+                thinking_config = types.ThinkingConfig(
+                    thinking_budget=MODEL_THINKING_BUDGET
+                )
+            elif GEMINI_STAGE1_FORCE_MINIMAL_THINKING:
+                if normalized_model.startswith("gemini-3"):
+                    thinking_config = types.ThinkingConfig(
+                        thinking_level=GEMINI_STAGE1_THINKING_LEVEL
+                    )
+                elif normalized_model.startswith("gemini-2.5-pro"):
+                    # Gemini 2.5 Pro 不能完全禁用思考，压到最低预算。
+                    thinking_config = types.ThinkingConfig(thinking_budget=128)
+                else:
+                    thinking_config = types.ThinkingConfig(
+                        thinking_budget=GEMINI_STAGE1_THINKING_BUDGET
+                    )
+            if thinking_config is not None:
+                config_kwargs["thinking_config"] = thinking_config
+        return types.GenerateContentConfig(**config_kwargs)
+
+    def _build_prefilter_config(self) -> types.GenerateContentConfig:
+        return types.GenerateContentConfig(
+            temperature=GEMINI_PREFILTER_TEMPERATURE,
+            top_p=0.8,
+            response_modalities=["TEXT"],
+            response_mime_type="application/json",
+        )
+
+    def _build_prefilter_prompt(self, techniques: List[str]) -> str:
+        technique_lines = [
+            f'- "{technique_id}": {TECHNIQUE_CONFIGS[technique_id].name}'
+            for technique_id in techniques
+        ]
+        return (
+            "You are a fast composition triage assistant.\n"
+            "Given one input photo, quickly select only the most promising composition techniques "
+            "for a slower detailed analysis stage.\n"
+            f"Select at most {GEMINI_PREFILTER_MAX_TECHNIQUES} techniques.\n"
+            "Be conservative: do not select weak or marginal techniques.\n"
+            "Prefer general-purpose, high-yield techniques first.\n"
+            "Return only JSON:\n"
+            '{ "selected": ["technique_id_1", "technique_id_2"] }\n'
+            "Candidate techniques:\n" + "\n".join(technique_lines)
+        )
+
+    def _stream_call_sync(self, image_data_url: str, technique_id: str) -> str:
+        image = self._image_from_data_url(image_data_url)
+        stream = self.client.models.generate_content_stream(
+            model=self.model_name,
+            contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
+            config=self._build_config(),
+        )
+        full_text = ""
+        for chunk in stream:
+            text = getattr(chunk, "text", None)
+            if text:
+                full_text += text
+        return full_text
+
+    def _prefilter_call_sync(self, image_data_url: str, techniques: List[str]) -> List[str]:
+        if not ENABLE_GEMINI_TECHNIQUE_PREFILTER or len(techniques) <= GEMINI_PREFILTER_MAX_TECHNIQUES:
+            return techniques
+
+        image = self._image_from_data_url(image_data_url)
+        response = self.client.models.generate_content(
+            model=GEMINI_PREFILTER_MODEL,
+            contents=[self._build_prefilter_prompt(techniques), image],
+            config=self._build_prefilter_config(),
+        )
+        text = getattr(response, "text", None) or ""
+        parsed = parse_json_from_text(text) or {}
+        selected = parsed.get("selected") or []
+        if not isinstance(selected, list):
+            return techniques
+
+        normalized = [
+            technique_id for technique_id in selected
+            if isinstance(technique_id, str) and technique_id in techniques
+        ]
+        if not normalized:
+            return techniques
+        return normalized[:GEMINI_PREFILTER_MAX_TECHNIQUES]
+
+    async def prefilter_techniques(
+        self,
+        image_bytes: bytes,
+        techniques: List[str],
+    ) -> List[str]:
+        if not ENABLE_GEMINI_TECHNIQUE_PREFILTER or len(techniques) <= GEMINI_PREFILTER_MAX_TECHNIQUES:
+            return techniques
+        start_ts = now_perf()
+        _, _, image_data_url = self.prepare_image_payload(image_bytes)
+        try:
+            selected = await asyncio.to_thread(
+                self._prefilter_call_sync,
+                image_data_url,
+                techniques,
+            )
+            elapsed_ms = (now_perf() - start_ts) * 1000
+            print(
+                f"  🔎 [gemini-prefilter:{GEMINI_PREFILTER_MODEL}] "
+                f"{elapsed_ms:.0f}ms selected={selected}",
+                flush=True,
+            )
+            return selected
+        except Exception as error:
+            elapsed_ms = (now_perf() - start_ts) * 1000
+            print(
+                f"  ⚠️ [gemini-prefilter:{GEMINI_PREFILTER_MODEL}] "
+                f"{elapsed_ms:.0f}ms failed={error}",
+                flush=True,
+            )
+            return techniques
+
+    def _stream_call_with_prompt_callback(
+        self,
+        image_data_url: str,
+        technique_id: str,
+        loop: asyncio.AbstractEventLoop,
+        event_queue: asyncio.Queue,
+    ) -> tuple[str, Stage1Timing]:
+        image = self._image_from_data_url(image_data_url)
+        timing = Stage1Timing(technique_id=technique_id, request_start_ts=now_perf())
+        stream = self.client.models.generate_content_stream(
+            model=self.model_name,
+            contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
+            config=self._build_config(),
+        )
+        timing.stream_created_ts = now_perf()
+        full_text = ""
+        prompt_sent = False
+
+        for chunk in stream:
+            text = getattr(chunk, "text", None)
+            if not text:
+                continue
+            full_text += text
+            if not prompt_sent:
+                prompt = extract_complete_json_string_field(full_text, "image_prompt")
+                if prompt:
+                    prompt_sent = True
+                    timing.prompt_ready_ts = now_perf()
+                    loop.call_soon_threadsafe(
+                        event_queue.put_nowait,
+                        {
+                            "event": "prompt_ready",
+                            "technique": technique_id,
+                            "technique_name": TECHNIQUE_CONFIGS[technique_id].name,
+                            "image_prompt": prompt,
+                            "prompt_ready_ms": round(timing.prompt_ms or 0.0),
+                        },
+                    )
+        timing.finish_ts = now_perf()
+        return full_text, timing
+
+    def stream_pipeline_sync(
+        self,
+        image_data_url: str,
+        technique_id: str,
+        loop: asyncio.AbstractEventLoop,
+        prompt_ready_event: asyncio.Event,
+        prompt_ref: list,
+    ) -> tuple[str, Stage1Timing]:
+        image = self._image_from_data_url(image_data_url)
+        timing = Stage1Timing(technique_id=technique_id, request_start_ts=now_perf())
+        stream = self.client.models.generate_content_stream(
+            model=self.model_name,
+            contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
+            config=self._build_config(),
+        )
+        timing.stream_created_ts = now_perf()
+        full_text = ""
+        prompt_sent = False
+
+        for chunk in stream:
+            text = getattr(chunk, "text", None)
+            if not text:
+                continue
+            full_text += text
+            if not prompt_sent:
+                prompt = extract_complete_json_string_field(full_text, "image_prompt")
+                if prompt:
+                    prompt_sent = True
+                    prompt_ref[0] = prompt
+                    timing.prompt_ready_ts = now_perf()
+                    loop.call_soon_threadsafe(prompt_ready_event.set)
+                    print(
+                        f"  ⚡ [gemini:{technique_id}] prompt 就绪 {timing.prompt_ms or 0:.0f}ms",
+                        flush=True,
+                    )
+
+        if not prompt_sent:
+            loop.call_soon_threadsafe(prompt_ready_event.set)
+        timing.finish_ts = now_perf()
+        return full_text, timing
+
+    def parse_single_result(
+        self,
+        technique_id: str,
+        full_content: str,
+        start_ts: float,
+        end_ts: float,
+        start_time: datetime,
+        end_time: datetime,
+        timing: Optional[Stage1Timing] = None,
+    ) -> Stage1Result:
+        parsed_json = parse_json_from_text(full_content)
+        result = build_stage1_result(
+            technique_id=technique_id,
+            technique_name=TECHNIQUE_CONFIGS[technique_id].name,
+            start_time=start_time,
+            end_time=end_time,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            parsed_json=parsed_json,
+        )
+        if timing is not None:
+            timing.finish_ts = timing.finish_ts or now_perf()
+            log_stage1_finish(self.provider_name, technique_id, timing)
+        return result
+
+    async def _call_single_technique(self, image_data_url: str, technique_id: str) -> Stage1Result:
+        start_time = datetime.now()
+        start_ts = now_perf()
+        try:
+            full_content = await asyncio.to_thread(
+                self._stream_call_sync,
+                image_data_url,
+                technique_id,
+            )
+            end_ts = now_perf()
+            return self.parse_single_result(
+                technique_id,
+                full_content,
+                start_ts,
+                end_ts,
+                start_time,
+                datetime.now(),
+            )
+        except Exception as error:
+            end_ts = now_perf()
+            return Stage1Result(
+                technique_id=technique_id,
+                technique_name=TECHNIQUE_CONFIGS[technique_id].name,
+                start_time=start_time.isoformat(),
+                end_time=datetime.now().isoformat(),
+                response_time_ms=(end_ts - start_ts) * 1000,
+                success=False,
+                error_message=str(error),
+            )
+
+    async def analyze_parallel(
+        self,
+        image_bytes: bytes,
+        techniques: Optional[List[str]] = None,
+    ) -> Tuple[List[CompositionResult], float, int, int]:
+        start_ts = now_perf()
+        _, _, image_data_url = self.prepare_image_payload(image_bytes)
+        techniques = techniques or list(TECHNIQUE_CONFIGS.keys())
+        tasks = [
+            asyncio.create_task(self._call_single_technique(image_data_url, technique_id))
+            for technique_id in techniques
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        compositions: List[CompositionResult] = []
+        applicable_count = 0
+
+        for result in results:
+            if isinstance(result, Exception):
+                print(f"⚠️ [gemini] 任务异常: {result}")
+                continue
+            composition = to_composition_result(result)
+            if composition:
+                compositions.append(composition)
+                applicable_count += 1
+            else:
+                print(
+                    f"✓ [gemini:{result.technique_id}] {result.response_time_ms:.0f}ms "
+                    f"applicable={result.is_applicable}, prompt={'✓' if result.image_prompt else '✗'}"
+                )
+
+        total_time_ms = (now_perf() - start_ts) * 1000
+        return compositions, total_time_ms, len(techniques), applicable_count
+
+    async def _call_single_technique_streaming(
+        self,
+        image_data_url: str,
+        technique_id: str,
+        loop: asyncio.AbstractEventLoop,
+        event_queue: asyncio.Queue,
+    ) -> None:
+        start_time = datetime.now()
+        start_ts = now_perf()
+        try:
+            full_content, timing = await asyncio.to_thread(
+                self._stream_call_with_prompt_callback,
+                image_data_url,
+                technique_id,
+                loop,
+                event_queue,
+            )
+            end_ts = timing.finish_ts or now_perf()
+            result = self.parse_single_result(
+                technique_id,
+                full_content,
+                start_ts,
+                end_ts,
+                start_time,
+                datetime.now(),
+                timing=timing,
+            )
+            if result.is_applicable:
+                composition = to_composition_result(result)
+                if composition:
+                    await event_queue.put(
+                        {
+                            "event": "technique_complete",
+                            "technique": result.technique_id,
+                            "technique_name": result.technique_name,
+                            "aesthetic_desc": result.aesthetic_desc,
+                            "steps": [step.model_dump() for step in composition.steps],
+                            "shot_spec": composition.shot_spec.model_dump() if composition.shot_spec else None,
+                            "image_prompt": result.image_prompt,
+                            "response_time_ms": result.response_time_ms,
+                        }
+                    )
+            else:
+                await event_queue.put(
+                    {
+                        "event": "technique_not_applicable",
+                        "technique": technique_id,
+                        "technique_name": TECHNIQUE_CONFIGS[technique_id].name,
+                        "response_time_ms": result.response_time_ms,
+                    }
+                )
+        except Exception as error:
+            await event_queue.put(
+                {
+                    "event": "technique_error",
+                    "technique": technique_id,
+                    "error": str(error),
+                }
+            )
+
+    async def analyze_stream(
+        self,
+        image_bytes: bytes,
+        techniques: Optional[List[str]] = None,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        start_ts = now_perf()
+        _, _, image_data_url = self.prepare_image_payload(image_bytes)
+        techniques = techniques or list(TECHNIQUE_CONFIGS.keys())
+        loop = asyncio.get_running_loop()
+        event_queue: asyncio.Queue = asyncio.Queue()
+
+        async def run_all():
+            tasks = [
+                self._call_single_technique_streaming(image_data_url, tid, loop, event_queue)
+                for tid in techniques
+            ]
+            await asyncio.gather(*tasks, return_exceptions=True)
+            await event_queue.put(None)
+
+        asyncio.create_task(run_all())
+        applicable_count = 0
+        while True:
+            event = await event_queue.get()
+            if event is None:
+                break
+            if event["event"] == "technique_complete":
+                applicable_count += 1
+            yield event
+
+        yield {
+            "event": "summary",
+            "total_techniques": len(techniques),
+            "applicable_count": applicable_count,
+            "total_time_ms": (now_perf() - start_ts) * 1000,
+        }

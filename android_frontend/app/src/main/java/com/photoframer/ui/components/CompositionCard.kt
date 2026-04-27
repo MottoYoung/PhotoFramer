@@ -240,11 +240,12 @@ private fun MetaPill(text: String) {
 }
 
 private fun getStepSummary(composition: CompositionResult): String {
-    val firstAction = composition.steps.firstOrNull()?.actionType ?: return "参考构图"
+    val firstAction = composition.steps.firstOrNull()?.actionType?.lowercase() ?: return "参考构图"
     return when (firstAction) {
-        "Shift" -> "先移动机位"
-        "Zoom" -> "先调整远近"
-        "View-change" -> "先改变视角"
+        "shift" -> "先移动机位"
+        "zoom" -> "先调整远近"
+        "level" -> "先放平画面"
+        "orbit", "raisecamera", "lowercamera", "step", "view-change" -> "先改变机位"
         else -> "按步骤调整"
     }
 }

@@ -3,6 +3,7 @@ package com.photoframer.ui.screens
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
+import android.view.Surface
 import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
@@ -84,7 +85,15 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.photoframer.arcore.ArCoreRuntimeState
+import com.photoframer.arcore.ArCorePoseTracker
+import com.photoframer.arcore.ArCoreStatus
+import com.photoframer.arcore.ArCoreSupport
+import com.photoframer.arcore.findActivity
+import com.photoframer.guidance.isViewpointAction
 import com.photoframer.ui.components.AllStepsCompletedBanner
 import com.photoframer.ui.components.AspectRatioOption
 import com.photoframer.ui.components.CameraBottomBar
@@ -134,10 +143,12 @@ fun CameraScreen(
 
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
-    var cameraInfo by remember { mutableStateOf<CameraInfo?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var zoomRatio by remember { mutableFloatStateOf(1f) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    val arCorePoseTracker = remember(context.applicationContext) {
+        ArCorePoseTracker(context.applicationContext)
+    }
 
     var flashMode by remember { mutableStateOf(FlashMode.OFF) }
     var gridEnabled by remember { mutableStateOf(false) }
@@ -165,8 +176,82 @@ fun CameraScreen(
 
     var frameCounter by remember { mutableIntStateOf(0) }
     var lastAnalysisTime by remember { mutableStateOf(0L) }
-    val analyzeEveryNFrames = 10
-    val minAnalysisInterval = 100L
+    var arCoreStatus by remember { mutableStateOf(ArCoreSupport.idleStatus()) }
+    var hasRequestedArCoreInstall by remember { mutableStateOf(false) }
+
+    val guidingStep = (uiState as? CameraUiState.Guiding)?.currentStep
+    val needsArCore = guidingStep?.isViewpointAction() == true
+    val analyzeEveryNFrames = if (needsArCore) 6 else 4
+    val minAnalysisInterval = if (needsArCore) 90L else 66L
+
+    androidx.compose.runtime.DisposableEffect(
+        lifecycleOwner,
+        needsArCore,
+        guidingStep?.stepOrder
+    ) {
+        if (!needsArCore) {
+            arCoreStatus = ArCoreSupport.idleStatus()
+            hasRequestedArCoreInstall = false
+            arCorePoseTracker.stop()
+            return@DisposableEffect onDispose {}
+        }
+
+        fun refreshArCoreStatus() {
+            val activity = context.findActivity()
+            arCoreStatus = if (activity != null) {
+                ArCoreSupport.resolveForActivity(
+                    activity = activity,
+                    requestInstall = !hasRequestedArCoreInstall
+                ).also { status ->
+                    if (status.state == ArCoreRuntimeState.Installing) {
+                        hasRequestedArCoreInstall = true
+                    }
+                }
+            } else {
+                ArCoreStatus(
+                    state = ArCoreRuntimeState.Failed,
+                    message = "无法启动 ARCore",
+                    detail = "当前继续使用视觉估计"
+                )
+            }
+        }
+
+        refreshArCoreStatus()
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshArCoreStatus()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            arCorePoseTracker.stop()
+        }
+    }
+
+    LaunchedEffect(
+        needsArCore,
+        guidingStep?.stepOrder,
+        arCoreStatus.state,
+        previewView?.width,
+        previewView?.height,
+        useFrontCamera
+    ) {
+        if (!needsArCore || useFrontCamera) {
+            arCorePoseTracker.stop()
+            return@LaunchedEffect
+        }
+
+        val currentPreview = previewView
+        arCorePoseTracker.start(
+            activity = context.findActivity(),
+            preferArCore = arCoreStatus.isReady,
+            viewportWidth = currentPreview?.width ?: 0,
+            viewportHeight = currentPreview?.height ?: 0,
+            displayRotation = currentPreview?.display?.rotation ?: Surface.ROTATION_0
+        )
+    }
 
     LaunchedEffect(uiState) {
         if (uiState is CameraUiState.Preview) {
@@ -378,8 +463,8 @@ fun CameraScreen(
             key(useFrontCamera, flashMode) {
                 AndroidView(
                     factory = { ctx ->
-                        val cameraPreviewView = PreviewView(ctx)
-                        cameraPreviewView.apply {
+                        PreviewView(ctx).apply {
+                            previewView = this
                             layoutParams = android.view.ViewGroup.LayoutParams(
                                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                                 android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -416,12 +501,30 @@ fun CameraScreen(
                                                             imageProxy
                                                         )
                                                     if (bitmap != null) {
+                                                        val croppedBitmap =
+                                                            selectedRatio.toTargetAspectRatio()?.let { targetRatio ->
+                                                                com.photoframer.vision.ImageConverter.centerCropToAspectRatio(
+                                                                    bitmap,
+                                                                    targetRatio
+                                                                )
+                                                            } ?: bitmap
                                                         val scaledBitmap =
                                                             com.photoframer.vision.ImageConverter.scaleBitmapToWidth(
-                                                                bitmap,
+                                                                croppedBitmap,
                                                                 com.photoframer.vision.StepValidator.VALIDATION_FRAME_WIDTH
                                                             )
-                                                        viewModel.validateCurrentFrame(scaledBitmap, zoomRatio)
+                                                        val currentPreview = previewView
+                                                        arCorePoseTracker.updateViewport(
+                                                            width = currentPreview?.width ?: scaledBitmap.width,
+                                                            height = currentPreview?.height ?: scaledBitmap.height,
+                                                            rotation = currentPreview?.display?.rotation
+                                                                ?: Surface.ROTATION_0
+                                                        )
+                                                        viewModel.validateCurrentFrame(
+                                                            currentFrame = scaledBitmap,
+                                                            currentZoomRatio = zoomRatio,
+                                                            cameraPoseSample = arCorePoseTracker.latestPoseSample()
+                                                        )
                                                     }
                                                 }
                                             }
@@ -458,6 +561,7 @@ fun CameraScreen(
                             }, ContextCompat.getMainExecutor(ctx))
                         }
                     },
+                    update = { previewView = it },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -571,6 +675,15 @@ fun CameraScreen(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .padding(top = 80.dp)
+                    )
+                }
+
+                if (!allStepsCompleted && guidingStep?.isViewpointAction() == true) {
+                    ArCoreStatusChip(
+                        status = arCoreStatus,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 156.dp)
                     )
                 }
 
@@ -818,6 +931,61 @@ private fun ErrorOverlay(
                 colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)
             ) {
                 Text(actionText)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArCoreStatusChip(
+    status: ArCoreStatus,
+    modifier: Modifier = Modifier
+) {
+    val (backgroundColor, textColor) = when (status.state) {
+        ArCoreRuntimeState.Ready -> PurplePrimary.copy(alpha = 0.22f) to Color.White
+        ArCoreRuntimeState.Installing,
+        ArCoreRuntimeState.Checking -> SurfaceDark.copy(alpha = 0.92f) to Color.White
+        ArCoreRuntimeState.Unsupported,
+        ArCoreRuntimeState.Failed -> ErrorRed.copy(alpha = 0.18f) to Color.White
+        ArCoreRuntimeState.Idle -> SurfaceDark.copy(alpha = 0.80f) to Color.White.copy(alpha = 0.82f)
+    }
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val statusDot = when (status.state) {
+                ArCoreRuntimeState.Ready -> PurplePrimary
+                ArCoreRuntimeState.Installing,
+                ArCoreRuntimeState.Checking -> Color(0xFFFFC857)
+                ArCoreRuntimeState.Unsupported,
+                ArCoreRuntimeState.Failed -> ErrorRed
+                ArCoreRuntimeState.Idle -> Color.White.copy(alpha = 0.45f)
+            }
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(statusDot, RoundedCornerShape(999.dp))
+            )
+            Column {
+                Text(
+                    text = status.message,
+                    color = textColor,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                status.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                    Text(
+                        text = detail,
+                        color = textColor.copy(alpha = 0.72f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
     }
@@ -1140,35 +1308,15 @@ private fun applyAspectRatioToCapturedFile(
     sourceFile: File,
     ratioOption: AspectRatioOption
 ): File {
+    val targetRatio = ratioOption.toTargetAspectRatio() ?: return sourceFile
+
     if (ratioOption == AspectRatioOption.FULL) {
         return sourceFile
     }
 
     val bitmap = ImageFileDecoder.decodeBitmapRespectingExif(sourceFile) ?: return sourceFile
-    val targetRatio = when (ratioOption) {
-        AspectRatioOption.RATIO_4_3 -> 3f / 4f
-        AspectRatioOption.RATIO_1_1 -> 1f
-        AspectRatioOption.FULL -> return sourceFile
-    }
-
-    val srcWidth = bitmap.width
-    val srcHeight = bitmap.height
-    if (srcWidth <= 0 || srcHeight <= 0) {
-        return sourceFile
-    }
-
-    val srcRatio = srcWidth.toFloat() / srcHeight.toFloat()
-    val (cropWidth, cropHeight) = if (srcRatio > targetRatio) {
-        Pair((srcHeight * targetRatio).toInt().coerceAtLeast(1), srcHeight)
-    } else {
-        Pair(srcWidth, (srcWidth / targetRatio).toInt().coerceAtLeast(1))
-    }
-
-    val x = ((srcWidth - cropWidth) / 2).coerceAtLeast(0)
-    val y = ((srcHeight - cropHeight) / 2).coerceAtLeast(0)
-
     val croppedBitmap = try {
-        Bitmap.createBitmap(bitmap, x, y, cropWidth, cropHeight)
+        com.photoframer.vision.ImageConverter.centerCropToAspectRatio(bitmap, targetRatio)
     } catch (_: Exception) {
         return sourceFile
     }
@@ -1186,5 +1334,13 @@ private fun applyAspectRatioToCapturedFile(
             bitmap.recycle()
             croppedBitmap.recycle()
         }
+    }
+}
+
+private fun AspectRatioOption.toTargetAspectRatio(): Float? {
+    return when (this) {
+        AspectRatioOption.RATIO_4_3 -> 4f / 3f
+        AspectRatioOption.RATIO_1_1 -> 1f
+        AspectRatioOption.FULL -> null
     }
 }

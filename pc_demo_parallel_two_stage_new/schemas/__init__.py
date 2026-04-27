@@ -1,18 +1,15 @@
-"""
-数据模型包
-"""
-from .composition import (
+from schemas.composition import (
     CompositionStep,
-    ShotSpec,
     CompositionResult,
+    ShotSpec,
     AnalysisResponse,
     HealthResponse,
 )
 
 __all__ = [
     "CompositionStep",
-    "ShotSpec",
     "CompositionResult",
+    "ShotSpec",
     "AnalysisResponse",
     "HealthResponse",
 ]

@@ -12,6 +12,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -83,8 +84,8 @@ fun GuidanceOverlay(
             rawTy = 0f
         }
         isViewChangeStep -> {
-            rawTx = if (isCompleted) 1.0f else (validationResult?.tx ?: 0f)
-            rawTy = if (isCompleted) 1.0f else (validationResult?.ty ?: 0f)
+            rawTx = if (isCompleted) 0f else (validationResult?.uiHintX ?: 0f)
+            rawTy = if (isCompleted) 0f else (validationResult?.uiHintY ?: 0f)
         }
         else -> {
             val rawDistance = sqrt(
@@ -100,6 +101,24 @@ fun GuidanceOverlay(
     val animSpec: AnimationSpec<Float> = tween(durationMillis = 150, easing = FastOutSlowInEasing)
     val animTx by animateFloatAsState(targetValue = rawTx, animationSpec = animSpec, label = "tx")
     val animTy by animateFloatAsState(targetValue = rawTy, animationSpec = animSpec, label = "ty")
+    val animViewChangeProgress by animateFloatAsState(
+        targetValue = if (isCompleted) 1f else (validationResult?.progress ?: 0f),
+        animationSpec = animSpec,
+        label = "view_progress"
+    )
+    val animViewChangeDirectionConfidence by animateFloatAsState(
+        targetValue = if (isCompleted) 1f else (validationResult?.directionConfidence ?: 0f),
+        animationSpec = animSpec,
+        label = "view_direction_confidence"
+    )
+    val animViewChangeSubjectConfidence by animateFloatAsState(
+        targetValue = if (isCompleted) 1f else (validationResult?.subjectConfidence ?: 0f),
+        animationSpec = animSpec,
+        label = "view_subject_confidence"
+    )
+    val hasTrackedSubject = validationResult?.hasSubject != false
+    val uiSpaceWidth = (validationResult?.uiSpaceWidth ?: 360f).coerceAtLeast(1f)
+    val uiSpaceHeight = (validationResult?.uiSpaceHeight ?: uiSpaceWidth).coerceAtLeast(1f)
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val centerX = size.width / 2
@@ -275,8 +294,8 @@ fun GuidanceOverlay(
                     color = accentColor
                 )
             }
-
-            drawViewChangeDirectionHint(
+            val guideStrength = (0.35f + directionConfidence * 0.65f).coerceIn(0.35f, 1f)
+            drawViewChangeSubjectAnchor(
                 centerX = centerX,
                 centerY = centerY,
                 arcRadius = arcRadius + 24f,
@@ -284,6 +303,19 @@ fun GuidanceOverlay(
                 confidence = directionConfidence,
                 color = accentColor,
                 shadow = shadow
+            )
+            drawViewChangeActionGuide(
+                centerX = centerX,
+                centerY = centerY,
+                actionType = actionType,
+                direction = step.direction,
+                progress = progress,
+                guideStrength = guideStrength,
+                pulseScale = pulseScale,
+                isCompleted = isCompleted,
+                color = color,
+                shadow = shadow,
+                subjectColor = subjectColor
             )
         }
     }
@@ -422,9 +454,8 @@ private fun DrawScope.drawTargetRing(
 private fun DrawScope.drawViewChangeDirectionHint(
     centerX: Float,
     centerY: Float,
-    arcRadius: Float,
-    direction: String,
     confidence: Float,
+    hasTrackedSubject: Boolean,
     color: Color,
     shadow: Color
 ) {
@@ -450,11 +481,62 @@ private fun DrawScope.drawViewChangeDirectionHint(
         drawPath(path = path, color = tint, style = Stroke(width = stroke, cap = StrokeCap.Round))
     }
 
-    val normalized = direction.lowercase()
-    drawChevron(centerX, centerY - arcRadius, 0f, -1f, normalized == "high-angle")
-    drawChevron(centerX, centerY + arcRadius, 0f, 1f, normalized == "low-angle")
-    drawChevron(centerX - arcRadius, centerY, -1f, 0f, normalized == "side-view-left")
-    drawChevron(centerX + arcRadius, centerY, 1f, 0f, normalized == "side-view-right")
+    drawRoundRect(
+        color = shadow,
+        topLeft = topLeft,
+        size = size,
+        cornerRadius = radius,
+        style = Stroke(width = 5f)
+    )
+    drawRoundRect(
+        color = color,
+        topLeft = topLeft,
+        size = size,
+        cornerRadius = radius,
+        style = Stroke(width = 3f)
+    )
+    drawCircle(shadow, 5f, Offset(center.x, topLeft.y + 10f))
+    drawCircle(color, 3f, Offset(center.x, topLeft.y + 10f))
+}
+
+private fun DrawScope.drawArrowTip(
+    tip: Offset,
+    direction: Offset,
+    size: Float,
+    color: Color,
+    shadow: Color
+) {
+    val path = Path().apply {
+        moveTo(
+            tip.x - direction.x * size - direction.y * size * 0.58f,
+            tip.y - direction.y * size + direction.x * size * 0.58f
+        )
+        lineTo(tip.x, tip.y)
+        lineTo(
+            tip.x - direction.x * size + direction.y * size * 0.58f,
+            tip.y - direction.y * size - direction.x * size * 0.58f
+        )
+    }
+    drawPath(path = path, color = shadow, style = Stroke(width = 6f, cap = StrokeCap.Round))
+    drawPath(path = path, color = color, style = Stroke(width = 3.5f, cap = StrokeCap.Round))
+}
+
+private fun ellipsePoint(
+    centerX: Float,
+    centerY: Float,
+    radiusX: Float,
+    radiusY: Float,
+    angleDegrees: Float
+): Offset {
+    val radians = Math.toRadians(angleDegrees.toDouble())
+    return Offset(
+        x = centerX + (kotlin.math.cos(radians) * radiusX).toFloat(),
+        y = centerY + (kotlin.math.sin(radians) * radiusY).toFloat()
+    )
+}
+
+private fun lerpF(start: Float, end: Float, fraction: Float): Float {
+    return start + (end - start) * fraction.coerceIn(0f, 1f)
 }
 
 private fun DrawScope.drawOrbitDot(

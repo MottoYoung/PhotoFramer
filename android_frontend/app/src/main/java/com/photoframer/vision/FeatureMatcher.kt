@@ -44,7 +44,7 @@ enum class FeatureMatcherProfile(
  * 特征匹配器
  *
  * `REALTIME_ORB` 用于高频实时引导，优先控制 CPU / 发热。
- * `ROBUST_SIFT` 用于视角变化等更难的匹配，优先稳定性。
+ * `ROBUST_SIFT` 保留作离线/高鲁棒性配置，默认引导流程不再使用。
  */
 class FeatureMatcher(
     private val profile: FeatureMatcherProfile = FeatureMatcherProfile.REALTIME_ORB
