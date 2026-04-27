@@ -7,7 +7,6 @@ import re
 import json
 import time
 import base64
-import ssl
 from io import BytesIO
 from typing import List, Optional, Tuple, Dict, Any
 from dataclasses import dataclass, field
@@ -29,7 +28,7 @@ from config import (
     MODEL_MAX_TOKENS,
     THINKING_LEVEL
 )
-from schemas import CompositionStep, CompositionResult
+from schemas import CompositionStep, CompositionResult, ShotSpec
 
 
 @dataclass
@@ -45,6 +44,7 @@ class SingleTechniqueResult:
     error_message: Optional[str] = None
     aesthetic_desc: str = ""
     steps: List[Dict[str, Any]] = field(default_factory=list)
+    shot_spec: Optional[Dict[str, Any]] = None
     image_base64: Optional[str] = None
 
 
@@ -91,6 +91,133 @@ class GeminiService:
         """将图片字节转换为 Base64 data URL"""
         b64_str = base64.b64encode(image_bytes).decode('utf-8')
         return f"data:{mime_type};base64,{b64_str}"
+
+    def _sanitize_composition_result(
+        self,
+        technique_id: str,
+        result: SingleTechniqueResult
+    ) -> SingleTechniqueResult:
+        """
+        服务端质量兜底：
+        - 对角线构图禁止依赖旋转手机/故意倾斜画面
+        """
+        if not result.is_applicable:
+            return result
+
+        normalized_steps = []
+        for step in result.steps:
+            action_type = str(step.get("action_type", "")).strip().lower()
+            direction = str(step.get("direction", "")).strip().lower()
+            normalized_steps.append((action_type, direction))
+
+        has_roll = any(
+            action_type == "level" or direction in {"cw", "ccw", "rotate-cw", "rotate-ccw"}
+            for action_type, direction in normalized_steps
+        )
+
+        if technique_id == "diagonal_composition" and has_roll:
+            result.is_applicable = False
+            result.image_base64 = None
+            result.steps = []
+            result.shot_spec = None
+            result.aesthetic_desc = "对角线构图不能靠歪斜画面强行实现"
+            return result
+
+        result.steps = self._normalize_steps_for_guidance(
+            steps=result.steps,
+            shot_spec=result.shot_spec
+        )
+
+        return result
+
+    def _normalize_steps_for_guidance(
+        self,
+        steps: List[Dict[str, Any]],
+        shot_spec: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        if not steps:
+            return []
+
+        def normalize_action(step: Dict[str, Any]) -> str:
+            return str(step.get("action_type", "")).strip().lower()
+
+        def is_viewpoint(step: Dict[str, Any]) -> bool:
+            return normalize_action(step) in {"orbit", "raisecamera", "lowercamera", "step", "view-change"}
+
+        def is_refine(step: Dict[str, Any]) -> bool:
+            return normalize_action(step) in {"shift", "zoom", "level"}
+
+        def renumber(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            normalized = []
+            for index, step in enumerate(items, start=1):
+                cloned = dict(step)
+                cloned["step_order"] = index
+                normalized.append(cloned)
+            return normalized
+
+        first_viewpoint_index = next((i for i, step in enumerate(steps) if is_viewpoint(step)), -1)
+        if first_viewpoint_index == -1:
+            shift_like = next((dict(step) for step in steps if normalize_action(step) in {"shift", "level"}), None)
+            zoom_like = next((dict(step) for step in steps if normalize_action(step) == "zoom"), None)
+            normalized_steps: List[Dict[str, Any]] = []
+            if shift_like is not None:
+                normalized_steps.append(shift_like)
+            if zoom_like is not None and zoom_like is not shift_like:
+                normalized_steps.append(zoom_like)
+            if not normalized_steps:
+                normalized_steps = [dict(step) for step in steps[:2]]
+            return renumber(normalized_steps[:2])
+
+        viewpoint_step = dict(steps[first_viewpoint_index])
+        trailing_steps = steps[first_viewpoint_index + 1:]
+        shift_refine = next(
+            (dict(step) for step in trailing_steps if normalize_action(step) in {"shift", "level"}),
+            None
+        )
+        zoom_refine = next(
+            (dict(step) for step in trailing_steps if normalize_action(step) == "zoom"),
+            None
+        )
+
+        normalized_steps = [viewpoint_step]
+        if shift_refine is None:
+            shift_refine = self._build_synthetic_shift_step(shot_spec)
+        if shift_refine is not None:
+            normalized_steps.append(shift_refine)
+        if zoom_refine is not None:
+            normalized_steps.append(zoom_refine)
+
+        return renumber(normalized_steps[:3])
+
+    def _build_synthetic_shift_step(
+        self,
+        shot_spec: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        if not shot_spec:
+            return None
+
+        target_center = shot_spec.get("target_subject_center")
+        if not isinstance(target_center, list) or len(target_center) < 2:
+            return None
+
+        try:
+            center_x = float(target_center[0])
+            center_y = float(target_center[1])
+        except (TypeError, ValueError):
+            return None
+
+        delta_x = center_x - 0.5
+        delta_y = center_y - 0.5
+        if abs(delta_x) >= abs(delta_y):
+            direction = "Right" if delta_x >= 0 else "Left"
+        else:
+            direction = "Down" if delta_y >= 0 else "Up"
+
+        return {
+            "action_type": "Shift",
+            "direction": direction,
+            "guide_text": "再把主体对进圆圈"
+        }
     
     async def _call_single_technique(
         self,
@@ -176,9 +303,17 @@ class GeminiService:
                 
                 composition_data = parsed_json.get("composition_data", {})
                 if composition_data:
-                    result.aesthetic_desc = composition_data.get("aesthetic_desc", "")
+                    result.aesthetic_desc = (
+                        parsed_json.get("aesthetic_analysis")
+                        or composition_data.get("core_reasoning")
+                        or composition_data.get("aesthetic_desc")
+                        or ""
+                    )
                     result.steps = composition_data.get("steps", [])
-        
+                    result.shot_spec = composition_data.get("shot_spec")
+
+                result = self._sanitize_composition_result(technique_id, result)
+
         except Exception as e:
             end_ts = time.perf_counter()
             end_time = datetime.now()
@@ -247,12 +382,19 @@ class GeminiService:
                         )
                         for i, step in enumerate(r.steps)
                     ]
+                    shot_spec = None
+                    if r.shot_spec:
+                        try:
+                            shot_spec = ShotSpec(**r.shot_spec)
+                        except Exception as error:
+                            print(f"⚠️ {r.technique_id} shot_spec 解析失败: {error}")
                     
                     compositions.append(CompositionResult(
                         technique=r.technique_id,
                         technique_name=r.technique_name,
                         aesthetic_desc=r.aesthetic_desc,
                         steps=steps,
+                        shot_spec=shot_spec,
                         image_base64=r.image_base64,
                         response_time_ms=r.response_time_ms
                     ))

@@ -1,50 +1,55 @@
-"""
-数据模型定义
-使用 Pydantic 定义请求和响应的数据结构
-"""
+"""两阶段构图分析响应模型。"""
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 
 
 # ==================== 响应模型 ==================== #
 class CompositionStep(BaseModel):
     """单步操作指令"""
     step_order: int = Field(..., description="步骤序号")
-    action_type: str = Field(
-        ...,
-        description="操作类型，如 Shift, Level, Zoom, Orbit, RaiseCamera, LowerCamera, Step 等"
-    )
-    direction: str = Field(
-        ...,
-        description="操作方向，如 Left, Right, Up, Down, In, Out, Forward, Backward, CW, CCW 等"
-    )
+    action_type: str = Field(..., description="操作类型，如 Shift, Zoom, View-change")
+    direction: str = Field(..., description="操作方向，如 Left, Right, In, Out, High-angle 等")
     guide_text: str = Field(..., description="中文指导文本")
 
 
 class ShotSpec(BaseModel):
-    """结构化构图目标，供前端做更稳的引导与验证"""
-    subject_hint: Optional[str] = Field(None, description="主体提示，如 main subject / person")
-    viewpoint_required: bool = Field(default=False, description="是否必须改变机位而不只是平移或变焦")
+    """弱几何先验，供前端闭环验证使用。"""
+    subject_hint: Optional[str] = Field(None, description="主体提示")
+    viewpoint_required: bool = Field(default=False, description="是否必须改变机位")
     target_subject_center: Optional[List[float]] = Field(
         None,
-        description="主体在目标参考图中的归一化中心点 [x, y]"
+        description="主体中心归一化坐标 [x, y]"
     )
     target_subject_size: Optional[float] = Field(
         None,
-        description="主体在目标参考图中的相对尺寸（面积占比或近似比例）"
+        description="主体长边相对画面短边的归一化比例"
     )
-    camera_move_summary: Optional[str] = Field(None, description="相机移动摘要，用于前端文案/调试")
-    validation_notes: Optional[str] = Field(None, description="补充说明")
+    camera_move_summary: Optional[str] = Field(None, description="机位变化摘要")
+    validation_notes: Optional[str] = Field(None, description="验证注意事项")
 
 
 class CompositionResult(BaseModel):
     """单个构图方案"""
     technique: str = Field(..., description="构图技术ID，如 rule_of_thirds")
     technique_name: str = Field(..., description="构图技术中文名称")
-    aesthetic_desc: str = Field(..., description="美学描述（中文）")
+    aesthetic_desc: str = Field(..., description="美学描述与分析理由（中文）")
     steps: List[CompositionStep] = Field(default_factory=list, description="操作步骤列表")
-    shot_spec: Optional[ShotSpec] = Field(None, description="结构化拍摄目标")
-    image_base64: Optional[str] = Field(None, description="生成图片的 Base64 编码")
+    shot_spec: Optional[ShotSpec] = Field(
+        None, description="弱几何目标，供前端验证闭环使用"
+    )
+    image_base64: Optional[str] = Field(
+        None, description="生成的参考构图图片（base64 data URL），前端直接解码显示"
+    )
+    image_prompt: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("image_prompt", "qwen_image_prompt"),
+        serialization_alias="image_prompt",
+        description="Stage 2 图像提示词（调试/流式场景可见）"
+    )
+    timing: Optional[dict] = Field(
+        None,
+        description="链路时延信息，如 prompt_ready_ms / stage1_ms / stage2_ms / total_ms"
+    )
     response_time_ms: Optional[float] = Field(None, description="该方案的响应时间（毫秒）")
 
 
