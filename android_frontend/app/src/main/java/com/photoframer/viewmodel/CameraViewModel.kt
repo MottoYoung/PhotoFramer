@@ -12,6 +12,7 @@ import com.photoframer.data.api.CompositionResult
 import com.photoframer.data.api.InFrameCompositionResponse
 import com.photoframer.data.api.ShotSpec
 import com.photoframer.data.repository.CompositionRepository
+import com.photoframer.guidance.isLevelAction
 import com.photoframer.guidance.isShiftAction
 import com.photoframer.guidance.isViewpointAction
 import com.photoframer.guidance.isZoomAction
@@ -38,6 +39,13 @@ import java.io.File
  * 管理 UI 状态和业务逻辑
  */
 class CameraViewModel : ViewModel() {
+    private data class ActiveValidation(
+        val sessionId: Long,
+        val stepIndex: Int,
+        val requestId: Long
+    )
+
+    private val validationLock = Any()
     
     private val repository = CompositionRepository()
     
@@ -84,6 +92,7 @@ class CameraViewModel : ViewModel() {
     // 引导会话与验证请求版本号，确保只有“当前步骤、当前请求”的结果可以生效
     private var guidanceSessionId = 0L
     private var latestValidationRequestId = 0L
+    private var activeValidation: ActiveValidation? = null
     
     /**
      * 分析图片构图 (v3.1 并行化后端)
@@ -240,6 +249,7 @@ class CameraViewModel : ViewModel() {
         } else {
             stepValidator = null
         }
+        stepValidator?.resetStableFrames()
 
         beginGuidanceSession()
         _validationResult.value = null
@@ -266,37 +276,35 @@ class CameraViewModel : ViewModel() {
     ): List<CompositionStep> {
         if (steps.isEmpty()) return emptyList()
 
-        val firstViewpointIndex = steps.indexOfFirst { it.isViewpointAction() }
-        if (firstViewpointIndex == -1) {
-            val shiftLike = steps.firstOrNull { it.isShiftAction() }
-            val zoomLike = steps.firstOrNull { it.isZoomAction() }
-            val normalized = buildList {
-                if (shiftLike != null) add(simplifyRefineStep(shiftLike))
-                if (zoomLike != null) add(simplifyRefineStep(zoomLike))
-                if (isEmpty()) addAll(steps.take(2))
+        val normalized = steps.map { step ->
+            when {
+                step.isViewpointAction() -> step.copy(
+                    guideText = simplifyViewpointGuideText(step)
+                )
+                step.isLevelAction() -> step.copy(
+                    guideText = simplifyLevelGuideText(step)
+                )
+                step.isShiftAction() -> step.copy(
+                    guideText = simplifyShiftGuideText(step)
+                )
+                step.isZoomAction() -> step.copy(
+                    guideText = simplifyZoomGuideText(step)
+                )
+                else -> step
             }
-            return renumberSteps(normalized.take(2))
+        }.toMutableList()
+
+        val firstViewpointIndex = normalized.indexOfFirst { it.isViewpointAction() }
+        if (firstViewpointIndex != -1) {
+            val trailingSteps = normalized.drop(firstViewpointIndex + 1)
+            val hasTrailingPositionRefine = trailingSteps.any { it.isShiftAction() }
+            if (!hasTrailingPositionRefine) {
+                buildSyntheticShiftRefineStep(shotSpec)?.let { syntheticStep ->
+                    normalized += syntheticStep
+                }
+            }
         }
 
-        val viewpointStep = steps[firstViewpointIndex].copy(
-            guideText = simplifyViewpointGuideText(steps[firstViewpointIndex])
-        )
-        val trailingSteps = steps.drop(firstViewpointIndex + 1)
-        val shiftRefine = trailingSteps
-            .firstOrNull { it.isShiftAction() }
-            ?.let { simplifyRefineStep(it) }
-            ?: buildSyntheticShiftRefineStep(shotSpec)
-        val zoomRefine = trailingSteps
-            .firstOrNull { it.isZoomAction() }
-            ?.let { simplifyRefineStep(it) }
-
-        val normalized = mutableListOf(viewpointStep)
-        if (shiftRefine != null) {
-            normalized += shiftRefine
-        }
-        if (zoomRefine != null) {
-            normalized += zoomRefine
-        }
         return renumberSteps(normalized.take(3))
     }
 
@@ -318,13 +326,30 @@ class CameraViewModel : ViewModel() {
         }
     }
 
-    private fun simplifyRefineStep(step: CompositionStep): CompositionStep {
-        val guideText = when {
-            step.isShiftAction() -> "再把主体对进圆圈"
-            step.isZoomAction() -> "再把画面缩放到参考大小"
-            else -> step.guideText
+    private fun simplifyLevelGuideText(step: CompositionStep): String {
+        return if (step.direction.equals("cw", ignoreCase = true)) {
+            "再微微向右转正画面"
+        } else {
+            "再微微向左转正画面"
         }
-        return step.copy(guideText = guideText)
+    }
+
+    private fun simplifyShiftGuideText(step: CompositionStep): String {
+        return when (step.direction.trim().lowercase()) {
+            "left" -> "再把主体往左对进圆圈"
+            "right" -> "再把主体往右对进圆圈"
+            "up" -> "再把主体往上对进圆圈"
+            "down" -> "再把主体往下对进圆圈"
+            else -> "再把主体对进圆圈"
+        }
+    }
+
+    private fun simplifyZoomGuideText(step: CompositionStep): String {
+        return if (step.direction.equals("out", ignoreCase = true)) {
+            "再把画面缩小到参考大小"
+        } else {
+            "再把画面缩放到参考大小"
+        }
     }
 
     private fun buildSyntheticShiftRefineStep(shotSpec: ShotSpec?): CompositionStep? {
@@ -376,18 +401,41 @@ class CameraViewModel : ViewModel() {
         val sessionId = guidanceSessionId
         val stepIndex = currentState.currentStepIndex
         val requestId = nextValidationRequestId()
+        if (!tryStartValidation(sessionId, stepIndex, requestId)) return
         
         viewModelScope.launch {
-            // 根据操作类型选择验证方式
-            if (step.isViewpointAction()) {
-                // 视角类动作使用 source/target 双相似度 + 主体辅助分析（异步）
-                validator.validateViewChangeAsync(
-                    currentFrame = currentFrame,
-                    stepKey = step.stepOrder,
-                    actionType = step.actionType,
-                    direction = step.direction,
-                    cameraPoseSample = cameraPoseSample
-                ) { result ->
+            try {
+                // 根据操作类型选择验证方式
+                if (step.isViewpointAction()) {
+                    // 视角类动作使用 source/target 双相似度 + 主体辅助分析（异步）
+                    validator.validateViewChangeAsync(
+                        currentFrame = currentFrame,
+                        stepKey = step.stepOrder,
+                        actionType = step.actionType,
+                        direction = step.direction,
+                        cameraPoseSample = cameraPoseSample
+                    ) { result ->
+                        applyValidationResultIfCurrent(
+                            result = result,
+                            validator = validator,
+                            sessionId = sessionId,
+                            stepIndex = stepIndex,
+                            requestId = requestId
+                        )
+                        finishValidation(sessionId, stepIndex, requestId)
+                    }
+                } else {
+                    // Shift 和 Zoom 使用 Homography 验证
+                    val result = withContext(Dispatchers.Default) {
+                        validator.validateStep(
+                            currentFrame = currentFrame,
+                            stepKey = step.stepOrder,
+                            actionType = step.actionType,
+                            direction = step.direction,
+                            currentZoomRatio = currentZoomRatio
+                        )
+                    }
+
                     applyValidationResultIfCurrent(
                         result = result,
                         validator = validator,
@@ -395,26 +443,10 @@ class CameraViewModel : ViewModel() {
                         stepIndex = stepIndex,
                         requestId = requestId
                     )
+                    finishValidation(sessionId, stepIndex, requestId)
                 }
-            } else {
-                // Shift 和 Zoom 使用 Homography 验证
-                val result = withContext(Dispatchers.Default) {
-                    validator.validateStep(
-                        currentFrame = currentFrame,
-                        stepKey = step.stepOrder,
-                        actionType = step.actionType,
-                        direction = step.direction,
-                        currentZoomRatio = currentZoomRatio
-                    )
-                }
-
-                applyValidationResultIfCurrent(
-                    result = result,
-                    validator = validator,
-                    sessionId = sessionId,
-                    stepIndex = stepIndex,
-                    requestId = requestId
-                )
+            } catch (_: Exception) {
+                finishValidation(sessionId, stepIndex, requestId)
             }
         }
     }
@@ -475,12 +507,20 @@ class CameraViewModel : ViewModel() {
         if (currentState is CameraUiState.Guiding && !currentState.isLastStep) {
             invalidatePendingValidation()
             isAutoAdvancing = false
+            stepValidator?.resetStableFrames()
             _validationResult.value = null
             _stepCompleted.value = false
             _allStepsCompleted.value = false
             _uiState.value = currentState.copy(
                 currentStepIndex = currentState.currentStepIndex + 1
             )
+        } else if (
+            currentState is CameraUiState.Guiding &&
+            currentState.isLastStep &&
+            _validationResult.value?.isCompleted == true
+        ) {
+            _allStepsCompleted.value = true
+            invalidatePendingValidation()
         }
     }
     
@@ -492,6 +532,7 @@ class CameraViewModel : ViewModel() {
         if (currentState is CameraUiState.Guiding && !currentState.isFirstStep) {
             invalidatePendingValidation()
             isAutoAdvancing = false
+            stepValidator?.resetStableFrames()
             _validationResult.value = null
             _stepCompleted.value = false
             _allStepsCompleted.value = false
@@ -601,6 +642,7 @@ class CameraViewModel : ViewModel() {
         guidanceSessionId += 1
         latestValidationRequestId = 0L
         isAutoAdvancing = false
+        resetActiveValidation()
     }
 
     private fun invalidateGuidanceSession() {
@@ -616,6 +658,46 @@ class CameraViewModel : ViewModel() {
 
     private fun invalidatePendingValidation() {
         latestValidationRequestId += 1
+        resetActiveValidation()
+    }
+
+    private fun tryStartValidation(
+        sessionId: Long,
+        stepIndex: Int,
+        requestId: Long
+    ): Boolean {
+        synchronized(validationLock) {
+            if (activeValidation != null) return false
+            activeValidation = ActiveValidation(
+                sessionId = sessionId,
+                stepIndex = stepIndex,
+                requestId = requestId
+            )
+            return true
+        }
+    }
+
+    private fun finishValidation(
+        sessionId: Long,
+        stepIndex: Int,
+        requestId: Long
+    ) {
+        synchronized(validationLock) {
+            val current = activeValidation ?: return
+            if (
+                current.sessionId == sessionId &&
+                current.stepIndex == stepIndex &&
+                current.requestId == requestId
+            ) {
+                activeValidation = null
+            }
+        }
+    }
+
+    private fun resetActiveValidation() {
+        synchronized(validationLock) {
+            activeValidation = null
+        }
     }
 
     private fun isGuidanceStepCurrent(
@@ -642,8 +724,14 @@ class CameraViewModel : ViewModel() {
 
         _validationResult.value = result
 
-        if (result.isCompleted && _autoAdvanceEnabled.value && !isAutoAdvancing) {
-            handleStepCompleted(sessionId, stepIndex)
+        if (result.isCompleted && !isAutoAdvancing) {
+            val currentState = _uiState.value as? CameraUiState.Guiding
+            if (!_autoAdvanceEnabled.value && currentState?.isLastStep == true) {
+                _allStepsCompleted.value = true
+                invalidatePendingValidation()
+            } else if (_autoAdvanceEnabled.value) {
+                handleStepCompleted(sessionId, stepIndex)
+            }
         }
     }
 }

@@ -73,6 +73,9 @@ object InFrameCompositionGuideBuilder {
                 cropRect.height()
             )
 
+        // 大多数手机数码变焦本质上是中心裁切并等比放大。
+        // 这里取 width/height 裁切倍率的较大者，确保目标裁切框能被完整覆盖，
+        // 避免预览里看起来“主体还没裁进来”。
         val zoomRatio = max(
             sourceBitmap.width.toFloat() / cropRect.width().toFloat(),
             sourceBitmap.height.toFloat() / cropRect.height().toFloat()

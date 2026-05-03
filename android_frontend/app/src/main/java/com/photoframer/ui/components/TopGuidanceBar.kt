@@ -303,6 +303,7 @@ private fun GuidanceNavButton(
 private fun getActionPillLabel(actionType: String): String {
     return when (actionType.normalizedActionType()) {
         "shift" -> "取景移动"
+        "level" -> "水平校正"
         "zoom" -> "焦距校准"
         "orbit", "raisecamera", "lowercamera", "step", "view-change" -> "视角切换"
         else -> "构图引导"
@@ -315,6 +316,8 @@ private fun getDirectionSubLabel(direction: String): String {
         "right" -> "向画面右侧微调"
         "up" -> "向更高机位调整"
         "down" -> "向更低机位调整"
+        "cw" -> "顺时针微微转正"
+        "ccw" -> "逆时针微微转正"
         "in" -> "主体再靠近一点"
         "out" -> "给画面更多留白"
         "high-angle" -> "提升俯视感"
@@ -334,6 +337,7 @@ private fun getActionIcon(actionType: String, direction: String): ImageVector {
             "down" -> Icons.Default.ArrowDownward
             else -> Icons.Default.OpenWith
         }
+        "level" -> Icons.Default.Rotate90DegreesCw
         "zoom" -> when (direction.lowercase()) {
             "in" -> Icons.Default.ZoomIn
             "out" -> Icons.Default.ZoomOut
@@ -399,9 +403,12 @@ private fun getPrimaryInstruction(step: CompositionStep, effectiveDirection: Str
             "right" -> "向右移动"
             "up" -> "向上移动"
             "down" -> "向下移动"
+            else -> "调整位置"
+        }
+        "level" -> when (direction) {
             "rotate-cw", "cw" -> "向右转正"
             "rotate-ccw", "ccw" -> "向左转正"
-            else -> "调整位置"
+            else -> "转正画面"
         }
         "zoom" -> when (direction) {
             "in" -> "放大一点"
@@ -430,9 +437,12 @@ private fun getSecondaryInstruction(step: CompositionStep): String {
             "right" -> "把手机往右挪一点"
             "up" -> "把手机稍微抬高一点"
             "down" -> "把手机稍微压低一点"
+            else -> "继续微调画面位置"
+        }
+        "level" -> when (direction) {
             "rotate-cw", "cw" -> "手机稍微向右转，把画面放平"
             "rotate-ccw", "ccw" -> "手机稍微向左转，把画面放平"
-            else -> "继续微调画面位置"
+            else -> "继续把画面转正"
         }
         "zoom" -> when (direction) {
             "in" -> "放大一点，让主体更靠近"

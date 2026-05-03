@@ -133,6 +133,11 @@ class FeatureMatcher(
 
             prepareDescriptorsForMatcher(currentDescriptors)
 
+            // 语义约定：
+            // - query = target
+            // - train = current
+            // 因此下面求出的变换是 "target -> current"。
+            // StepValidator 的反馈方向基于这套约定实现，不能随意交换 query/train。
             matcher.knnMatch(cachedTargetDescriptors, currentDescriptors, knnMatches, 2)
             
             // Lowe's ratio test 筛选好的匹配

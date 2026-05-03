@@ -99,3 +99,8 @@ docs/
 **/credentials.json
 .env.local
 .env.*.local
+
+# 测试数据（敏感） 文档
+test_data/
+docs/
+

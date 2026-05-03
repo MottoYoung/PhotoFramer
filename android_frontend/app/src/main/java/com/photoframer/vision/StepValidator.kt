@@ -966,7 +966,8 @@ class StepValidator(
             val newDist = kotlin.math.sqrt(newTx * newTx + newTy * newTy) 
             
             val newScale = alpha * input.scaleFactor + (1 - alpha) * last.scaleFactor
-            val newRot = alpha * input.rotationAngle + (1 - alpha) * last.rotationAngle
+            val deltaRot = normalizeAngleDelta(input.rotationAngle - last.rotationAngle)
+            val newRot = normalizeAngle(last.rotationAngle + alpha * deltaRot)
             
             val result = HomographyComponents(
                 translationX = newTx,
@@ -977,6 +978,20 @@ class StepValidator(
             )
             lastVal = result
             return result
+        }
+
+        private fun normalizeAngleDelta(angleDegrees: Double): Double {
+            var normalized = angleDegrees
+            while (normalized > 180.0) normalized -= 360.0
+            while (normalized < -180.0) normalized += 360.0
+            return normalized
+        }
+
+        private fun normalizeAngle(angleDegrees: Double): Double {
+            var normalized = angleDegrees
+            while (normalized > 180.0) normalized -= 360.0
+            while (normalized < -180.0) normalized += 360.0
+            return normalized
         }
     }
 
@@ -1001,5 +1016,11 @@ class StepValidator(
         viewChangeAnalyzer = null
         motionBaseline = null
         motionStableFrames = 0
+    }
+
+    fun resetStableFrames() {
+        motionStableFrames = 0
+        motionBaseline = null
+        viewChangeAnalyzer?.resetStableFrames()
     }
 }

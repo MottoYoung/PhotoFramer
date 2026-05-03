@@ -76,6 +76,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.photoframer.arcore.ArCoreRuntimeState
+import com.photoframer.arcore.CameraPoseSample
+import com.photoframer.arcore.CameraPoseSource
 import com.photoframer.arcore.ArCorePoseTracker
 import com.photoframer.arcore.ArCoreStatus
 import com.photoframer.arcore.ArCoreSupport
@@ -155,6 +157,7 @@ fun CameraScreen(
     var lastAnalysisTime by remember { mutableStateOf(0L) }
     var arCoreStatus by remember { mutableStateOf(ArCoreSupport.idleStatus()) }
     var hasRequestedArCoreInstall by remember { mutableStateOf(false) }
+    var latestPoseSample by remember { mutableStateOf<CameraPoseSample?>(null) }
 
     val guidingStep = (uiState as? CameraUiState.Guiding)?.currentStep
     val needsArCore = guidingStep?.isViewpointAction() == true
@@ -217,6 +220,7 @@ fun CameraScreen(
     ) {
         if (!needsArCore || useFrontCamera) {
             arCorePoseTracker.stop()
+            latestPoseSample = null
             return@LaunchedEffect
         }
 
@@ -434,10 +438,14 @@ fun CameraScreen(
                                                             rotation = currentPreview?.display?.rotation
                                                                 ?: Surface.ROTATION_0
                                                         )
+                                                        val poseSample = arCorePoseTracker.latestPoseSample()
+                                                        scope.launch {
+                                                            latestPoseSample = poseSample
+                                                        }
                                                         viewModel.validateCurrentFrame(
                                                             currentFrame = scaledBitmap,
                                                             currentZoomRatio = zoomRatio,
-                                                            cameraPoseSample = arCorePoseTracker.latestPoseSample()
+                                                            cameraPoseSample = poseSample
                                                         )
                                                     }
                                                 }
@@ -506,11 +514,7 @@ fun CameraScreen(
                             currentStepIndex = guidingState.currentStepIndex,
                             totalSteps = guidingState.totalSteps,
                             onPreviousStep = { viewModel.previousStep() },
-                            onNextStep = {
-                                if (!guidingState.isLastStep) {
-                                    viewModel.nextStep()
-                                }
-                            },
+                            onNextStep = { viewModel.nextStep() },
                             isFirstStep = guidingState.isFirstStep,
                             isLastStep = guidingState.isLastStep,
                             validationResult = validationResult,
@@ -531,6 +535,7 @@ fun CameraScreen(
                 if (!allStepsCompleted && guidingStep?.isViewpointAction() == true) {
                     ArCoreStatusChip(
                         status = arCoreStatus,
+                        poseSample = latestPoseSample,
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(end = 16.dp, bottom = 156.dp)
@@ -789,6 +794,7 @@ private fun ErrorOverlay(
 @Composable
 private fun ArCoreStatusChip(
     status: ArCoreStatus,
+    poseSample: CameraPoseSample?,
     modifier: Modifier = Modifier
 ) {
     val (backgroundColor, textColor) = when (status.state) {
@@ -829,7 +835,13 @@ private fun ArCoreStatusChip(
                     color = textColor,
                     style = MaterialTheme.typography.labelMedium
                 )
-                status.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                val trackingDetail = poseSample?.let { sample ->
+                    when (sample.source) {
+                        CameraPoseSource.ARCORE -> "追踪源: ARCore"
+                        CameraPoseSource.DEVICE_MOTION -> "追踪源: DeviceMotion"
+                    }
+                }
+                listOfNotNull(status.detail?.takeIf { it.isNotBlank() }, trackingDetail).forEach { detail ->
                     Text(
                         text = detail,
                         color = textColor.copy(alpha = 0.72f),

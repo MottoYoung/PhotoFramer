@@ -35,25 +35,15 @@ object ImageConverter {
      * YUV_420_888 格式转换
      */
     private fun yuvToBitmap(imageProxy: ImageProxy): Bitmap? {
-        val yBuffer = imageProxy.planes[0].buffer
-        val uBuffer = imageProxy.planes[1].buffer
-        val vBuffer = imageProxy.planes[2].buffer
-        
-        val ySize = yBuffer.remaining()
-        val uSize = uBuffer.remaining()
-        val vSize = vBuffer.remaining()
-        
-        val nv21 = ByteArray(ySize + uSize + vSize)
-        
-        yBuffer.get(nv21, 0, ySize)
-        vBuffer.get(nv21, ySize, vSize)
-        uBuffer.get(nv21, ySize + vSize, uSize)
+        val width = imageProxy.width
+        val height = imageProxy.height
+        val nv21 = yuv420888ToNv21(imageProxy)
         
         val yuvImage = YuvImage(
             nv21,
             ImageFormat.NV21,
-            imageProxy.width,
-            imageProxy.height,
+            width,
+            height,
             null
         )
         
@@ -69,6 +59,81 @@ object ImageConverter {
         
         // 旋转图片以匹配显示方向
         return rotateBitmap(bitmap, imageProxy.imageInfo.rotationDegrees)
+    }
+
+    private fun yuv420888ToNv21(imageProxy: ImageProxy): ByteArray {
+        val width = imageProxy.width
+        val height = imageProxy.height
+        val ySize = width * height
+        val uvSize = width * height / 2
+        val nv21 = ByteArray(ySize + uvSize)
+
+        val yPlane = imageProxy.planes[0]
+        val uPlane = imageProxy.planes[1]
+        val vPlane = imageProxy.planes[2]
+
+        copyLumaPlane(
+            plane = yPlane,
+            width = width,
+            height = height,
+            out = nv21
+        )
+
+        interleaveChromaPlanes(
+            uPlane = uPlane,
+            vPlane = vPlane,
+            width = width,
+            height = height,
+            out = nv21,
+            outOffset = ySize
+        )
+
+        return nv21
+    }
+
+    private fun copyLumaPlane(
+        plane: ImageProxy.PlaneProxy,
+        width: Int,
+        height: Int,
+        out: ByteArray
+    ) {
+        val buffer = plane.buffer.duplicate()
+        val rowStride = plane.rowStride
+        val pixelStride = plane.pixelStride
+        var outputIndex = 0
+
+        for (row in 0 until height) {
+            val rowOffset = row * rowStride
+            for (col in 0 until width) {
+                out[outputIndex++] = buffer.get(rowOffset + col * pixelStride)
+            }
+        }
+    }
+
+    private fun interleaveChromaPlanes(
+        uPlane: ImageProxy.PlaneProxy,
+        vPlane: ImageProxy.PlaneProxy,
+        width: Int,
+        height: Int,
+        out: ByteArray,
+        outOffset: Int
+    ) {
+        val chromaWidth = width / 2
+        val chromaHeight = height / 2
+        val uBuffer = uPlane.buffer.duplicate()
+        val vBuffer = vPlane.buffer.duplicate()
+        var outputIndex = outOffset
+
+        for (row in 0 until chromaHeight) {
+            val uRowOffset = row * uPlane.rowStride
+            val vRowOffset = row * vPlane.rowStride
+            for (col in 0 until chromaWidth) {
+                val uIndex = uRowOffset + col * uPlane.pixelStride
+                val vIndex = vRowOffset + col * vPlane.pixelStride
+                out[outputIndex++] = vBuffer.get(vIndex)
+                out[outputIndex++] = uBuffer.get(uIndex)
+            }
+        }
     }
     
     /**

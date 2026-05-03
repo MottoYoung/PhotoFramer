@@ -41,6 +41,19 @@ private data class SubjectAssessment(
     val hasTargetAnchor: Boolean
 )
 
+private data class ActionProfile(
+    val arrivalThreshold: Float,
+    val directionThreshold: Float,
+    val subjectThreshold: Float,
+    val nearTargetArrivalThreshold: Float,
+    val targetSimilarityFloor: Float,
+    val targetAlignmentFloor: Float,
+    val nearTargetSimilarityFloor: Float,
+    val nearTargetAlignmentFloor: Float,
+    val nearTargetDirectionFloor: Float,
+    val requiredStableFrames: Int
+)
+
 /**
  * View-change 分析器（v3）
  *
@@ -114,6 +127,70 @@ class ViewChangeAnalyzer(
         private const val STABLE_FRAME_COUNT_VERTICAL = 2
         private const val STABLE_FRAME_COUNT_MOVING_POSE = 2
         private const val SUBJECT_MISS_GRACE_FRAMES = 2
+
+        private val DEFAULT_ACTION_PROFILE = ActionProfile(
+            arrivalThreshold = ARRIVAL_THRESHOLD,
+            directionThreshold = DIRECTION_THRESHOLD,
+            subjectThreshold = SUBJECT_THRESHOLD,
+            nearTargetArrivalThreshold = 1f,
+            targetSimilarityFloor = 0f,
+            targetAlignmentFloor = 0f,
+            nearTargetSimilarityFloor = 0f,
+            nearTargetAlignmentFloor = 0f,
+            nearTargetDirectionFloor = NEAR_TARGET_DIRECTION_FLOOR,
+            requiredStableFrames = STABLE_FRAME_COUNT
+        )
+
+        private val ACTION_PROFILES = mapOf(
+            "raisecamera" to ActionProfile(
+                arrivalThreshold = ARRIVAL_THRESHOLD_VERTICAL,
+                directionThreshold = DIRECTION_THRESHOLD_VERTICAL,
+                subjectThreshold = SUBJECT_THRESHOLD_VERTICAL,
+                nearTargetArrivalThreshold = NEAR_TARGET_ARRIVAL_VERTICAL,
+                targetSimilarityFloor = TARGET_SIMILARITY_FLOOR_VERTICAL,
+                targetAlignmentFloor = TARGET_ALIGNMENT_FLOOR_VERTICAL,
+                nearTargetSimilarityFloor = NEAR_TARGET_SIMILARITY_FLOOR_VERTICAL,
+                nearTargetAlignmentFloor = NEAR_TARGET_ALIGNMENT_FLOOR_VERTICAL,
+                nearTargetDirectionFloor = NEAR_TARGET_DIRECTION_FLOOR_VERTICAL,
+                requiredStableFrames = STABLE_FRAME_COUNT_VERTICAL
+            ),
+            "lowercamera" to ActionProfile(
+                arrivalThreshold = ARRIVAL_THRESHOLD_LOWER_CAMERA,
+                directionThreshold = DIRECTION_THRESHOLD_LOWER_CAMERA,
+                subjectThreshold = SUBJECT_THRESHOLD_LOWER_CAMERA,
+                nearTargetArrivalThreshold = NEAR_TARGET_ARRIVAL_LOWER_CAMERA,
+                targetSimilarityFloor = TARGET_SIMILARITY_FLOOR_LOWER_CAMERA,
+                targetAlignmentFloor = TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA,
+                nearTargetSimilarityFloor = NEAR_TARGET_SIMILARITY_FLOOR_LOWER_CAMERA,
+                nearTargetAlignmentFloor = NEAR_TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA,
+                nearTargetDirectionFloor = NEAR_TARGET_DIRECTION_FLOOR_VERTICAL,
+                requiredStableFrames = STABLE_FRAME_COUNT_VERTICAL
+            ),
+            "orbit" to ActionProfile(
+                arrivalThreshold = ARRIVAL_THRESHOLD_ORBIT,
+                directionThreshold = DIRECTION_THRESHOLD_ORBIT,
+                subjectThreshold = SUBJECT_THRESHOLD_ORBIT,
+                nearTargetArrivalThreshold = NEAR_TARGET_ARRIVAL_ORBIT,
+                targetSimilarityFloor = TARGET_SIMILARITY_FLOOR_ORBIT,
+                targetAlignmentFloor = TARGET_ALIGNMENT_FLOOR_ORBIT,
+                nearTargetSimilarityFloor = NEAR_TARGET_SIMILARITY_FLOOR_ORBIT,
+                nearTargetAlignmentFloor = NEAR_TARGET_ALIGNMENT_FLOOR_ORBIT,
+                nearTargetDirectionFloor = NEAR_TARGET_DIRECTION_FLOOR,
+                requiredStableFrames = STABLE_FRAME_COUNT_MOVING_POSE
+            ),
+            "step" to ActionProfile(
+                arrivalThreshold = ARRIVAL_THRESHOLD_STEP,
+                directionThreshold = DIRECTION_THRESHOLD_STEP,
+                subjectThreshold = SUBJECT_THRESHOLD_STEP,
+                nearTargetArrivalThreshold = NEAR_TARGET_ARRIVAL_STEP,
+                targetSimilarityFloor = TARGET_SIMILARITY_FLOOR_STEP,
+                targetAlignmentFloor = TARGET_ALIGNMENT_FLOOR_STEP,
+                nearTargetSimilarityFloor = NEAR_TARGET_SIMILARITY_FLOOR_STEP,
+                nearTargetAlignmentFloor = NEAR_TARGET_ALIGNMENT_FLOOR_STEP,
+                nearTargetDirectionFloor = NEAR_TARGET_DIRECTION_FLOOR,
+                requiredStableFrames = STABLE_FRAME_COUNT_MOVING_POSE
+            )
+        )
     }
 
     init {
@@ -155,6 +232,7 @@ class ViewChangeAnalyzer(
         val isOrbitAction = normalizedActionType == "orbit"
         val isStepAction = normalizedActionType == "step"
         val isMovingPoseAction = isOrbitAction || isStepAction
+        val profile = actionProfile(normalizedActionType)
 
         targetSimHistory.addLast(targetSimilarityScore)
         while (targetSimHistory.size > HISTORY_CAPACITY) targetSimHistory.removeFirst()
@@ -179,32 +257,6 @@ class ViewChangeAnalyzer(
             temporalScore
         }
 
-        val arrivalThreshold = when {
-            isLowerCameraAction -> ARRIVAL_THRESHOLD_LOWER_CAMERA
-            isVerticalCameraAction -> ARRIVAL_THRESHOLD_VERTICAL
-            isOrbitAction -> ARRIVAL_THRESHOLD_ORBIT
-            isStepAction -> ARRIVAL_THRESHOLD_STEP
-            else -> ARRIVAL_THRESHOLD
-        }
-        val directionThreshold = when {
-            isLowerCameraAction -> DIRECTION_THRESHOLD_LOWER_CAMERA
-            isVerticalCameraAction -> DIRECTION_THRESHOLD_VERTICAL
-            isOrbitAction -> DIRECTION_THRESHOLD_ORBIT
-            isStepAction -> DIRECTION_THRESHOLD_STEP
-            else -> DIRECTION_THRESHOLD
-        }
-        val subjectThreshold = when {
-            isLowerCameraAction -> SUBJECT_THRESHOLD_LOWER_CAMERA
-            isVerticalCameraAction -> SUBJECT_THRESHOLD_VERTICAL
-            isOrbitAction -> SUBJECT_THRESHOLD_ORBIT
-            isStepAction -> SUBJECT_THRESHOLD_STEP
-            else -> SUBJECT_THRESHOLD
-        }
-        val requiredStableFrames = when {
-            isVerticalCameraAction -> STABLE_FRAME_COUNT_VERTICAL
-            isMovingPoseAction -> STABLE_FRAME_COUNT_MOVING_POSE
-            else -> STABLE_FRAME_COUNT
-        }
         val wristOnlyMotion = isLikelyWristOnlyMotion(actionType, cameraPoseSample)
 
         val image = InputImage.fromBitmap(currentFrame, 0)
@@ -290,82 +342,42 @@ class ViewChangeAnalyzer(
                 } else {
                     subjectAssessment.lockScore
                 }
-                val nearTargetArrivalThreshold = when {
-                    isLowerCameraAction -> NEAR_TARGET_ARRIVAL_LOWER_CAMERA
-                    isVerticalCameraAction -> NEAR_TARGET_ARRIVAL_VERTICAL
-                    isOrbitAction -> NEAR_TARGET_ARRIVAL_ORBIT
-                    isStepAction -> NEAR_TARGET_ARRIVAL_STEP
-                    else -> 1f
-                }
                 val nearTargetSubjectThreshold =
-                    (subjectThreshold - NEAR_TARGET_SUBJECT_MARGIN).coerceAtLeast(0.18f)
-                val targetSimilarityFloor = when {
-                    isLowerCameraAction -> TARGET_SIMILARITY_FLOOR_LOWER_CAMERA
-                    isVerticalCameraAction -> TARGET_SIMILARITY_FLOOR_VERTICAL
-                    isOrbitAction -> TARGET_SIMILARITY_FLOOR_ORBIT
-                    isStepAction -> TARGET_SIMILARITY_FLOOR_STEP
-                    else -> 0f
-                }
-                val targetAlignmentFloor = when {
-                    isLowerCameraAction -> TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA
-                    isVerticalCameraAction -> TARGET_ALIGNMENT_FLOOR_VERTICAL
-                    isOrbitAction -> TARGET_ALIGNMENT_FLOOR_ORBIT
-                    isStepAction -> TARGET_ALIGNMENT_FLOOR_STEP
-                    else -> 0f
-                }
-                val nearTargetSimilarityFloor = when {
-                    isLowerCameraAction -> NEAR_TARGET_SIMILARITY_FLOOR_LOWER_CAMERA
-                    isVerticalCameraAction -> NEAR_TARGET_SIMILARITY_FLOOR_VERTICAL
-                    isOrbitAction -> NEAR_TARGET_SIMILARITY_FLOOR_ORBIT
-                    isStepAction -> NEAR_TARGET_SIMILARITY_FLOOR_STEP
-                    else -> 0f
-                }
-                val nearTargetAlignmentFloor = when {
-                    isLowerCameraAction -> NEAR_TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA
-                    isVerticalCameraAction -> NEAR_TARGET_ALIGNMENT_FLOOR_VERTICAL
-                    isOrbitAction -> NEAR_TARGET_ALIGNMENT_FLOOR_ORBIT
-                    isStepAction -> NEAR_TARGET_ALIGNMENT_FLOOR_STEP
-                    else -> 0f
-                }
+                    (profile.subjectThreshold - NEAR_TARGET_SUBJECT_MARGIN).coerceAtLeast(0.18f)
                 val requiresStrictSubjectGate = if (isMovingPoseAction || isVerticalCameraAction) {
                     targetReferenceDetected
                 } else {
                     subjectAssessment.requiresSubjectGate
                 }
-                val residualReady = targetSimilarityScore >= targetSimilarityFloor &&
+                val residualReady = targetSimilarityScore >= profile.targetSimilarityFloor &&
                     (
                         !subjectAssessment.hasTargetAnchor ||
-                            subjectAssessment.targetAlignmentScore >= targetAlignmentFloor
+                            subjectAssessment.targetAlignmentScore >= profile.targetAlignmentFloor
                         )
-                val normalDirectionSatisfied = directionScore >= directionThreshold
-                val nearTargetDirectionFloor = if (isVerticalCameraAction) {
-                    NEAR_TARGET_DIRECTION_FLOOR_VERTICAL
-                } else {
-                    NEAR_TARGET_DIRECTION_FLOOR
-                }
+                val normalDirectionSatisfied = directionScore >= profile.directionThreshold
                 val nearTargetSatisfied = (isMovingPoseAction || isVerticalCameraAction) &&
-                    adjustedArrival >= nearTargetArrivalThreshold &&
-                    targetSimilarityScore >= nearTargetSimilarityFloor &&
+                    adjustedArrival >= profile.nearTargetArrivalThreshold &&
+                    targetSimilarityScore >= profile.nearTargetSimilarityFloor &&
                     (
                         !subjectAssessment.hasTargetAnchor ||
-                            subjectAssessment.targetAlignmentScore >= nearTargetAlignmentFloor
+                            subjectAssessment.targetAlignmentScore >= profile.nearTargetAlignmentFloor
                         ) &&
                     subjectGateScore >= nearTargetSubjectThreshold &&
-                    directionScore >= nearTargetDirectionFloor
+                    directionScore >= profile.nearTargetDirectionFloor
                 val directionSatisfied = normalDirectionSatisfied || nearTargetSatisfied
 
-                val rawCompleted = adjustedArrival >= arrivalThreshold &&
+                val rawCompleted = adjustedArrival >= profile.arrivalThreshold &&
                     residualReady &&
                     directionSatisfied &&
                     !wristOnlyMotion &&
-                    (!requiresStrictSubjectGate || subjectGateScore >= subjectThreshold)
+                    (!requiresStrictSubjectGate || subjectGateScore >= profile.subjectThreshold)
 
                 stableCompletionFrames = if (rawCompleted) {
                     stableCompletionFrames + 1
                 } else {
                     0
                 }
-                val completed = stableCompletionFrames >= requiredStableFrames
+                val completed = stableCompletionFrames >= profile.requiredStableFrames
                 val uiProgress = computeDisplayedArrivalProgress(
                     normalizedActionType = normalizedActionType,
                     baseArrivalScore = baseArrivalScore,
@@ -397,7 +409,7 @@ class ViewChangeAnalyzer(
                         requiresStrictSubjectGate,
                         nearTargetSatisfied,
                         stableCompletionFrames,
-                        requiredStableFrames
+                        profile.requiredStableFrames
                     )
                 )
 
@@ -469,6 +481,10 @@ class ViewChangeAnalyzer(
         val departureScore = ((1f - sourceSimilarityScore) * 0.55f + perspectiveScore * 0.45f)
             .coerceIn(0f, 1f)
         return (gapScore * 0.70f + departureScore * 0.30f).coerceIn(0f, 1f)
+    }
+
+    private fun actionProfile(normalizedActionType: String): ActionProfile {
+        return ACTION_PROFILES[normalizedActionType] ?: DEFAULT_ACTION_PROFILE
     }
 
     private fun computeBaseArrivalScore(
@@ -1055,6 +1071,14 @@ class ViewChangeAnalyzer(
 
     fun close() {
         objectDetector.close()
+    }
+
+    fun resetStableFrames() {
+        stableCompletionFrames = 0
+        consecutiveMissingSubjectFrames = 0
+        lastTrackedSubjectBox = null
+        lastSubjectLockScore = 0f
+        targetSimHistory.clear()
     }
 }
 

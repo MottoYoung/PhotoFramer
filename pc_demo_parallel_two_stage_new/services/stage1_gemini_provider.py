@@ -71,14 +71,18 @@ class GeminiStage1Provider:
             image = image.convert("RGB")
         return image
 
-    def _build_config(self) -> types.GenerateContentConfig:
+    def _build_config(
+        self,
+        response_mime_type: Optional[str] = GEMINI_STAGE1_RESPONSE_MIME_TYPE,
+    ) -> types.GenerateContentConfig:
         config_kwargs = {
             "system_instruction": SYSTEM_INSTRUCTION,
             "temperature": GEMINI_STAGE1_TEMPERATURE,
             "top_p": GEMINI_STAGE1_TOP_P,
             "response_modalities": list(self.profile.default_response_modalities),
-            "response_mime_type": GEMINI_STAGE1_RESPONSE_MIME_TYPE,
         }
+        if response_mime_type:
+            config_kwargs["response_mime_type"] = response_mime_type
         if self.profile.supports_top_k:
             config_kwargs["top_k"] = GEMINI_STAGE1_TOP_K
         if (
@@ -109,6 +113,27 @@ class GeminiStage1Provider:
                 config_kwargs["thinking_config"] = thinking_config
         return types.GenerateContentConfig(**config_kwargs)
 
+    def _generate_content_stream_with_fallback(self, image: Image.Image, technique_id: str):
+        try:
+            return self.client.models.generate_content_stream(
+                model=self.model_name,
+                contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
+                config=self._build_config(),
+            )
+        except Exception as error:
+            if not GEMINI_STAGE1_RESPONSE_MIME_TYPE:
+                raise
+            print(
+                f"  ⚠️ [gemini:{technique_id}] json mime stream failed, retry without response_mime_type "
+                f"error={type(error).__name__}: {error}",
+                flush=True,
+            )
+            return self.client.models.generate_content_stream(
+                model=self.model_name,
+                contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
+                config=self._build_config(response_mime_type=None),
+            )
+
     def _build_prefilter_config(self) -> types.GenerateContentConfig:
         return types.GenerateContentConfig(
             temperature=GEMINI_PREFILTER_TEMPERATURE,
@@ -136,7 +161,6 @@ class GeminiStage1Provider:
 
     def _stream_call_sync(self, image_data_url: str, technique_id: str) -> str:
         image = self._image_from_data_url(image_data_url)
-        config = self._build_config()
         start_ts = now_perf()
         print(
             f"  🚀 [gemini:{technique_id}] stream request start "
@@ -144,11 +168,7 @@ class GeminiStage1Provider:
             flush=True,
         )
         try:
-            stream = self.client.models.generate_content_stream(
-                model=self.model_name,
-                contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
-                config=config,
-            )
+            stream = self._generate_content_stream_with_fallback(image, technique_id)
             full_text = ""
             chunk_count = 0
             first_text_logged = False
@@ -257,17 +277,12 @@ class GeminiStage1Provider:
     ) -> tuple[str, Stage1Timing]:
         image = self._image_from_data_url(image_data_url)
         timing = Stage1Timing(technique_id=technique_id, request_start_ts=now_perf())
-        config = self._build_config()
         print(
             f"  🚀 [gemini:{technique_id}] stream+callback start model={self.model_name}",
             flush=True,
         )
         try:
-            stream = self.client.models.generate_content_stream(
-                model=self.model_name,
-                contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
-                config=config,
-            )
+            stream = self._generate_content_stream_with_fallback(image, technique_id)
             timing.stream_created_ts = now_perf()
             full_text = ""
             prompt_sent = False
@@ -327,18 +342,13 @@ class GeminiStage1Provider:
     ) -> tuple[str, Stage1Timing]:
         image = self._image_from_data_url(image_data_url)
         timing = Stage1Timing(technique_id=technique_id, request_start_ts=now_perf())
-        config = self._build_config()
         print(
             f"  🚀 [gemini:{technique_id}] pipeline stream start "
             f"model={self.model_name} top_p={GEMINI_STAGE1_TOP_P} temp={GEMINI_STAGE1_TEMPERATURE}",
             flush=True,
         )
         try:
-            stream = self.client.models.generate_content_stream(
-                model=self.model_name,
-                contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
-                config=config,
-            )
+            stream = self._generate_content_stream_with_fallback(image, technique_id)
             timing.stream_created_ts = now_perf()
             full_text = ""
             prompt_sent = False

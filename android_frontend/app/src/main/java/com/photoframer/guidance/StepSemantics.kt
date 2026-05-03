@@ -15,6 +15,10 @@ private val SHIFT_ACTIONS = setOf(
     "level"
 )
 
+private val LEVEL_ACTIONS = setOf(
+    "level"
+)
+
 fun String.normalizedActionType(): String {
     val compact = trim().lowercase().replace("_", "").replace("-", "")
     return when (compact) {
@@ -46,8 +50,12 @@ fun String.isViewpointActionType(): Boolean = normalizedActionType() in VIEWPOIN
 
 fun String.isShiftActionType(): Boolean = normalizedActionType() in SHIFT_ACTIONS
 
+fun String.isLevelActionType(): Boolean = normalizedActionType() in LEVEL_ACTIONS
+
 fun CompositionStep.isViewpointAction(): Boolean = actionType.isViewpointActionType()
 
 fun CompositionStep.isShiftAction(): Boolean = actionType.isShiftActionType()
+
+fun CompositionStep.isLevelAction(): Boolean = actionType.isLevelActionType()
 
 fun CompositionStep.isZoomAction(): Boolean = actionType.normalizedActionType() == "zoom"

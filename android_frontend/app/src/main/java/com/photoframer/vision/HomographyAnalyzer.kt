@@ -67,13 +67,15 @@ class HomographyAnalyzer {
             rotationDeg = Math.toDegrees(rotationRad)
             
         } else if (matrix.rows() == 3 && matrix.cols() == 3) {
-            // 3x3 单应性矩阵 (旧逻辑兼容)
+            // 3x3 单应性矩阵只做保守兼容。
+            // 真正的透视信号由 StepValidator.computePerspectiveDepartureScore() 直接读取 h20/h21；
+            // 这里仅在“接近仿射”的情况下提取缩放/旋转，避免把明显透视形变误解成 roll / zoom。
             val h00 = matrix.get(0, 0)[0]
-            val h01 = matrix.get(0, 1)[0]
             val h02 = matrix.get(0, 2)[0]
             val h10 = matrix.get(1, 0)[0]
-            val h11 = matrix.get(1, 1)[0]
             val h12 = matrix.get(1, 2)[0]
+            val h20 = matrix.get(2, 0)[0]
+            val h21 = matrix.get(2, 1)[0]
             val h22 = matrix.get(2, 2)[0]
             
             // 归一化
@@ -81,13 +83,15 @@ class HomographyAnalyzer {
             
             tx = h02 / norm
             ty = h12 / norm
-            val normalizedH00 = h00 / norm
-            val normalizedH10 = h10 / norm
-            
-            scaleFactor = sqrt(normalizedH00 * normalizedH00 + normalizedH10 * normalizedH10)
-            
-            val rotationRad = atan2(normalizedH10, normalizedH00)
-            rotationDeg = Math.toDegrees(rotationRad)
+            val projectiveMagnitude = sqrt((h20 / norm) * (h20 / norm) + (h21 / norm) * (h21 / norm))
+
+            if (projectiveMagnitude < 1e-4) {
+                val normalizedH00 = h00 / norm
+                val normalizedH10 = h10 / norm
+                scaleFactor = sqrt(normalizedH00 * normalizedH00 + normalizedH10 * normalizedH10)
+                val rotationRad = atan2(normalizedH10, normalizedH00)
+                rotationDeg = Math.toDegrees(rotationRad)
+            }
         } else {
             return null
         }
