@@ -25,12 +25,12 @@ class ImageResult(BaseModel):
 
 
 class ImageGenerationRequest(BaseModel):
-    """POST /api/v1/image/generate 请求体"""
+    """POST /image_generate 请求体"""
     requests: List[ImageRequest] = Field(..., description="生图请求列表")
 
 
 class ImageGenerationResponse(BaseModel):
-    """POST /api/v1/image/generate 响应"""
+    """POST /image_generate 响应"""
     success: bool = Field(..., description="整体是否成功")
     message: Optional[str] = Field(None, description="错误消息（整体失败时）")
     total: int = Field(default=0, description="请求总数")

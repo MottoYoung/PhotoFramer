@@ -15,11 +15,11 @@ app = FastAPI(
 ## 辅助拍摄 App 后端服务（两阶段架构）
 
 ### Stage 1：LLM 构图分析（Qwen3.5-flash）
-- `POST /api/v1/composition/analyze` — 并行分析5种构图，返回完整 JSON
-- `POST /api/v1/composition/analyze/stream` — SSE 流式推送，`prompt_ready` 事件最先到达
+- `POST /composition_analyze` — 并行分析5种构图，返回完整 JSON
+- `POST /composition_analyze_stream` — SSE 流式推送，`prompt_ready` 事件最先到达
 
 ### Stage 2：图像生成（Qwen-image-2.0）
-- `POST /api/v1/image/generate` — 接收 `qwen_image_prompt`，并行生成参考图（base64返回）
+- `POST /image_generate` — 接收 `qwen_image_prompt`，并行生成参考图（base64返回）
 
 ### 推荐调用流程
 ```
@@ -56,6 +56,10 @@ async def root():
         "stage2_model": "qwen-image-2.0-2026-03-03",
         "techniques": list(TECHNIQUE_CONFIGS.keys()),
         "docs": "/docs",
+        "health": "/health",
+        "analyze": "/composition_analyze",
+        "analyze_stream": "/composition_analyze_stream",
+        "image_generate": "/image_generate",
     }
 
 

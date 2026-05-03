@@ -10,12 +10,12 @@ interface PhotoFramerApi {
     
     /**
      * 分析构图 (并行化)
-     * POST /api/v1/composition/analyze
+     * POST /composition_analyze
      * 
      * @param image 图片文件
      */
     @Multipart
-    @POST("api/v1/composition/analyze")
+    @POST("composition_analyze")
     suspend fun analyzeComposition(
         @Part image: MultipartBody.Part
     ): AnalysisResponse
@@ -33,8 +33,8 @@ interface PhotoFramerApi {
     
     /**
      * 健康检查
-     * GET /api/v1/composition/health
+     * GET /health
      */
-    @GET("api/v1/composition/health")
+    @GET("health")
     suspend fun healthCheck(): HealthResponse
 }

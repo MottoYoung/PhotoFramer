@@ -34,7 +34,7 @@ app = FastAPI(
 
 ### 使用流程
 
-1. 调用 `POST /api/v1/composition/analyze` 上传图片
+1. 调用 `POST /composition_analyze` 上传图片
 2. 获取适用的构图优化方案（1-5 个）
 3. 根据操作指令引导用户调整相机位置
 4. 完成构图后拍摄
@@ -73,7 +73,8 @@ async def root():
         "model": MODEL_NAME,
         "techniques": list(TECHNIQUE_CONFIGS.keys()),
         "docs": "/docs",
-        "health": "/api/v1/composition/health",
+        "health": "/health",
+        "analyze": "/composition_analyze",
     }
 
 

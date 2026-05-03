@@ -35,7 +35,7 @@ python main.py
 
 ## API 接口
 
-### POST /api/v1/composition/analyze
+### POST /composition_analyze
 
 上传图片，并行调用 Qwen3.5-flash 分析 5 种构图技术，返回适用的方案。
 
@@ -69,7 +69,15 @@ python main.py
 }
 ```
 
-### GET /api/v1/composition/health
+### POST /composition_analyze_stream
+
+SSE 流式接口，检测到 `qwen_image_prompt` 后会尽早推送事件。
+
+### POST /image_generate
+
+Stage 2 生图接口。
+
+### GET /health
 
 健康检查接口。
 

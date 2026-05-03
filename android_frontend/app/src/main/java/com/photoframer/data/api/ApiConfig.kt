@@ -2,18 +2,12 @@ package com.photoframer.data.api
 
 /**
  * API 配置
- * ⚠️ 请将 BASE_URL 修改为你电脑的局域网 IP 地址
- * 
- * 查看 Mac 局域网 IP: 系统偏好设置 -> 网络 -> Wi-Fi -> IP 地址
- * 或者在终端运行: ifconfig | grep "inet " | grep -v 127.0.0.1
+ * AI 构图服务默认走云端地址；本地调试时可切换到下面注释的本地地址模板。
  */
 object ApiConfig {
-    // TODO: 修改为你的电脑局域网 IP
-    private const val HOST = "172.24.225.24"  // ⬅️ 修改这里
-    private const val PORT = "8000"
-    
-    const val BASE_URL = "http://$HOST:$PORT/"
-    const val IN_FRAME_COMPOSITION_URL = "https://crop.312237.xyz/predict?return_preview=0"
+//     const val AI_COMPOSITION_URL = "http://10.165.85.49:8000/"
+    const val AI_COMPOSITION_URL = "http://aicrop.312237.xyz/"
+    const val IN_FRAME_COMPOSITION_URL = "https://crop2.312237.xyz/predict?return_preview=0"
     
     // API 超时设置（秒）
     const val CONNECT_TIMEOUT = 10L

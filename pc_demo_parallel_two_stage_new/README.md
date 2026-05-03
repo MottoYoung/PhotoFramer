@@ -43,6 +43,21 @@ export DASHSCOPE_API_KEY=sk-xxx
 export GEMINI_API_KEY=xxx
 ```
 
+如果你想走国内 Gemini 兼容中转，可改为：
+
+```bash
+export USE_GEMINI_DOMESTIC_API=true
+export GEMINI_DOMESTIC_BASE_URL=https://docs.newapi.pro/
+export GEMINI_DOMESTIC_API_KEY=sk-xxx
+export GEMINI_DOMESTIC_API_VERSION=v1beta
+```
+
+注意：
+
+- `GEMINI_DOMESTIC_BASE_URL` 填根地址或 API 根地址即可
+- 不要填成 `.../v1beta/models/{model}:generateContent` 这种完整请求路径
+- 开启国内模式后，Gemini provider 会走 `Authorization: Bearer <key>` 方式鉴权
+
 可选模型变量：
 
 ```bash
@@ -59,9 +74,17 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## 部署地址
+
+当前公网服务地址：
+
+```text
+http://aicrop.312237.xyz
+```
+
 ## 接口
 
-### `POST /api/v1/composition/analyze`
+### `POST /composition_analyze`
 
 统一两阶段入口。
 
@@ -69,7 +92,7 @@ python main.py
   - prompt 一出来就触发 Stage 2
 - 如果未来切到某个不支持流式前置的 provider，则会先完成分析，再触发 Stage 2
 
-### `POST /api/v1/composition/analyze/stream`
+### `POST /composition_analyze_stream`
 
 仅当 Stage 1 provider 支持流式 prompt 前置时可用。
 
@@ -78,9 +101,13 @@ python main.py
 - `qwen`：支持
 - `gemini`：支持
 
-### `POST /api/v1/image/generate`
+### `POST /image_generate`
 
 直接调用 Stage 2，根据当前 `STAGE2_PROVIDER` 生图。
+
+### `GET /health`
+
+健康检查接口。
 
 ## 响应特性
 

@@ -22,7 +22,7 @@ python main.py
 
 ## API 接口
 
-### POST /api/v1/composition/analyze
+### POST /composition_analyze
 
 上传图片，并行分析 5 种构图技术，返回适用的方案。
 
@@ -48,7 +48,7 @@ python main.py
 }
 ```
 
-### GET /api/v1/composition/health
+### GET /health
 
 健康检查接口。
 

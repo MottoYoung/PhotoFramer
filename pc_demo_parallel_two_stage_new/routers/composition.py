@@ -19,10 +19,10 @@ from schemas.image import ImageRequest
 from services import get_stage1_service, get_stage2_service
 from services.common import to_composition_result
 
-router = APIRouter(prefix="/api/v1/composition", tags=["Composition"])
+router = APIRouter(tags=["Composition"])
 
 
-@router.post("/analyze", response_model=AnalysisResponse)
+@router.post("/composition_analyze", response_model=AnalysisResponse)
 async def analyze_composition(
     image: UploadFile = File(..., description="要分析的原始图片（JPEG/PNG）"),
 ):
@@ -225,7 +225,7 @@ async def analyze_composition(
         )
 
 
-@router.post("/analyze/stream")
+@router.post("/composition_analyze_stream")
 async def analyze_composition_stream(
     image: UploadFile = File(..., description="要分析的原始图片（JPEG/PNG）"),
 ):

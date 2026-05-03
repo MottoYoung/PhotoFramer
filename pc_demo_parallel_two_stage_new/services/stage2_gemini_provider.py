@@ -7,11 +7,9 @@ import base64
 import ssl
 from typing import List, Optional
 
-from google import genai
 from google.genai import types
 
 from config import (
-    GEMINI_API_KEY,
     GEMINI_STAGE2_FORCE_DISABLE_MAX_OUTPUT_TOKENS,
     GEMINI_STAGE2_IMAGE_SIZE,
     GEMINI_STAGE2_INCLUDE_SOURCE_IMAGE,
@@ -26,6 +24,7 @@ from config import (
 )
 from schemas.image import ImageRequest, ImageResult
 from services.common import Stage2Timing, log_stage2_finish, now_perf
+from services.gemini_client_factory import create_gemini_client, describe_gemini_backend
 from services.gemini_profiles import get_gemini_model_profile, normalize_gemini_image_size
 from services.prompt_adapters import adapt_prompt_for_stage2
 
@@ -35,15 +34,13 @@ class GeminiStage2Provider:
     model_name = GEMINI_STAGE2_MODEL
 
     def __init__(self):
-        if not GEMINI_API_KEY:
-            raise ValueError("请设置 GEMINI_API_KEY 环境变量")
         self.client = self._create_client()
         self.profile = get_gemini_model_profile(self.model_name)
         self._semaphore = asyncio.Semaphore(max(1, GEMINI_STAGE2_MAX_CONCURRENCY))
-        print("✅ GeminiStage2Provider 初始化成功")
+        print(f"✅ GeminiStage2Provider 初始化成功 [{describe_gemini_backend()}]")
 
     def _create_client(self):
-        return genai.Client(api_key=GEMINI_API_KEY)
+        return create_gemini_client()
 
     def _build_contents(self, request: ImageRequest):
         contents: List[object] = []
@@ -123,6 +120,11 @@ class GeminiStage2Provider:
         last_error: Exception | None = None
         for attempt in range(GEMINI_STAGE2_MAX_RETRIES + 1):
             try:
+                print(
+                    f"  🚀 [gemini:{request.technique_id}] stage2 request start "
+                    f"attempt={attempt + 1} model={self.model_name}",
+                    flush=True,
+                )
                 return await asyncio.to_thread(
                     self.client.models.generate_content,
                     model=self.model_name,
@@ -131,6 +133,11 @@ class GeminiStage2Provider:
                 )
             except Exception as error:
                 last_error = error
+                print(
+                    f"  ❌ [gemini:{request.technique_id}] stage2 request failed "
+                    f"attempt={attempt + 1} error={type(error).__name__}: {error}",
+                    flush=True,
+                )
                 if attempt >= GEMINI_STAGE2_MAX_RETRIES or not self._is_retryable_error(error):
                     raise
                 delay_ms = GEMINI_STAGE2_RETRY_BASE_DELAY_MS * (attempt + 1)
@@ -159,10 +166,19 @@ class GeminiStage2Provider:
                 )
             async with self._semaphore:
                 response = await self._generate_with_retries(request)
+            print(
+                f"  📥 [gemini:{request.technique_id}] stage2 response received "
+                f"parts={len(response.candidates[0].content.parts) if getattr(response, 'candidates', None) else 0}",
+                flush=True,
+            )
             result.image_base64 = self._extract_image_base64(response)
             result.success = result.image_base64 is not None
             if not result.success:
                 result.error_message = "Gemini 未返回图片"
+                print(
+                    f"  ⚠️ [gemini:{request.technique_id}] stage2 response had no image payload",
+                    flush=True,
+                )
         except Exception as error:
             result.error_message = str(error)
 

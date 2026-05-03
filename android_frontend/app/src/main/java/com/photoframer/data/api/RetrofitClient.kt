@@ -28,7 +28,7 @@ object RetrofitClient {
         .build()
     
     private val retrofit = Retrofit.Builder()
-        .baseUrl(ApiConfig.BASE_URL)
+        .baseUrl(ApiConfig.AI_COMPOSITION_URL)
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()

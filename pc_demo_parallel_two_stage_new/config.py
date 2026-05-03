@@ -27,6 +27,18 @@ DASHSCOPE_BASE_URL = os.environ.get(
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
+# Gemini 国内中转配置：
+# - 关闭时：继续使用官方 Gemini API（GEMINI_API_KEY）
+# - 开启时：使用兼容 Gemini REST 路径的国内中转
+#   这里的 BASE URL 应填写“服务根地址”或“API 根地址”，不要填写到
+#   `.../v1beta/models/{model}:generateContent` 这种完整请求路径，
+#   因为 SDK 会自动拼接 `api_version + models/...`
+USE_GEMINI_DOMESTIC_API = False
+GEMINI_DOMESTIC_BASE_URL = os.environ.get("GEMINI_DOMESTIC_BASE_URL",
+                                          "https://yinli.one")
+GEMINI_DOMESTIC_API_KEY = os.environ.get("GEMINI_DOMESTIC_API_KEY")
+GEMINI_DOMESTIC_API_VERSION = os.environ.get("GEMINI_DOMESTIC_API_VERSION", "v1beta").strip()
+
 
 # ==================== Model Names ==================== #
 QWEN_STAGE1_MODEL = os.environ.get("QWEN_STAGE1_MODEL", "qwen3.6-flash-2026-04-16")

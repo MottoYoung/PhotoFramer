@@ -6,10 +6,10 @@ from fastapi import APIRouter, HTTPException
 from schemas.image import ImageGenerationRequest, ImageGenerationResponse
 from services import get_stage2_service
 
-router = APIRouter(prefix="/api/v1/image", tags=["Image Generation"])
+router = APIRouter(tags=["Image Generation"])
 
 
-@router.post("/generate", response_model=ImageGenerationResponse)
+@router.post("/image_generate", response_model=ImageGenerationResponse)
 async def generate_images(body: ImageGenerationRequest):
     if not body.requests:
         raise HTTPException(status_code=400, detail="requests 列表不能为空")

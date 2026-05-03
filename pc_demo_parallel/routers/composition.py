@@ -1,18 +1,16 @@
 """
 构图分析 API 路由
 """
-from io import BytesIO
-
 from fastapi import APIRouter, File, UploadFile, HTTPException
 
 from schemas import AnalysisResponse, HealthResponse
 from services import get_gemini_service
 from config import MODEL_NAME, TECHNIQUE_CONFIGS
 
-router = APIRouter(prefix="/api/v1/composition", tags=["Composition"])
+router = APIRouter(tags=["Composition"])
 
 
-@router.post("/analyze", response_model=AnalysisResponse)
+@router.post("/composition_analyze", response_model=AnalysisResponse)
 async def analyze_composition(
     image: UploadFile = File(..., description="要分析的原始图片"),
 ):

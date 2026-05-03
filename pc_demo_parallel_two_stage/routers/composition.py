@@ -16,10 +16,10 @@ from services import get_qwen_service
 from services.image_service import get_image_service
 from config import MODEL_NAME, TECHNIQUE_CONFIGS
 
-router = APIRouter(prefix="/api/v1/composition", tags=["Composition"])
+router = APIRouter(tags=["Composition"])
 
 
-@router.post("/analyze", response_model=AnalysisResponse)
+@router.post("/composition_analyze", response_model=AnalysisResponse)
 async def analyze_composition(
     image: UploadFile = File(..., description="要分析的原始图片（JPEG/PNG）"),
 ):
@@ -180,7 +180,7 @@ async def analyze_composition(
         )
 
 
-@router.post("/analyze/stream")
+@router.post("/composition_analyze_stream")
 async def analyze_composition_stream(
     image: UploadFile = File(..., description="要分析的原始图片（JPEG/PNG）"),
 ):

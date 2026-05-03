@@ -8,14 +8,12 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 
-from google import genai
 from google.genai import types
 from PIL import Image
 
 from config import (
     ENABLE_THINKING,
     ENABLE_GEMINI_TECHNIQUE_PREFILTER,
-    GEMINI_API_KEY,
     GEMINI_PREFILTER_MAX_TECHNIQUES,
     GEMINI_PREFILTER_MODEL,
     GEMINI_PREFILTER_TEMPERATURE,
@@ -46,6 +44,7 @@ from services.common import (
     prepare_image_bytes,
     to_composition_result,
 )
+from services.gemini_client_factory import create_gemini_client, describe_gemini_backend
 from services.gemini_profiles import get_gemini_model_profile
 
 
@@ -56,11 +55,9 @@ class GeminiStage1Provider:
     supports_technique_prefilter = True
 
     def __init__(self):
-        if not GEMINI_API_KEY:
-            raise ValueError("请设置 GEMINI_API_KEY 环境变量")
-        self.client = genai.Client(api_key=GEMINI_API_KEY)
+        self.client = create_gemini_client()
         self.profile = get_gemini_model_profile(self.model_name)
-        print("✅ GeminiStage1Provider 初始化成功")
+        print(f"✅ GeminiStage1Provider 初始化成功 [{describe_gemini_backend()}]")
 
     def prepare_image_payload(self, image_bytes: bytes) -> Tuple[bytes, str, str]:
         processed, mime = prepare_image_bytes(image_bytes)
@@ -139,27 +136,72 @@ class GeminiStage1Provider:
 
     def _stream_call_sync(self, image_data_url: str, technique_id: str) -> str:
         image = self._image_from_data_url(image_data_url)
-        stream = self.client.models.generate_content_stream(
-            model=self.model_name,
-            contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
-            config=self._build_config(),
+        config = self._build_config()
+        start_ts = now_perf()
+        print(
+            f"  🚀 [gemini:{technique_id}] stream request start "
+            f"model={self.model_name} mime={GEMINI_STAGE1_RESPONSE_MIME_TYPE}",
+            flush=True,
         )
-        full_text = ""
-        for chunk in stream:
-            text = getattr(chunk, "text", None)
-            if text:
-                full_text += text
-        return full_text
+        try:
+            stream = self.client.models.generate_content_stream(
+                model=self.model_name,
+                contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
+                config=config,
+            )
+            full_text = ""
+            chunk_count = 0
+            first_text_logged = False
+            for chunk in stream:
+                chunk_count += 1
+                text = getattr(chunk, "text", None)
+                if text:
+                    full_text += text
+                    if not first_text_logged:
+                        first_text_logged = True
+                        elapsed_ms = (now_perf() - start_ts) * 1000
+                        print(
+                            f"  📥 [gemini:{technique_id}] first text chunk "
+                            f"{elapsed_ms:.0f}ms chars={len(text)}",
+                            flush=True,
+                        )
+            elapsed_ms = (now_perf() - start_ts) * 1000
+            print(
+                f"  ✅ [gemini:{technique_id}] stream finished "
+                f"{elapsed_ms:.0f}ms chunks={chunk_count} chars={len(full_text)}",
+                flush=True,
+            )
+            return full_text
+        except Exception as error:
+            elapsed_ms = (now_perf() - start_ts) * 1000
+            print(
+                f"  ❌ [gemini:{technique_id}] stream request failed "
+                f"{elapsed_ms:.0f}ms error={type(error).__name__}: {error}",
+                flush=True,
+            )
+            raise
 
     def _prefilter_call_sync(self, image_data_url: str, techniques: List[str]) -> List[str]:
         if not ENABLE_GEMINI_TECHNIQUE_PREFILTER or len(techniques) <= GEMINI_PREFILTER_MAX_TECHNIQUES:
             return techniques
 
         image = self._image_from_data_url(image_data_url)
+        start_ts = now_perf()
+        print(
+            f"  🚀 [gemini-prefilter:{GEMINI_PREFILTER_MODEL}] request start "
+            f"candidates={len(techniques)}",
+            flush=True,
+        )
         response = self.client.models.generate_content(
             model=GEMINI_PREFILTER_MODEL,
             contents=[self._build_prefilter_prompt(techniques), image],
             config=self._build_prefilter_config(),
+        )
+        elapsed_ms = (now_perf() - start_ts) * 1000
+        print(
+            f"  📥 [gemini-prefilter:{GEMINI_PREFILTER_MODEL}] response received "
+            f"{elapsed_ms:.0f}ms",
+            flush=True,
         )
         text = getattr(response, "text", None) or ""
         parsed = parse_json_from_text(text) or {}
@@ -215,37 +257,65 @@ class GeminiStage1Provider:
     ) -> tuple[str, Stage1Timing]:
         image = self._image_from_data_url(image_data_url)
         timing = Stage1Timing(technique_id=technique_id, request_start_ts=now_perf())
-        stream = self.client.models.generate_content_stream(
-            model=self.model_name,
-            contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
-            config=self._build_config(),
+        config = self._build_config()
+        print(
+            f"  🚀 [gemini:{technique_id}] stream+callback start model={self.model_name}",
+            flush=True,
         )
-        timing.stream_created_ts = now_perf()
-        full_text = ""
-        prompt_sent = False
+        try:
+            stream = self.client.models.generate_content_stream(
+                model=self.model_name,
+                contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
+                config=config,
+            )
+            timing.stream_created_ts = now_perf()
+            full_text = ""
+            prompt_sent = False
+            first_text_logged = False
 
-        for chunk in stream:
-            text = getattr(chunk, "text", None)
-            if not text:
-                continue
-            full_text += text
-            if not prompt_sent:
-                prompt = extract_complete_json_string_field(full_text, "image_prompt")
-                if prompt:
-                    prompt_sent = True
-                    timing.prompt_ready_ts = now_perf()
-                    loop.call_soon_threadsafe(
-                        event_queue.put_nowait,
-                        {
-                            "event": "prompt_ready",
-                            "technique": technique_id,
-                            "technique_name": TECHNIQUE_CONFIGS[technique_id].name,
-                            "image_prompt": prompt,
-                            "prompt_ready_ms": round(timing.prompt_ms or 0.0),
-                        },
+            for chunk in stream:
+                text = getattr(chunk, "text", None)
+                if not text:
+                    continue
+                full_text += text
+                if not first_text_logged:
+                    first_text_logged = True
+                    print(
+                        f"  📥 [gemini:{technique_id}] callback first text "
+                        f"{timing.finish_ms or 0 if False else (now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                        flush=True,
                     )
-        timing.finish_ts = now_perf()
-        return full_text, timing
+                if not prompt_sent:
+                    prompt = extract_complete_json_string_field(full_text, "image_prompt")
+                    if prompt:
+                        prompt_sent = True
+                        timing.prompt_ready_ts = now_perf()
+                        loop.call_soon_threadsafe(
+                            event_queue.put_nowait,
+                            {
+                                "event": "prompt_ready",
+                                "technique": technique_id,
+                                "technique_name": TECHNIQUE_CONFIGS[technique_id].name,
+                                "image_prompt": prompt,
+                                "prompt_ready_ms": round(timing.prompt_ms or 0.0),
+                            },
+                        )
+            timing.finish_ts = now_perf()
+            if not prompt_sent:
+                print(
+                    f"  ⚠️ [gemini:{technique_id}] callback stream finished without image_prompt "
+                    f"chars={len(full_text)}",
+                    flush=True,
+                )
+            return full_text, timing
+        except Exception as error:
+            elapsed_ms = (now_perf() - timing.request_start_ts) * 1000
+            print(
+                f"  ❌ [gemini:{technique_id}] stream+callback failed "
+                f"{elapsed_ms:.0f}ms error={type(error).__name__}: {error}",
+                flush=True,
+            )
+            raise
 
     def stream_pipeline_sync(
         self,
@@ -257,36 +327,75 @@ class GeminiStage1Provider:
     ) -> tuple[str, Stage1Timing]:
         image = self._image_from_data_url(image_data_url)
         timing = Stage1Timing(technique_id=technique_id, request_start_ts=now_perf())
-        stream = self.client.models.generate_content_stream(
-            model=self.model_name,
-            contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
-            config=self._build_config(),
+        config = self._build_config()
+        print(
+            f"  🚀 [gemini:{technique_id}] pipeline stream start "
+            f"model={self.model_name} top_p={GEMINI_STAGE1_TOP_P} temp={GEMINI_STAGE1_TEMPERATURE}",
+            flush=True,
         )
-        timing.stream_created_ts = now_perf()
-        full_text = ""
-        prompt_sent = False
+        try:
+            stream = self.client.models.generate_content_stream(
+                model=self.model_name,
+                contents=[TECHNIQUE_CONFIGS[technique_id].user_prompt, image],
+                config=config,
+            )
+            timing.stream_created_ts = now_perf()
+            full_text = ""
+            prompt_sent = False
+            chunk_count = 0
+            first_text_logged = False
 
-        for chunk in stream:
-            text = getattr(chunk, "text", None)
-            if not text:
-                continue
-            full_text += text
-            if not prompt_sent:
-                prompt = extract_complete_json_string_field(full_text, "image_prompt")
-                if prompt:
-                    prompt_sent = True
-                    prompt_ref[0] = prompt
-                    timing.prompt_ready_ts = now_perf()
-                    loop.call_soon_threadsafe(prompt_ready_event.set)
+            for chunk in stream:
+                chunk_count += 1
+                text = getattr(chunk, "text", None)
+                if not text:
+                    continue
+                full_text += text
+                if not first_text_logged:
+                    first_text_logged = True
+                    elapsed_ms = (now_perf() - timing.request_start_ts) * 1000
                     print(
-                        f"  ⚡ [gemini:{technique_id}] prompt 就绪 {timing.prompt_ms or 0:.0f}ms",
+                        f"  📥 [gemini:{technique_id}] pipeline first text "
+                        f"{elapsed_ms:.0f}ms chars={len(text)}",
                         flush=True,
                     )
+                if not prompt_sent:
+                    prompt = extract_complete_json_string_field(full_text, "image_prompt")
+                    if prompt:
+                        prompt_sent = True
+                        prompt_ref[0] = prompt
+                        timing.prompt_ready_ts = now_perf()
+                        loop.call_soon_threadsafe(prompt_ready_event.set)
+                        print(
+                            f"  ⚡ [gemini:{technique_id}] prompt 就绪 {timing.prompt_ms or 0:.0f}ms "
+                            f"prompt_chars={len(prompt)} total_chars={len(full_text)}",
+                            flush=True,
+                        )
 
-        if not prompt_sent:
+            if not prompt_sent:
+                print(
+                    f"  ⚠️ [gemini:{technique_id}] pipeline stream ended without image_prompt "
+                    f"chunks={chunk_count} chars={len(full_text)}",
+                    flush=True,
+                )
+                loop.call_soon_threadsafe(prompt_ready_event.set)
+            timing.finish_ts = now_perf()
+            elapsed_ms = (timing.finish_ts - timing.request_start_ts) * 1000
+            print(
+                f"  ✅ [gemini:{technique_id}] pipeline stream finish "
+                f"{elapsed_ms:.0f}ms chunks={chunk_count} chars={len(full_text)}",
+                flush=True,
+            )
+            return full_text, timing
+        except Exception as error:
+            elapsed_ms = (now_perf() - timing.request_start_ts) * 1000
             loop.call_soon_threadsafe(prompt_ready_event.set)
-        timing.finish_ts = now_perf()
-        return full_text, timing
+            print(
+                f"  ❌ [gemini:{technique_id}] pipeline stream failed "
+                f"{elapsed_ms:.0f}ms error={type(error).__name__}: {error}",
+                flush=True,
+            )
+            raise
 
     def parse_single_result(
         self,
@@ -333,6 +442,11 @@ class GeminiStage1Provider:
             )
         except Exception as error:
             end_ts = now_perf()
+            print(
+                f"  ❌ [gemini:{technique_id}] analyze_parallel single failed "
+                f"{(end_ts - start_ts) * 1000:.0f}ms error={type(error).__name__}: {error}",
+                flush=True,
+            )
             return Stage1Result(
                 technique_id=technique_id,
                 technique_name=TECHNIQUE_CONFIGS[technique_id].name,
@@ -428,6 +542,11 @@ class GeminiStage1Provider:
                     }
                 )
         except Exception as error:
+            print(
+                f"  ❌ [gemini:{technique_id}] streaming worker failed "
+                f"error={type(error).__name__}: {error}",
+                flush=True,
+            )
             await event_queue.put(
                 {
                     "event": "technique_error",

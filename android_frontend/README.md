@@ -13,25 +13,20 @@
 
 ### 1. 修改后端 API 地址
 
-打开 `app/src/main/java/com/photoframer/data/api/ApiConfig.kt`，修改 `HOST` 为你电脑的局域网 IP：
+打开 `app/src/main/java/com/photoframer/data/api/ApiConfig.kt`，确认两阶段后端地址：
 
 ```kotlin
-private const val HOST = "192.168.1.100"  // ⬅️ 修改为你的电脑 IP
+// const val AI_COMPOSITION_URL = "http://[mylocalhost]:[port]/"
+const val AI_COMPOSITION_URL = "http://aicrop.312237.xyz/"
 ```
 
-**查看 Mac 局域网 IP**:
-```bash
-ifconfig | grep "inet " | grep -v 127.0.0.1
-```
-** 查看windows局域网ip**:
-```bash
-ipconfig | findstr /i "IPv4"
-```
+当前默认指向部署好的公网两阶段后端；如果你要切本地测试，直接把上面的本地地址那行取消注释并替换端口即可。
+
 ### 2. 启动后端服务
 
-确保后端服务在电脑上运行：
+如果你要本地调试后端，可在电脑上运行：
 ```bash
-cd ../backend
+cd ../pc_demo_parallel_two_stage_new
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -51,7 +46,7 @@ app/src/main/java/com/photoframer/
 ├── MainActivity.kt              # 入口 Activity
 ├── data/
 │   ├── api/
-│   │   ├── ApiConfig.kt         # API 配置 ⭐ 修改这里的 IP
+│   │   ├── ApiConfig.kt         # API 配置
 │   │   ├── ApiModels.kt         # 数据模型
 │   │   ├── PhotoFramerApi.kt    # Retrofit 接口
 │   │   └── RetrofitClient.kt    # HTTP 客户端
@@ -84,4 +79,3 @@ app/src/main/java/com/photoframer/
 ```
 相机预览 → 点击分析 → 分析中(流光动画) → 选择方案 → 步骤引导 → 拍照
 ```
-测试一下

@@ -3,13 +3,13 @@ Stage 2 图像生成 API 路由
 """
 from fastapi import APIRouter, HTTPException
 
-from schemas.image import ImageGenerationRequest, ImageGenerationResponse, ImageResult
+from schemas.image import ImageGenerationRequest, ImageGenerationResponse
 from services.image_service import get_image_service
 
-router = APIRouter(prefix="/api/v1/image", tags=["Image Generation (Stage 2)"])
+router = APIRouter(tags=["Image Generation (Stage 2)"])
 
 
-@router.post("/generate", response_model=ImageGenerationResponse)
+@router.post("/image_generate", response_model=ImageGenerationResponse)
 async def generate_images(body: ImageGenerationRequest):
     """
     Stage 2：接收一批构图提示词，并行调用 Qwen-image-2.0 生成参考图。
