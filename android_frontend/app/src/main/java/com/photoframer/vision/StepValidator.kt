@@ -7,6 +7,11 @@ import com.photoframer.data.api.ShotSpec
 import com.photoframer.guidance.isViewpointActionType
 import com.photoframer.guidance.normalizedActionType
 import com.photoframer.inframe.InFrameGuideValidationConfig
+import org.opencv.android.Utils
+import org.opencv.core.Core
+import org.opencv.core.Mat
+import org.opencv.core.Size
+import org.opencv.imgproc.Imgproc
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
@@ -52,16 +57,21 @@ class StepValidator(
     private var viewChangeSourceMatcher: FeatureMatcher? = null
     private var viewChangeAnalyzer: ViewChangeAnalyzer? = null
     private var viewChangeBaselineStepKey: Int? = null
+    private var targetPHash: Long = 0L
+    private var cachedCurrentPHash: Long = 0L
+    private var pHashFrameCounter: Int = 0
     
     // 阈值设定
     companion object {
         const val VALIDATION_FRAME_WIDTH = 360
         const val SHIFT_THRESHOLD = 25.0       // 平移阈值 (25px on 360px frame ≈ 7% 帧宽)
         const val ZOOM_THRESHOLD = 0.10        // 缩放阈值 (10%，更严格)
+        const val LEVEL_ROTATION_THRESHOLD = 2.4 // 水平校正阈值（度）
         const val SCALE_GUIDANCE_THRESHOLD = 0.15 // 触发缩放建议的阈值
         const val ROTATION_THRESHOLD = 5.0     // 旋转阈值 (5度，用于 View-change)
         const val ROLL_THRESHOLD = 3.0         // Roll 水平校正阈值 (3度，用于 Shift)
-        const val MIN_MATCH_QUALITY = 8        // 最小匹配点数
+        const val MIN_MATCH_QUALITY = 6        // 最小匹配点数
+        private const val PHASH_COMPUTE_INTERVAL = 3
     }
     
     init {
@@ -74,8 +84,10 @@ class StepValidator(
         }
         
         targetReferenceBitmap = scaledTarget
-        featureMatcher.setTargetImage(scaledTarget)
-        targetViewMatcher.setTargetImage(scaledTarget)
+        val sharpenedTarget = sharpenForMatching(scaledTarget)
+        featureMatcher.setTargetImage(sharpenedTarget)
+        targetViewMatcher.setTargetImage(sharpenedTarget)
+        targetPHash = PerceptualHashMatcher.computeHash(targetReferenceBitmap)
         
         Log.d(TAG, "StepValidator 初始化完成 (Target Resized to ${scaledTarget.width}px)")
     }
@@ -83,10 +95,10 @@ class StepValidator(
     // 状态保持
     private var lastValidComponents: HomographyComponents? = null
     private var lastValidTime: Long = 0
-    private val PERSISTENCE_DURATION = 350L // 丢失目标后短暂保持，避免引导“黏住”
+    private val PERSISTENCE_DURATION = 280L // 丢失目标后短暂保持，避免引导“黏住”
     
     // 平滑滤波器
-    private val smoothingFilter = SmoothingFilter(alpha = 0.7f) // 提高跟手性，减少“明明对齐却迟迟不结束”
+    private val smoothingFilter = SmoothingFilter(alpha = 0.80f) // 提高跟手性，减少“明明对齐却迟迟不结束”
     private val feedbackDebouncer = FeedbackDebouncer()
     private var motionBaseline: MotionBaseline? = null
     private var motionStableFrames: Int = 0
@@ -111,6 +123,8 @@ class StepValidator(
         Log.d(TAG, "开始验证: actionType=$actionType, direction=$direction, zoom=$currentZoomRatio")
         val normalizedActionType = actionType.normalizedActionType()
         val isInFrameZoomStep = inFrameGuideConfig != null && normalizedActionType == "zoom"
+        feedbackDebouncer.minDurationMs = if (normalizedActionType.isViewpointActionType()) 300L else 180L
+        val pHashSimilarity = getOrComputePHash(currentFrame)
         
         // 计算单应性矩阵
         val result = featureMatcher.computeHomography(currentFrame)
@@ -125,7 +139,8 @@ class StepValidator(
             if (result.homography != null && result.matchCount >= MIN_MATCH_QUALITY) {
                  // 分解单应性矩阵
                 components = homographyAnalyzer.decompose(result.homography)
-                matchQuality = (result.matchCount.toFloat() / 50f).coerceIn(0f, 1f)
+                val orbQuality = computeOrbQuality(result.matchCount)
+                matchQuality = (orbQuality * 0.6f + pHashSimilarity * 0.4f).coerceIn(0f, 1f)
             }
 
             // 策略：如果当前帧识别失败，但在有效期内，则使用上一次的有效数据
@@ -133,10 +148,14 @@ class StepValidator(
                 if (isInFrameZoomStep) {
                     return validateInFrameZoom(direction, matchQuality, currentZoomRatio)
                 }
-                if (currentTime - lastValidTime < PERSISTENCE_DURATION && lastValidComponents != null) {
+                if (pHashSimilarity > 0.75f && lastValidComponents != null) {
+                    components = lastValidComponents
+                    matchQuality = (pHashSimilarity * 0.5f).coerceIn(0f, 1f)
+                    Log.d(TAG, "ORB 匹配不足，使用 pHash 兜底缓存")
+                } else if (currentTime - lastValidTime < PERSISTENCE_DURATION && lastValidComponents != null) {
                     // 使用缓存数据，但稍微降低匹配质量
                     components = lastValidComponents
-                    matchQuality = 0.3f // 标记为缓存数据
+                    matchQuality = maxOf(matchQuality, pHashSimilarity * 0.35f, 0.24f)
                     Log.d(TAG, "处于保持期，使用缓存数据")
                 } else {
                     // 确实丢失了
@@ -169,7 +188,7 @@ class StepValidator(
 
             // 根据操作类型判定
             return when (normalizedActionType) {
-                "shift", "level" -> {
+                "shift" -> {
                     if (inFrameGuideConfig != null) {
                         validateInFrameShift(components, direction, matchQuality)
                     } else {
@@ -182,6 +201,12 @@ class StepValidator(
                         )
                     }
                 }
+                "level" -> validateLevel(
+                    stepKey = stepKey,
+                    components = components,
+                    direction = direction,
+                    matchQuality = matchQuality
+                )
                 "zoom" -> {
                     if (inFrameGuideConfig != null) {
                         validateInFrameZoom(direction, matchQuality, currentZoomRatio)
@@ -282,23 +307,37 @@ class StepValidator(
         val movedTowardTarget = primaryImprovement > 8.0 ||
             distanceImprovement > 10.0 ||
             improvementScore >= 0.18f
+        val strongAlignmentHold = alignedNow &&
+            distance < completionDistanceThreshold * 0.34 &&
+            abs(rollAngle) < completionRollThreshold * 0.62
         val nearPerfectHold = alignedNow &&
             distance < completionDistanceThreshold * 0.42 &&
             abs(rollAngle) < completionRollThreshold * 0.72 &&
-            matchQuality >= 0.45f
-        val requiredStableFrames = if (nearPerfectHold && !movedTowardTarget) 4 else 2
-        val rawCompleted = alignedNow && (movedTowardTarget || nearPerfectHold)
-        motionStableFrames = if (rawCompleted) motionStableFrames + 1 else 0
-        val isCompleted = motionStableFrames >= requiredStableFrames
+            matchQuality >= 0.22f
+        val alignedFrames = if (alignedNow) motionStableFrames + 1 else 0
+        val sustainedHold = alignedNow &&
+            alignedFrames >= 4 &&
+            (matchQuality >= 0.12f || strongAlignmentHold)
+        val requiredStableFrames = when {
+            strongAlignmentHold -> 2
+            nearPerfectHold && !movedTowardTarget -> 3
+            else -> 2
+        }
+        val rawCompleted = alignedNow && (movedTowardTarget || nearPerfectHold || sustainedHold)
+        motionStableFrames = alignedFrames
+        val isCompleted = rawCompleted &&
+            (motionStableFrames >= requiredStableFrames || sustainedHold)
         val progress = (currentAlignmentProgress * 0.74f + improvementScore * 0.26f).coerceIn(0f, 1f)
 
         val feedbackText = if (isCompleted) {
             "✓ 位置已对齐"
         } else if (alignedNow && !movedTowardTarget && !nearPerfectHold) {
-            if (isRotationStep) {
+            if (strongAlignmentHold || sustainedHold) {
+                "保持一下，正在确认对齐"
+            } else if (isRotationStep) {
                 "再轻轻转一点，不要停在原地"
             } else {
-                "继续移动一点，别停在原地"
+                "基本对齐了，再微调一点"
             }
         } else {
             when {
@@ -319,6 +358,69 @@ class StepValidator(
             shiftDistance = distance.toFloat(),
             tx = uiVector.first.toFloat(),
             ty = uiVector.second.toFloat(),
+            scaleFactor = components.scaleFactor.toFloat(),
+            rotationAngle = rollAngle.toFloat(),
+            matchQuality = matchQuality,
+            uiSpaceWidth = uiSpaceWidth(),
+            uiSpaceHeight = uiSpaceHeight()
+        )
+    }
+
+    private fun validateLevel(
+        stepKey: Int,
+        components: HomographyComponents,
+        direction: String,
+        matchQuality: Float
+    ): StepValidationResult {
+        val rollAngle = components.rotationAngle
+        val rollError = abs(rollAngle)
+        val translationDistance = components.translationDistance
+        val alignedNow = rollError < LEVEL_ROTATION_THRESHOLD
+        val rotationProgress = (
+            1.0 / (1.0 + exp((rollError - LEVEL_ROTATION_THRESHOLD) / 0.95))
+            ).toFloat()
+
+        val baseline = ensureMotionBaseline(
+            stepKey = stepKey,
+            actionType = "level",
+            direction = direction,
+            components = components
+        )
+        val rotationImprovement = baseline.initialPrimaryError - rollError
+        val improvementScore = computeImprovementScore(
+            improvement = rotationImprovement,
+            baselineError = baseline.initialPrimaryError,
+            targetThreshold = LEVEL_ROTATION_THRESHOLD
+        )
+        val movedTowardTarget = rotationImprovement > 0.6 || improvementScore >= 0.16f
+        val strongAlignmentHold = alignedNow && rollError < LEVEL_ROTATION_THRESHOLD * 0.55
+        val nearPerfectHold = alignedNow && matchQuality >= 0.18f
+        val alignedFrames = if (alignedNow) motionStableFrames + 1 else 0
+        val sustainedHold = alignedNow &&
+            alignedFrames >= 3 &&
+            (matchQuality >= 0.10f || strongAlignmentHold)
+        val requiredStableFrames = if (strongAlignmentHold) 2 else 3
+        val rawCompleted = alignedNow && (movedTowardTarget || nearPerfectHold || sustainedHold)
+        motionStableFrames = alignedFrames
+        val isCompleted = rawCompleted &&
+            (motionStableFrames >= requiredStableFrames || sustainedHold)
+        val progress = (rotationProgress * 0.82f + improvementScore * 0.18f).coerceIn(0f, 1f)
+
+        val feedbackText = if (isCompleted) {
+            "✓ 画面已放平"
+        } else if (strongAlignmentHold || sustainedHold) {
+            "保持一下，正在确认画面水平"
+        } else {
+            generateRotationFeedback(rollAngle, translationDistance, direction.lowercase())
+        }
+
+        return StepValidationResult(
+            isCompleted = isCompleted,
+            progress = progress,
+            feedbackText = feedbackDebouncer.debounce(feedbackText),
+            shiftDistance = translationDistance.toFloat(),
+            tx = 0f,
+            ty = 0f,
             scaleFactor = components.scaleFactor.toFloat(),
             rotationAngle = rollAngle.toFloat(),
             matchQuality = matchQuality,
@@ -419,13 +521,24 @@ class StepValidator(
             targetThreshold = ZOOM_THRESHOLD
         )
         val movedTowardTarget = scaleImprovement > 0.035 || improvementScore >= 0.20f
+        val strongAlignmentHold = alignedNow &&
+            scaleError < ZOOM_THRESHOLD * 0.28
         val nearPerfectHold = alignedNow &&
             scaleError < ZOOM_THRESHOLD * 0.45 &&
-            matchQuality >= 0.45f
-        val requiredStableFrames = if (nearPerfectHold && !movedTowardTarget) 4 else 2
-        val rawCompleted = alignedNow && (movedTowardTarget || nearPerfectHold)
-        motionStableFrames = if (rawCompleted) motionStableFrames + 1 else 0
-        val isCompleted = motionStableFrames >= requiredStableFrames
+            matchQuality >= 0.22f
+        val alignedFrames = if (alignedNow) motionStableFrames + 1 else 0
+        val sustainedHold = alignedNow &&
+            alignedFrames >= 4 &&
+            (matchQuality >= 0.12f || strongAlignmentHold)
+        val requiredStableFrames = when {
+            strongAlignmentHold -> 2
+            nearPerfectHold && !movedTowardTarget -> 3
+            else -> 2
+        }
+        val rawCompleted = alignedNow && (movedTowardTarget || nearPerfectHold || sustainedHold)
+        motionStableFrames = alignedFrames
+        val isCompleted = rawCompleted &&
+            (motionStableFrames >= requiredStableFrames || sustainedHold)
         val progress = (currentAlignmentProgress * 0.72f + improvementScore * 0.28f).coerceIn(0f, 1f)
         
         // targetZoom = 让 visualScale 变为 1.0 时，用户应该设置的数码变焦
@@ -434,7 +547,13 @@ class StepValidator(
         val feedbackText = if (isCompleted) {
             "✓ 焦距已对齐"
         } else if (alignedNow && !movedTowardTarget && !nearPerfectHold) {
-            if (direction.lowercase() == "in") "继续放大一点，别停在原地" else "继续缩小一点，别停在原地"
+            if (strongAlignmentHold || sustainedHold) {
+                "保持一下，正在确认焦距"
+            } else if (direction.lowercase() == "in") {
+                "继续放大一点，别停在原地"
+            } else {
+                "继续缩小一点，别停在原地"
+            }
         } else {
             // 根据步骤 direction 生成与大字一致的文案
             val needZoomIn = direction.lowercase() == "in"
@@ -576,6 +695,7 @@ class StepValidator(
         cameraPoseSample: CameraPoseSample? = null,
         callback: (StepValidationResult) -> Unit
     ) {
+        feedbackDebouncer.minDurationMs = 300L
         val baselineJustInitialized = ensureViewChangeBaseline(stepKey, currentFrame)
 
         if (baselineJustInitialized) {
@@ -633,6 +753,7 @@ class StepValidator(
             )
             targetFeatureScore = (targetPerspectiveResult.matchCount.toFloat() / 28f).coerceIn(0f, 1f)
             val sourceFeatureScore = (sourcePerspectiveResult.matchCount.toFloat() / 28f).coerceIn(0f, 1f)
+            val pHashSimilarity = getOrComputePHash(currentFrame)
 
             analyzer.analyze(
                 currentFrame = currentFrame,
@@ -641,6 +762,7 @@ class StepValidator(
                 perspectiveScore = perspectiveDepartureScore,
                 sourceSimilarityScore = sourceFeatureScore,
                 targetSimilarityScore = targetFeatureScore,
+                pHashSimilarity = pHashSimilarity,
                 cameraPoseSample = cameraPoseSample
             ) { result ->
                 callback(
@@ -704,6 +826,22 @@ class StepValidator(
             current.actionType == normalizedAction &&
             current.direction == normalizedDirection
         ) {
+            if (current.framesSeen < 3) {
+                current.initialDistance = minOf(current.initialDistance, components.translationDistance)
+                current.initialPrimaryError = minOf(
+                    current.initialPrimaryError,
+                    computePrimaryShiftError(
+                        tx = components.translationX,
+                        ty = components.translationY,
+                        direction = direction
+                    )
+                )
+                current.initialScaleError = minOf(
+                    current.initialScaleError,
+                    abs(1.0 - components.scaleFactor)
+                )
+                current.framesSeen += 1
+            }
             return current
         }
 
@@ -718,9 +856,51 @@ class StepValidator(
                 ty = components.translationY,
                 direction = direction
             ),
-            initialScaleError = abs(1.0 - components.scaleFactor)
+            initialScaleError = abs(1.0 - components.scaleFactor),
+            framesSeen = 1
         ).also {
             motionBaseline = it
+        }
+    }
+
+    private fun computeOrbQuality(matchCount: Int): Float {
+        val baseQuality = (matchCount.toFloat() / 50f).coerceIn(0f, 1f)
+        return if (matchCount < 10) {
+            (baseQuality * 0.6f).coerceIn(0f, 1f)
+        } else {
+            baseQuality
+        }
+    }
+
+    private fun getOrComputePHash(currentFrame: Bitmap): Float {
+        pHashFrameCounter += 1
+        if (pHashFrameCounter % PHASH_COMPUTE_INTERVAL == 1 || cachedCurrentPHash == 0L) {
+            cachedCurrentPHash = PerceptualHashMatcher.computeHash(currentFrame)
+        }
+        return PerceptualHashMatcher.similarity(cachedCurrentPHash, targetPHash)
+    }
+
+    private fun sharpenForMatching(bitmap: Bitmap): Bitmap {
+        val src = Mat()
+        val blurred = Mat()
+        val sharpened = Mat()
+        return try {
+            Utils.bitmapToMat(bitmap, src)
+            Imgproc.GaussianBlur(src, blurred, Size(0.0, 0.0), 3.0)
+            Core.addWeighted(src, 1.5, blurred, -0.5, 0.0, sharpened)
+            Bitmap.createBitmap(
+                bitmap.width,
+                bitmap.height,
+                bitmap.config ?: Bitmap.Config.ARGB_8888
+            ).also { result ->
+                Utils.matToBitmap(sharpened, result)
+            }
+        } catch (_: Exception) {
+            bitmap
+        } finally {
+            src.release()
+            blurred.release()
+            sharpened.release()
         }
     }
 
@@ -730,6 +910,7 @@ class StepValidator(
         direction: String
     ): Double {
         return when (direction.lowercase()) {
+            "cw", "ccw", "rotate-cw", "rotate-ccw" -> 0.0
             "left", "right", "rotate-cw", "rotate-ccw", "cw", "ccw" -> abs(tx)
             "up", "down" -> abs(ty)
             else -> sqrt(tx * tx + ty * ty)
@@ -931,7 +1112,7 @@ class StepValidator(
      * 反馈文字防抖器
      * 同一反馈至少保持 minDurationMs 才能被替换，避免文字快速跳变
      */
-    private class FeedbackDebouncer(private val minDurationMs: Long = 250L) {
+    private class FeedbackDebouncer(var minDurationMs: Long = 250L) {
         private var lastText: String = ""
         private var lastChangeTime: Long = 0
 
@@ -999,9 +1180,10 @@ class StepValidator(
         val stepKey: Int,
         val actionType: String,
         val direction: String,
-        val initialDistance: Double,
-        val initialPrimaryError: Double,
-        val initialScaleError: Double
+        var initialDistance: Double,
+        var initialPrimaryError: Double,
+        var initialScaleError: Double,
+        var framesSeen: Int = 0
     )
     
     /**
@@ -1016,11 +1198,15 @@ class StepValidator(
         viewChangeAnalyzer = null
         motionBaseline = null
         motionStableFrames = 0
+        pHashFrameCounter = 0
+        cachedCurrentPHash = 0L
     }
 
     fun resetStableFrames() {
         motionStableFrames = 0
         motionBaseline = null
+        pHashFrameCounter = 0
+        cachedCurrentPHash = 0L
         viewChangeAnalyzer?.resetStableFrames()
     }
 }

@@ -71,6 +71,7 @@ class ViewChangeAnalyzer(
     private val targetShotSpec: ShotSpec? = null
 ) {
     private val objectDetector: ObjectDetector
+    private val referenceDetector: ObjectDetector
     private var stableCompletionFrames: Int = 0
     private val targetSimHistory: ArrayDeque<Float> = ArrayDeque()
 
@@ -126,7 +127,7 @@ class ViewChangeAnalyzer(
         private const val STABLE_FRAME_COUNT = 3
         private const val STABLE_FRAME_COUNT_VERTICAL = 2
         private const val STABLE_FRAME_COUNT_MOVING_POSE = 2
-        private const val SUBJECT_MISS_GRACE_FRAMES = 2
+        private const val SUBJECT_MISS_GRACE_FRAMES = 4
 
         private val DEFAULT_ACTION_PROFILE = ActionProfile(
             arrivalThreshold = ARRIVAL_THRESHOLD,
@@ -194,12 +195,19 @@ class ViewChangeAnalyzer(
     }
 
     init {
-        val options = ObjectDetectorOptions.Builder()
+        val streamOptions = ObjectDetectorOptions.Builder()
+            .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
+            .enableMultipleObjects()
+            .enableClassification()
+            .build()
+        objectDetector = ObjectDetection.getClient(streamOptions)
+
+        val singleOptions = ObjectDetectorOptions.Builder()
             .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
             .enableMultipleObjects()
             .enableClassification()
             .build()
-        objectDetector = ObjectDetection.getClient(options)
+        referenceDetector = ObjectDetection.getClient(singleOptions)
 
         targetBoundingBox = applyShotSpecToBox(null)
 
@@ -223,6 +231,7 @@ class ViewChangeAnalyzer(
         perspectiveScore: Float,
         sourceSimilarityScore: Float,
         targetSimilarityScore: Float,
+        pHashSimilarity: Float,
         cameraPoseSample: CameraPoseSample?,
         callback: (ViewChangeAnalysisResult) -> Unit
     ) {
@@ -233,18 +242,19 @@ class ViewChangeAnalyzer(
         val isStepAction = normalizedActionType == "step"
         val isMovingPoseAction = isOrbitAction || isStepAction
         val profile = actionProfile(normalizedActionType)
+        val blendedTargetSimilarity = blendTargetSimilarity(targetSimilarityScore, pHashSimilarity)
 
-        targetSimHistory.addLast(targetSimilarityScore)
+        targetSimHistory.addLast(blendedTargetSimilarity)
         while (targetSimHistory.size > HISTORY_CAPACITY) targetSimHistory.removeFirst()
 
         val targetGainScore = computeTargetGainScore(
             sourceSimilarityScore = sourceSimilarityScore,
-            targetSimilarityScore = targetSimilarityScore,
+            targetSimilarityScore = blendedTargetSimilarity,
             perspectiveScore = perspectiveScore
         )
         val baseArrivalScore = computeBaseArrivalScore(
             normalizedActionType = normalizedActionType,
-            targetSimilarityScore = targetSimilarityScore,
+            targetSimilarityScore = blendedTargetSimilarity,
             targetGainScore = targetGainScore,
             perspectiveScore = perspectiveScore
         )
@@ -256,6 +266,11 @@ class ViewChangeAnalyzer(
         } else {
             temporalScore
         }
+        val stepVisualDirectionSatisfied = isStepAction &&
+            poseScore == null &&
+            targetGainScore >= 0.36f &&
+            blendedTargetSimilarity >= 0.52f &&
+            baseArrivalScore >= (profile.arrivalThreshold - 0.05f)
 
         val wristOnlyMotion = isLikelyWristOnlyMotion(actionType, cameraPoseSample)
 
@@ -306,7 +321,7 @@ class ViewChangeAnalyzer(
                             hasObject = false,
                             targetAlignmentScore = reducedArrival,
                             directionScore = directionScore,
-                            targetSimilarityScore = targetSimilarityScore,
+                            targetSimilarityScore = blendedTargetSimilarity,
                             uiHintX = uiHint.first,
                             uiHintY = uiHint.second,
                             subjectConfidence = 0f
@@ -349,21 +364,32 @@ class ViewChangeAnalyzer(
                 } else {
                     subjectAssessment.requiresSubjectGate
                 }
-                val residualReady = targetSimilarityScore >= profile.targetSimilarityFloor &&
+                val residualReady = blendedTargetSimilarity >= profile.targetSimilarityFloor &&
                     (
                         !subjectAssessment.hasTargetAnchor ||
                             subjectAssessment.targetAlignmentScore >= profile.targetAlignmentFloor
                         )
-                val normalDirectionSatisfied = directionScore >= profile.directionThreshold
+                val effectiveDirectionThreshold = if (stepVisualDirectionSatisfied) {
+                    0.12f
+                } else {
+                    profile.directionThreshold
+                }
+                val effectiveNearTargetDirectionFloor = if (stepVisualDirectionSatisfied) {
+                    0.02f
+                } else {
+                    profile.nearTargetDirectionFloor
+                }
+                val normalDirectionSatisfied =
+                    directionScore >= effectiveDirectionThreshold || stepVisualDirectionSatisfied
                 val nearTargetSatisfied = (isMovingPoseAction || isVerticalCameraAction) &&
                     adjustedArrival >= profile.nearTargetArrivalThreshold &&
-                    targetSimilarityScore >= profile.nearTargetSimilarityFloor &&
+                    blendedTargetSimilarity >= profile.nearTargetSimilarityFloor &&
                     (
                         !subjectAssessment.hasTargetAnchor ||
                             subjectAssessment.targetAlignmentScore >= profile.nearTargetAlignmentFloor
                         ) &&
                     subjectGateScore >= nearTargetSubjectThreshold &&
-                    directionScore >= profile.nearTargetDirectionFloor
+                    (directionScore >= effectiveNearTargetDirectionFloor || stepVisualDirectionSatisfied)
                 val directionSatisfied = normalDirectionSatisfied || nearTargetSatisfied
 
                 val rawCompleted = adjustedArrival >= profile.arrivalThreshold &&
@@ -382,7 +408,7 @@ class ViewChangeAnalyzer(
                     normalizedActionType = normalizedActionType,
                     baseArrivalScore = baseArrivalScore,
                     adjustedArrival = adjustedArrival,
-                    targetSimilarityScore = targetSimilarityScore,
+                    targetSimilarityScore = blendedTargetSimilarity,
                     directionScore = directionScore,
                     poseScore = poseScore,
                     nearTargetSatisfied = nearTargetSatisfied,
@@ -419,11 +445,11 @@ class ViewChangeAnalyzer(
                         progress = uiProgress,
                         feedbackText = generateFeedback(
                             actionType = actionType,
-                            direction = direction,
-                            targetSimilarityScore = targetSimilarityScore,
-                            targetGainScore = targetGainScore,
-                            arrivalScore = adjustedArrival,
-                            directionScore = directionScore,
+                        direction = direction,
+                        targetSimilarityScore = blendedTargetSimilarity,
+                        targetGainScore = targetGainScore,
+                        arrivalScore = adjustedArrival,
+                        directionScore = directionScore,
                             cameraPoseSample = cameraPoseSample,
                             subjectAssessment = subjectAssessment,
                             nearTargetSatisfied = nearTargetSatisfied,
@@ -432,7 +458,7 @@ class ViewChangeAnalyzer(
                         hasObject = true,
                         targetAlignmentScore = adjustedArrival,
                         directionScore = directionScore,
-                        targetSimilarityScore = targetSimilarityScore,
+                        targetSimilarityScore = blendedTargetSimilarity,
                         uiHintX = uiHint.first,
                         uiHintY = uiHint.second,
                         subjectConfidence = subjectAssessment.lockScore
@@ -462,7 +488,7 @@ class ViewChangeAnalyzer(
                         hasObject = false,
                         targetAlignmentScore = reducedArrival,
                         directionScore = directionScore,
-                        targetSimilarityScore = targetSimilarityScore,
+                        targetSimilarityScore = blendedTargetSimilarity,
                         uiHintX = uiHint.first,
                         uiHintY = uiHint.second,
                         subjectConfidence = 0f
@@ -485,6 +511,13 @@ class ViewChangeAnalyzer(
 
     private fun actionProfile(normalizedActionType: String): ActionProfile {
         return ACTION_PROFILES[normalizedActionType] ?: DEFAULT_ACTION_PROFILE
+    }
+
+    private fun blendTargetSimilarity(
+        targetSimilarityScore: Float,
+        pHashSimilarity: Float
+    ): Float {
+        return (targetSimilarityScore * 0.6f + pHashSimilarity * 0.4f).coerceIn(0f, 1f)
     }
 
     private fun computeBaseArrivalScore(
@@ -607,9 +640,9 @@ class ViewChangeAnalyzer(
     private fun computeStepPoseScore(
         sample: CameraPoseSample,
         direction: String
-    ): Float {
+    ): Float? {
         if (sample.source != CameraPoseSource.ARCORE || !sample.isTracking) {
-            return 0f
+            return null
         }
 
         val forwardProgress = if (direction.equals("backward", ignoreCase = true)) {
@@ -625,17 +658,30 @@ class ViewChangeAnalyzer(
         sample: CameraPoseSample,
         direction: String
     ): Float {
+        val moveRight = direction.equals("right", ignoreCase = true)
+        val signedYawDelta = if (moveRight) {
+            sample.yawDeltaDegrees
+        } else {
+            -sample.yawDeltaDegrees
+        }
+        val yawProgress = (0.10f + (signedYawDelta / 18f) * 0.90f).coerceIn(0f, 1f)
+        val yawMotionFallback = (abs(sample.yawDeltaDegrees) / 30f).coerceIn(0f, 0.55f)
+
         if (sample.source != CameraPoseSource.ARCORE || !sample.isTracking) {
-            return 0f
+            return max(yawProgress, yawMotionFallback)
         }
 
-        val lateralProgress = if (direction.equals("right", ignoreCase = true)) {
+        val lateralProgress = if (moveRight) {
             sample.lateralMeters / 0.14f
         } else {
             -sample.lateralMeters / 0.14f
         }
+        val lateralScore = (0.15f + lateralProgress * 0.85f).coerceIn(0f, 1f)
 
-        return (0.15f + lateralProgress * 0.85f).coerceIn(0f, 1f)
+        return max(
+            lateralScore * 0.78f + yawProgress * 0.22f,
+            max(yawProgress * 0.82f, lateralScore)
+        ).coerceIn(0f, 1f)
     }
 
     private fun isLikelyWristOnlyMotion(
@@ -659,7 +705,7 @@ class ViewChangeAnalyzer(
         onDetected: (NormalizedBoundingBox?) -> Unit
     ) {
         val image = InputImage.fromBitmap(bitmap, 0)
-        objectDetector.process(image)
+        referenceDetector.process(image)
             .addOnSuccessListener { objects ->
                 val candidate = selectMostSalientObject(
                     objects = objects,
@@ -1071,6 +1117,7 @@ class ViewChangeAnalyzer(
 
     fun close() {
         objectDetector.close()
+        referenceDetector.close()
     }
 
     fun resetStableFrames() {

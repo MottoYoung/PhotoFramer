@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import com.photoframer.data.api.CompositionStep
 import com.photoframer.guidance.isViewpointActionType
 import com.photoframer.guidance.normalizedActionType
@@ -77,6 +78,7 @@ fun GuidanceOverlay(
     val isCompleted = validationResult?.isCompleted == true
     val isZoomStep = step?.actionType.equals("zoom", ignoreCase = true)
     val isViewChangeStep = step?.actionType?.isViewpointActionType() == true
+    val isLevelStep = step?.actionType.equals("level", ignoreCase = true)
 
     val rawTx: Float
     val rawTy: Float
@@ -152,6 +154,21 @@ fun GuidanceOverlay(
             pulseScale = pulseScale,
             orbitPhase = orbitPhase
         )
+
+        if (isLevelStep) {
+            drawLevelGuide(
+                centerX = centerX,
+                centerY = centerY,
+                rotateRight = step?.direction.equals("cw", ignoreCase = true) ||
+                    step?.direction.equals("rotate-cw", ignoreCase = true),
+                rotationAngle = validationResult?.rotationAngle ?: 0f,
+                progress = validationResult?.progress ?: 0f,
+                pulseScale = pulseScale,
+                isCompleted = isCompleted,
+                color = accentColor,
+                shadow = shadow
+            )
+        }
 
         if (step?.actionType.equals("shift", ignoreCase = true)) {
             val scaleFactor = size.width / 360f
@@ -357,6 +374,106 @@ private fun DrawScope.drawReticle(
         radius = orbitalRadius,
         angleDegrees = orbitPhase,
         color = accentColor
+    )
+}
+
+private fun DrawScope.drawLevelGuide(
+    centerX: Float,
+    centerY: Float,
+    rotateRight: Boolean,
+    rotationAngle: Float,
+    progress: Float,
+    pulseScale: Float,
+    isCompleted: Boolean,
+    color: Color,
+    shadow: Color
+) {
+    val guideRadius = 98f
+    val activeColor = color.copy(alpha = 0.90f)
+    val startAngle = if (rotateRight) -118f else 118f
+    val sweep = if (rotateRight) 88f else -88f
+    val activeSweep = if (isCompleted) sweep else sweep * (0.28f + progress.coerceIn(0f, 1f) * 0.72f)
+    val trackRect = Rect(
+        left = centerX - guideRadius,
+        top = centerY - guideRadius - 8f,
+        right = centerX + guideRadius,
+        bottom = centerY + guideRadius - 8f
+    )
+    val currentTilt = if (isCompleted) 0f else rotationAngle.coerceIn(-18f, 18f)
+    val targetPhoneCenter = Offset(centerX, centerY + 110f)
+    val currentPhoneCenter = Offset(centerX, centerY + 34f)
+
+    drawArc(
+        color = Color.White.copy(alpha = 0.15f),
+        startAngle = startAngle,
+        sweepAngle = sweep,
+        useCenter = false,
+        topLeft = trackRect.topLeft,
+        size = trackRect.size,
+        style = Stroke(width = 5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f))
+    )
+    drawArc(
+        color = shadow,
+        startAngle = startAngle,
+        sweepAngle = activeSweep,
+        useCenter = false,
+        topLeft = trackRect.topLeft,
+        size = trackRect.size,
+        style = Stroke(width = 9f, cap = StrokeCap.Round)
+    )
+    drawArc(
+        color = activeColor,
+        startAngle = startAngle,
+        sweepAngle = activeSweep,
+        useCenter = false,
+        topLeft = trackRect.topLeft,
+        size = trackRect.size,
+        style = Stroke(width = 5f, cap = StrokeCap.Round)
+    )
+
+    val arrowFractions = listOf(0.22f, 0.55f, 0.84f)
+    arrowFractions.forEach { fraction ->
+        val angle = startAngle + sweep * fraction
+        val point = circlePoint(centerX, centerY - 8f, guideRadius, angle)
+        val tangent = arcTangentDirection(angle, clockwise = rotateRight)
+        drawArrowTip(
+            tip = point,
+            direction = tangent,
+            size = 13f,
+            color = activeColor,
+            shadow = shadow
+        )
+    }
+
+    drawGuidePhone(
+        center = targetPhoneCenter,
+        width = 44f,
+        height = 72f,
+        color = Color.White.copy(alpha = 0.30f),
+        shadow = shadow,
+        filled = false
+    )
+    drawGuidePhoneRotated(
+        center = currentPhoneCenter,
+        width = 50f,
+        height = 82f,
+        angleDegrees = currentTilt,
+        color = if (isCompleted) SuccessGreen else activeColor,
+        shadow = shadow
+    )
+    drawCircle(
+        color = activeColor.copy(alpha = 0.10f),
+        radius = 52f * if (isCompleted) pulseScale else 1f,
+        center = currentPhoneCenter
+    )
+
+    val targetTip = circlePoint(centerX, centerY - 8f, guideRadius, startAngle + activeSweep)
+    drawArrowTip(
+        tip = targetTip,
+        direction = arcTangentDirection(startAngle + activeSweep, clockwise = rotateRight),
+        size = 16f * if (isCompleted) pulseScale else 1f,
+        color = activeColor,
+        shadow = shadow
     )
 }
 
@@ -631,8 +748,17 @@ private fun DrawScope.drawOrbitGuide(
     val source = ellipsePoint(centerX, centerY, radiusX, radiusY, sourceAngle)
     val target = ellipsePoint(centerX, centerY, radiusX, radiusY, targetAngle)
     val marker = ellipsePoint(centerX, centerY, radiusX, radiusY, markerAngle)
+    val arrowFractions = listOf(0.18f, 0.46f, 0.74f)
 
     drawCircle(subjectColor.copy(alpha = 0.10f), 82f, Offset(centerX, centerY))
+    drawGuidePhone(
+        center = source,
+        width = 36f,
+        height = 58f,
+        color = Color.White.copy(alpha = 0.28f),
+        shadow = shadow,
+        filled = false
+    )
     drawGuidePhone(
         center = target,
         width = 42f,
@@ -649,6 +775,23 @@ private fun DrawScope.drawOrbitGuide(
         shadow = shadow
     )
     drawCircle(Color.White.copy(alpha = 0.10f), 8f, source)
+    arrowFractions.forEach { fraction ->
+        val angle = lerpF(sourceAngle, targetAngle, fraction)
+        val point = ellipsePoint(centerX, centerY, radiusX, radiusY, angle)
+        val tangent = ellipseTangentDirection(
+            angleDegrees = angle,
+            radiusX = radiusX,
+            radiusY = radiusY,
+            clockwise = moveRight
+        )
+        drawArrowTip(
+            tip = point,
+            direction = tangent,
+            size = 13f * (0.9f + guideStrength * 0.25f),
+            color = activeColor.copy(alpha = 0.88f),
+            shadow = shadow
+        )
+    }
 
     val arrowDirection = if (moveRight) Offset(1f, 0f) else Offset(-1f, 0f)
     drawArrowTip(
@@ -769,6 +912,25 @@ private fun DrawScope.drawGuidePhone(
     drawCircle(color, 3f, Offset(center.x, topLeft.y + 10f))
 }
 
+private fun DrawScope.drawGuidePhoneRotated(
+    center: Offset,
+    width: Float,
+    height: Float,
+    angleDegrees: Float,
+    color: Color,
+    shadow: Color
+) {
+    rotate(degrees = angleDegrees, pivot = center) {
+        drawGuidePhone(
+            center = center,
+            width = width,
+            height = height,
+            color = color,
+            shadow = shadow
+        )
+    }
+}
+
 private fun DrawScope.drawArrowTip(
     tip: Offset,
     direction: Offset,
@@ -826,6 +988,44 @@ private fun ellipsePoint(
         x = centerX + (kotlin.math.cos(radians) * radiusX).toFloat(),
         y = centerY + (kotlin.math.sin(radians) * radiusY).toFloat()
     )
+}
+
+private fun circlePoint(
+    centerX: Float,
+    centerY: Float,
+    radius: Float,
+    angleDegrees: Float
+): Offset {
+    val radians = Math.toRadians(angleDegrees.toDouble())
+    return Offset(
+        x = centerX + (kotlin.math.cos(radians) * radius).toFloat(),
+        y = centerY + (kotlin.math.sin(radians) * radius).toFloat()
+    )
+}
+
+private fun arcTangentDirection(angleDegrees: Float, clockwise: Boolean): Offset {
+    val radians = Math.toRadians(angleDegrees.toDouble())
+    val rawDx = (-kotlin.math.sin(radians)).toFloat()
+    val rawDy = (kotlin.math.cos(radians)).toFloat()
+    val dx = if (clockwise) rawDx else -rawDx
+    val dy = if (clockwise) rawDy else -rawDy
+    val magnitude = sqrt(dx * dx + dy * dy).coerceAtLeast(1e-3f)
+    return Offset(dx / magnitude, dy / magnitude)
+}
+
+private fun ellipseTangentDirection(
+    angleDegrees: Float,
+    radiusX: Float,
+    radiusY: Float,
+    clockwise: Boolean
+): Offset {
+    val radians = Math.toRadians(angleDegrees.toDouble())
+    val rawDx = (-kotlin.math.sin(radians) * radiusX).toFloat()
+    val rawDy = (kotlin.math.cos(radians) * radiusY).toFloat()
+    val dx = if (clockwise) rawDx else -rawDx
+    val dy = if (clockwise) rawDy else -rawDy
+    val magnitude = sqrt(dx * dx + dy * dy).coerceAtLeast(1e-3f)
+    return Offset(dx / magnitude, dy / magnitude)
 }
 
 private fun lerpF(start: Float, end: Float, fraction: Float): Float {
