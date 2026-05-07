@@ -24,6 +24,81 @@ from services.common import to_composition_result
 router = APIRouter(tags=["Composition"])
 
 
+def _normalized_steps_signature(composition: CompositionResult) -> tuple:
+    return tuple(
+        (
+            step.action_type.strip().lower(),
+            step.direction.strip().lower(),
+        )
+        for step in composition.steps[:3]
+    )
+
+
+def _subject_center(composition: CompositionResult) -> tuple[float, float] | None:
+    shot_spec = composition.shot_spec
+    center = shot_spec.target_subject_center if shot_spec else None
+    if not center or len(center) < 2:
+        return None
+    return float(center[0]), float(center[1])
+
+
+def _subject_size(composition: CompositionResult) -> float | None:
+    shot_spec = composition.shot_spec
+    if not shot_spec or shot_spec.target_subject_size is None:
+        return None
+    return float(shot_spec.target_subject_size)
+
+
+def _is_near_duplicate(candidate: CompositionResult, kept: CompositionResult) -> bool:
+    if _normalized_steps_signature(candidate) != _normalized_steps_signature(kept):
+        return False
+
+    candidate_center = _subject_center(candidate)
+    kept_center = _subject_center(kept)
+    candidate_size = _subject_size(candidate)
+    kept_size = _subject_size(kept)
+
+    if candidate_center and kept_center:
+        center_dx = abs(candidate_center[0] - kept_center[0])
+        center_dy = abs(candidate_center[1] - kept_center[1])
+        if center_dx > 0.10 or center_dy > 0.10:
+            return False
+    elif candidate.technique != kept.technique:
+        # 两个不同技术如果都没有几何先验，只在步骤签名完全相同的情况下视作重复。
+        return True
+
+    if candidate_size is not None and kept_size is not None:
+        if abs(candidate_size - kept_size) > 0.12:
+            return False
+
+    return True
+
+
+def _diversify_compositions(compositions: list[CompositionResult]) -> list[CompositionResult]:
+    if len(compositions) <= 1:
+        return compositions
+
+    prioritized = sorted(
+        compositions,
+        key=lambda composition: (
+            -(1 if composition.shot_spec and composition.shot_spec.viewpoint_required else 0),
+            -len(composition.steps),
+            composition.response_time_ms or 0.0,
+        ),
+    )
+    diversified: list[CompositionResult] = []
+    for composition in prioritized:
+        if any(_is_near_duplicate(composition, kept) for kept in diversified):
+            print(
+                f"  🪄 [{composition.technique}] 近似重复，已跳过",
+                flush=True,
+            )
+            continue
+        diversified.append(composition)
+
+    return diversified
+
+
 @router.post("/composition_analyze", response_model=AnalysisResponse)
 async def analyze_composition(
     image: UploadFile = File(..., description="要分析的原始图片（JPEG/PNG）"),
@@ -219,6 +294,7 @@ async def analyze_composition(
                     flush=True,
                 )
 
+        final_compositions = _diversify_compositions(final_compositions)
         total_time_ms = (time.perf_counter() - overall_start) * 1000
         print(
             f"🏁 两阶段分析完成 total={total_time_ms:.0f}ms "

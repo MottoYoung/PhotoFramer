@@ -26,6 +26,9 @@ DASHSCOPE_BASE_URL = os.environ.get(
 )
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+USE_GEMINI_PROXY = True
+# 本地代理默认走 127.0.0.1:11087；如果你的代理是 socks，请改成 socks5://127.0.0.1:11087
+GEMINI_PROXY_URL = os.environ.get("GEMINI_PROXY_URL", "http://127.0.0.1:11087").strip()
 
 # Gemini 国内中转配置：
 # - 关闭时：继续使用官方 Gemini API（GEMINI_API_KEY）
@@ -98,42 +101,27 @@ TECHNIQUE_CONFIGS: Dict[str, TechniqueConfig] = {
     "rule_of_thirds": TechniqueConfig(
         id="rule_of_thirds",
         name="三分构图",
-        user_prompt="""# Task Request
-The user has uploaded an image. Please apply the Rule of Thirds technique.
-Prefer Shift / Zoom first. Only use Orbit / RaiseCamera / LowerCamera / Step when thirds placement truly requires a new camera pose.""",
+        user_prompt=load_prompt_file("techniques/rule_of_thirds.md"),
     ),
     "center_composition": TechniqueConfig(
         id="center_composition",
         name="中心构图",
-        user_prompt="""# Task Request
-The user has uploaded an image. Please apply Center Composition / Symmetry.
-If symmetry can be fixed by leveling or recentering, avoid camera-pose changes.""",
+        user_prompt=load_prompt_file("techniques/center_composition.md"),
     ),
     "leading_lines": TechniqueConfig(
         id="leading_lines",
         name="引导线构图",
-        user_prompt="""# Task Request
-The user has uploaded an image. Please apply Leading Lines.
-Only use this technique when the scene already contains real, visually credible lines.
-Never invent roads, rails, shadows, reflections, streaks, or cables to fake leading lines.
-Prefer Shift over Step and Orbit. If real leading lines are weak or absent, return is_applicable=false.""",
+        user_prompt=load_prompt_file("techniques/leading_lines.md"),
     ),
     "foreground_framing": TechniqueConfig(
         id="foreground_framing",
         name="前景/框架构图",
-        user_prompt="""# Task Request
-The user has uploaded an image. Please apply Foreground Framing.
-Only use this technique when there is already a real foreground object or frame candidate in the scene.
-Never fabricate leaves, windows, poles, blur blobs, or fake frame edges.
-If no real foreground/frame candidate exists, return is_applicable=false.""",
+        user_prompt=load_prompt_file("techniques/foreground_framing.md"),
     ),
     "diagonal_composition": TechniqueConfig(
         id="diagonal_composition",
         name="对角线构图",
-        user_prompt="""# Task Request
-The user has uploaded an image. Please apply Diagonal Composition.
-Only use this technique when the scene already contains real diagonal energy from existing edges, roads, architecture, limbs, shadows, or object placement.
-Do not tilt the whole camera to fake diagonal energy. If convincing diagonal structure does not already exist, return is_applicable=false.""",
+        user_prompt=load_prompt_file("techniques/diagonal_composition.md"),
     ),
 }
 
@@ -177,10 +165,10 @@ GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS = (
 # 在高延迟网络 + 重模型场景下可能有帮助；
 # 当 Stage 1 已经切到 2.5-lite 时，额外多一跳请求往往不划算，所以默认关闭。
 ENABLE_GEMINI_TECHNIQUE_PREFILTER = (
-    os.environ.get("ENABLE_GEMINI_TECHNIQUE_PREFILTER", "false").strip().lower() == "true"
+    os.environ.get("ENABLE_GEMINI_TECHNIQUE_PREFILTER", "true").strip().lower() == "true"
 )
 GEMINI_PREFILTER_MODEL = os.environ.get("GEMINI_PREFILTER_MODEL", "gemini-2.5-flash-lite")
-GEMINI_PREFILTER_MAX_TECHNIQUES = int(os.environ.get("GEMINI_PREFILTER_MAX_TECHNIQUES", "3"))
+GEMINI_PREFILTER_MAX_TECHNIQUES = int(os.environ.get("GEMINI_PREFILTER_MAX_TECHNIQUES", "4"))
 GEMINI_PREFILTER_TEMPERATURE = float(os.environ.get("GEMINI_PREFILTER_TEMPERATURE", "0.1"))
 STAGE1_MAX_CONCURRENCY = int(os.environ.get("STAGE1_MAX_CONCURRENCY", "3"))
 STAGE1_PIPELINE_TIMEOUT_SECONDS = float(os.environ.get("STAGE1_PIPELINE_TIMEOUT_SECONDS", "25"))

@@ -153,7 +153,8 @@ class GeminiStage1Provider:
             "for a slower detailed analysis stage.\n"
             f"Select at most {GEMINI_PREFILTER_MAX_TECHNIQUES} techniques.\n"
             "Be conservative: do not select weak or marginal techniques.\n"
-            "Prefer general-purpose, high-yield techniques first.\n"
+            "Prefer techniques that are both credible and meaningfully different from one another.\n"
+            "Do not select multiple techniques if they would likely produce near-duplicate framing suggestions.\n"
             "Return only JSON:\n"
             '{ "selected": ["technique_id_1", "technique_id_2"] }\n'
             "Candidate techniques:\n" + "\n".join(technique_lines)

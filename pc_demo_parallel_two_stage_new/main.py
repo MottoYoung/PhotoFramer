@@ -1,6 +1,8 @@
 """
 辅助拍摄 App 后端服务（provider 化两阶段版）
 """
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,6 +18,10 @@ from config import (
     get_stage2_model_name,
 )
 from routers import composition_router, image_router
+from services.gemini_client_factory import (
+    is_official_gemini_api_enabled,
+    probe_gemini_proxy_connectivity,
+)
 
 app = FastAPI(
     title="PhotoFramer API - Two-Stage New",
@@ -77,7 +83,11 @@ async def startup_event():
         f"gemini_level={GEMINI_STAGE1_THINKING_LEVEL}"
     )
     print(f"   构图技术: {', '.join(TECHNIQUE_CONFIGS.keys())}")
-    print("   文档: http://localhost:8000/docs")
+    if (STAGE1_PROVIDER == "gemini" or STAGE2_PROVIDER == "gemini") and is_official_gemini_api_enabled():
+        ok, message = await asyncio.to_thread(probe_gemini_proxy_connectivity)
+        prefix = "   ✅ Gemini 代理自检:" if ok else "   ❌ Gemini 代理自检:"
+        print(f"{prefix} {message}")
+    print("   文档: http://localhost:8100/docs")
     print("=" * 60)
 
 
@@ -92,6 +102,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8100,
         reload=True,
     )
