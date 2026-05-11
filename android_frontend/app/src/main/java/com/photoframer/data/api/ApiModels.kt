@@ -57,6 +57,12 @@ data class CompositionResult(
 
     @SerializedName("shot_spec")
     val shotSpec: ShotSpec? = null,
+
+    @SerializedName("image_prompt")
+    val imagePrompt: String? = null,
+
+    @SerializedName("timing")
+    val timing: Map<String, Float>? = null,
     
     @SerializedName("image_base64")
     val imageBase64: String?,        // Base64 编码的图片
@@ -66,6 +72,51 @@ data class CompositionResult(
     
     @SerializedName("is_recommended")
     val isRecommended: Boolean = false  // 是否为推荐方案
+)
+
+data class StreamStartedEvent(
+    @SerializedName("event")
+    val event: String,
+
+    @SerializedName("requested_techniques")
+    val requestedTechniques: List<String> = emptyList(),
+
+    @SerializedName("selected_techniques")
+    val selectedTechniques: List<String> = emptyList(),
+
+    @SerializedName("stage1_timeout_s")
+    val stage1TimeoutSeconds: Float = 0f,
+
+    @SerializedName("stage2_timeout_s")
+    val stage2TimeoutSeconds: Float = 0f
+)
+
+data class StreamCandidateReadyEvent(
+    @SerializedName("event")
+    val event: String,
+
+    @SerializedName("completed_count")
+    val completedCount: Int = 0,
+
+    @SerializedName("applicable_count")
+    val applicableCount: Int = 0,
+
+    @SerializedName("composition")
+    val composition: CompositionResult
+)
+
+data class StreamSummaryEvent(
+    @SerializedName("event")
+    val event: String,
+
+    @SerializedName("total_techniques")
+    val totalTechniques: Int = 0,
+
+    @SerializedName("applicable_count")
+    val applicableCount: Int = 0,
+
+    @SerializedName("total_time_ms")
+    val totalTimeMs: Float = 0f
 )
 
 /**

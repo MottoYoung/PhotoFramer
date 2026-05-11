@@ -64,4 +64,7 @@ object RetrofitClient {
         .build()
     
     val api: PhotoFramerApi = retrofit.create(PhotoFramerApi::class.java)
+
+    val httpClient: OkHttpClient
+        get() = okHttpClient
 }

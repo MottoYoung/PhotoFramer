@@ -12,6 +12,7 @@ import com.photoframer.data.api.CompositionResult
 import com.photoframer.data.api.InFrameCompositionResponse
 import com.photoframer.data.api.ShotSpec
 import com.photoframer.data.repository.CompositionRepository
+import com.photoframer.data.repository.CompositionRepository.StreamAnalysisUpdate
 import com.photoframer.guidance.isLevelAction
 import com.photoframer.guidance.isShiftAction
 import com.photoframer.guidance.isViewpointAction
@@ -39,6 +40,10 @@ import java.io.File
  * 管理 UI 状态和业务逻辑
  */
 class CameraViewModel : ViewModel() {
+    data class PostCapturePrompt(
+        val message: String
+    )
+
     private data class ActiveValidation(
         val sessionId: Long,
         val stepIndex: Int,
@@ -84,6 +89,9 @@ class CameraViewModel : ViewModel() {
 
     private val _showStepSkip = MutableStateFlow(false)
     val showStepSkip: StateFlow<Boolean> = _showStepSkip.asStateFlow()
+
+    private val _postCapturePrompt = MutableStateFlow<PostCapturePrompt?>(null)
+    val postCapturePrompt: StateFlow<PostCapturePrompt?> = _postCapturePrompt.asStateFlow()
     
     // 缓存解码后的图片 (使用 technique 作为 key)
     private val imageCache = mutableStateMapOf<String, Bitmap>()
@@ -96,6 +104,7 @@ class CameraViewModel : ViewModel() {
     
     // 缓存候选方案状态（用于返回）
     private var cachedCandidatesState: CameraUiState.Candidates? = null
+    private var pendingPostCaptureHint: String? = null
     
     // 当前步骤验证器
     private var stepValidator: StepValidator? = null
@@ -117,6 +126,7 @@ class CameraViewModel : ViewModel() {
      * 分析图片构图 (v3.1 并行化后端)
      */
     fun analyzeImage(imageFile: File) {
+        _postCapturePrompt.value = null
         pendingAnalysisRequest = PendingAnalysisRequest(
             mode = AnalysisMode.AiComposition,
             imageFile = imageFile
@@ -137,32 +147,39 @@ class CameraViewModel : ViewModel() {
             }
 
             try {
-                repository.analyzeComposition(preparedImage.file)
+                imageCache.clear()
+                validationImageCache.clear()
+                inFrameGuideConfigCache.clear()
+
+                val streamResult = repository.analyzeCompositionStream(preparedImage.file) { update ->
+                    applyStreamAnalysisUpdate(update)
+                }
+
+                streamResult
                     .onSuccess { response ->
-                        if (response.applicableCount > 0 && response.compositions.isNotEmpty()) {
-                            imageCache.clear()
-                            validationImageCache.clear()
-                            inFrameGuideConfigCache.clear()
-                            val candidatesState = CameraUiState.Candidates(
-                                totalTechniques = response.totalTechniques,
-                                applicableCount = response.applicableCount,
-                                totalTimeMs = response.totalTimeMs,
-                                compositions = response.compositions
-                            )
-                            cachedCandidatesState = candidatesState
-                            _uiState.value = candidatesState
-                            warmCandidateImagesAsync(response.compositions)
-                        } else {
+                        if (response.applicableCount <= 0 || response.compositions.isEmpty()) {
                             _uiState.value = CameraUiState.Error(
                                 response.message ?: "未能生成适用的构图方案"
                             )
                         }
                     }
-                    .onFailure { error ->
-                        _uiState.value = CameraUiState.Error(
-                            error.message ?: "网络错误，请检查连接",
-                            actionText = "重试"
-                        )
+                    .onFailure {
+                        repository.analyzeComposition(preparedImage.file)
+                            .onSuccess { response ->
+                                if (response.applicableCount > 0 && response.compositions.isNotEmpty()) {
+                                    applyCandidatesResponse(response)
+                                } else {
+                                    _uiState.value = CameraUiState.Error(
+                                        response.message ?: "未能生成适用的构图方案"
+                                    )
+                                }
+                            }
+                            .onFailure { error ->
+                                _uiState.value = CameraUiState.Error(
+                                    error.message ?: "网络错误，请检查连接",
+                                    actionText = "重试"
+                                )
+                            }
                     }
             } finally {
                 preparedImage.cleanup()
@@ -174,6 +191,7 @@ class CameraViewModel : ViewModel() {
      * 画面内构图分析
      */
     fun analyzeInFrameComposition(imageFile: File) {
+        _postCapturePrompt.value = null
         pendingAnalysisRequest = PendingAnalysisRequest(
             mode = AnalysisMode.InFrameComposition,
             imageFile = imageFile
@@ -233,6 +251,7 @@ class CameraViewModel : ViewModel() {
                     } else {
                         val candidatesState = CameraUiState.Candidates(
                             totalTechniques = guides.size,
+                            completedCount = guides.size,
                             applicableCount = guides.size,
                             totalTimeMs = 0f,
                             compositions = guides.map { it.composition }
@@ -255,6 +274,7 @@ class CameraViewModel : ViewModel() {
     fun cancelAnalysis() {
         analysisJob?.cancel()
         analysisJob = null
+        _postCapturePrompt.value = null
         invalidateGuidanceSession()
         clearStepTimeout()
         _uiState.value = CameraUiState.Preview
@@ -264,6 +284,7 @@ class CameraViewModel : ViewModel() {
      * 选择构图方案，进入引导阶段
      */
     fun selectComposition(composition: CompositionResult) {
+        _postCapturePrompt.value = null
         stepValidator?.close()
         val guidanceComposition = prepareCompositionForGuidance(composition)
 
@@ -617,6 +638,8 @@ class CameraViewModel : ViewModel() {
      * 返回预览状态
      */
     fun backToPreview() {
+        _postCapturePrompt.value = null
+        pendingPostCaptureHint = null
         invalidateGuidanceSession()
         clearStepTimeout()
         imageCache.clear()
@@ -637,6 +660,7 @@ class CameraViewModel : ViewModel() {
     fun backToCandidates() {
         val cached = cachedCandidatesState
         if (cached != null) {
+            _postCapturePrompt.value = null
             invalidateGuidanceSession()
             clearStepTimeout()
             stepValidator?.close()  // 释放 ML Kit 资源
@@ -644,10 +668,46 @@ class CameraViewModel : ViewModel() {
             _validationResult.value = null
             _stepCompleted.value = false
             _allStepsCompleted.value = false
-            _uiState.value = cached
+            _uiState.value = cached.copy(
+                postCaptureHint = pendingPostCaptureHint ?: cached.postCaptureHint
+            )
+            pendingPostCaptureHint = null
         } else {
             backToPreview()
         }
+    }
+
+    fun handleGuidedCaptureCompleted() {
+        val cached = cachedCandidatesState
+        if (cached == null) {
+            backToPreview()
+            return
+        }
+
+        val hasOtherChoices = cached.compositions.size > 1
+        val stillProcessing = cached.completedCount < cached.totalTechniques
+        if (hasOtherChoices || stillProcessing) {
+            val hint = if (stillProcessing) {
+                "当前候选仍在补充中，也可以试试其他方案"
+            } else {
+                "这张拍完了，也可以试试其他候选方案"
+            }
+            pendingPostCaptureHint = hint
+            _postCapturePrompt.value = PostCapturePrompt(message = hint)
+            return
+        }
+
+        pendingPostCaptureHint = null
+        backToPreview()
+    }
+
+    fun dismissPostCapturePrompt() {
+        _postCapturePrompt.value = null
+    }
+
+    fun viewOtherCandidatesAfterCapture() {
+        _postCapturePrompt.value = null
+        backToCandidates()
     }
     
     /**
@@ -691,6 +751,61 @@ class CameraViewModel : ViewModel() {
         imageCache[composition.technique] = decoded
         validationImageCache[composition.technique] = decoded
         return decoded
+    }
+
+    private suspend fun applyStreamAnalysisUpdate(update: StreamAnalysisUpdate) {
+        update.partialResponse?.let { response ->
+            if (response.compositions.isNotEmpty()) {
+                withContext(Dispatchers.Main) {
+                    applyCandidatesResponse(
+                        response = response,
+                        completedCount = update.completedCount,
+                        totalCandidateCount = update.totalCandidateCount
+                    )
+                }
+            }
+        }
+
+        update.finalResponse?.let { response ->
+            withContext(Dispatchers.Main) {
+                if (response.compositions.isNotEmpty()) {
+                    applyCandidatesResponse(
+                        response = response,
+                        completedCount = update.completedCount,
+                        totalCandidateCount = update.totalCandidateCount
+                    )
+                } else if (_uiState.value is CameraUiState.Analyzing) {
+                    _uiState.value = CameraUiState.Error(
+                        response.message ?: "未能生成适用的构图方案"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun applyCandidatesResponse(
+        response: com.photoframer.data.api.AnalysisResponse,
+        completedCount: Int? = null,
+        totalCandidateCount: Int? = null
+    ) {
+        val previousHint = (cachedCandidatesState ?: _uiState.value as? CameraUiState.Candidates)?.postCaptureHint
+        val candidatesState = CameraUiState.Candidates(
+            totalTechniques = totalCandidateCount ?: response.totalTechniques,
+            completedCount = completedCount ?: response.compositions.size,
+            applicableCount = response.applicableCount,
+            totalTimeMs = response.totalTimeMs,
+            compositions = response.compositions,
+            postCaptureHint = previousHint
+        )
+        cachedCandidatesState = candidatesState
+        warmCandidateImagesAsync(response.compositions)
+        when (_uiState.value) {
+            is CameraUiState.Analyzing,
+            is CameraUiState.Candidates -> {
+                _uiState.value = candidatesState
+            }
+            else -> Unit
+        }
     }
 
     private fun cacheInFrameGuides(guides: List<InFrameCompositionGuide>) {

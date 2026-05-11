@@ -386,8 +386,14 @@ class ViewChangeAnalyzer(
                 } else {
                     profile.nearTargetDirectionFloor
                 }
+                val orbitVisualDirectionSatisfied = isOrbitAction &&
+                    targetGainScore >= 0.34f &&
+                    blendedTargetSimilarity >= (profile.targetSimilarityFloor + 0.04f) &&
+                    adjustedArrival >= (profile.arrivalThreshold + 0.08f)
                 val normalDirectionSatisfied =
-                    directionScore >= effectiveDirectionThreshold || stepVisualDirectionSatisfied
+                    directionScore >= effectiveDirectionThreshold ||
+                        stepVisualDirectionSatisfied ||
+                        orbitVisualDirectionSatisfied
                 val nearTargetSatisfied = (isMovingPoseAction || isVerticalCameraAction) &&
                     adjustedArrival >= profile.nearTargetArrivalThreshold &&
                     blendedTargetSimilarity >= profile.nearTargetSimilarityFloor &&
@@ -396,7 +402,11 @@ class ViewChangeAnalyzer(
                             subjectAssessment.targetAlignmentScore >= profile.nearTargetAlignmentFloor
                         ) &&
                     subjectGateScore >= nearTargetSubjectThreshold &&
-                    (directionScore >= effectiveNearTargetDirectionFloor || stepVisualDirectionSatisfied)
+                    (
+                        directionScore >= effectiveNearTargetDirectionFloor ||
+                            stepVisualDirectionSatisfied ||
+                            orbitVisualDirectionSatisfied
+                        )
                 val directionSatisfied = normalDirectionSatisfied || nearTargetSatisfied
 
                 val rawCompleted = adjustedArrival >= profile.arrivalThreshold &&
@@ -404,13 +414,18 @@ class ViewChangeAnalyzer(
                     directionSatisfied &&
                     !wristOnlyMotion &&
                     (!requiresStrictSubjectGate || subjectGateScore >= profile.subjectThreshold)
+                val orbitFastCompletion = isOrbitAction &&
+                    rawCompleted &&
+                    blendedTargetSimilarity >= (profile.targetSimilarityFloor + 0.04f) &&
+                    adjustedArrival >= (profile.arrivalThreshold + 0.08f)
 
                 stableCompletionFrames = if (rawCompleted) {
                     stableCompletionFrames + 1
                 } else {
                     0
                 }
-                val completed = stableCompletionFrames >= profile.requiredStableFrames
+                val completed = orbitFastCompletion ||
+                    stableCompletionFrames >= profile.requiredStableFrames
                 val uiProgress = computeDisplayedArrivalProgress(
                     normalizedActionType = normalizedActionType,
                     baseArrivalScore = baseArrivalScore,

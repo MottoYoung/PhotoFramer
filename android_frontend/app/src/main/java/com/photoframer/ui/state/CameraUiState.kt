@@ -21,9 +21,11 @@ sealed class CameraUiState {
      */
     data class Candidates(
         val totalTechniques: Int,      // 请求的构图技术总数
+        val completedCount: Int,       // 当前已完成处理的候选数
         val applicableCount: Int,      // 适用的构图方案数量
         val totalTimeMs: Float,        // 并行请求总耗时（毫秒）
-        val compositions: List<CompositionResult>
+        val compositions: List<CompositionResult>,
+        val postCaptureHint: String? = null
     ) : CameraUiState()
     
     /**

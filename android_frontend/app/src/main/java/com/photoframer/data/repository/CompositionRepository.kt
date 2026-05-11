@@ -4,13 +4,23 @@ import com.photoframer.data.api.AnalysisResponse
 import com.photoframer.data.api.ApiConfig
 import com.photoframer.data.api.InFrameCompositionResponse
 import com.photoframer.data.api.RetrofitClient
+import com.photoframer.data.api.StreamCandidateReadyEvent
+import com.photoframer.data.api.StreamStartedEvent
+import com.photoframer.data.api.StreamSummaryEvent
+import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MultipartBody.Companion.FORM
 import java.io.IOException
 import java.io.File
 import java.net.SocketTimeoutException
 import java.security.MessageDigest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
 /**
@@ -27,7 +37,17 @@ class CompositionRepository {
     }
     
     private val api = RetrofitClient.api
+    private val httpClient = RetrofitClient.httpClient
+    private val gson = Gson()
     private val analysisCache = linkedMapOf<String, CachedAnalysisResponse>()
+
+    data class StreamAnalysisUpdate(
+        val selectedTechniques: List<String>? = null,
+        val completedCount: Int? = null,
+        val totalCandidateCount: Int? = null,
+        val partialResponse: AnalysisResponse? = null,
+        val finalResponse: AnalysisResponse? = null
+    )
     
     /**
      * 分析图片构图 (v3.1 并行化后端)
@@ -62,6 +82,35 @@ class CompositionRepository {
             } else {
                 Result.failure(Exception(response.message ?: "分析失败"))
             }
+        } catch (e: HttpException) {
+            Result.failure(Exception(mapAiHttpError(e)))
+        } catch (e: SocketTimeoutException) {
+            Result.failure(Exception("分析超时，请重试"))
+        } catch (e: IOException) {
+            Result.failure(Exception("网络连接失败，已自动重试一次，请检查网络后再试"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun analyzeCompositionStream(
+        imageFile: File,
+        onUpdate: suspend (StreamAnalysisUpdate) -> Unit
+    ): Result<AnalysisResponse> {
+        val cacheKey = buildImageCacheKey(imageFile)
+        getCachedAnalysis(cacheKey)?.let { cached ->
+            onUpdate(StreamAnalysisUpdate(finalResponse = cached))
+            return Result.success(cached)
+        }
+
+        return try {
+            val response = withContext(Dispatchers.IO) {
+                executeStreamRequest(imageFile, onUpdate)
+            }
+            if (response.success && response.compositions.isNotEmpty()) {
+                cacheAnalysis(cacheKey, response)
+            }
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(Exception(mapAiHttpError(e)))
         } catch (e: SocketTimeoutException) {
@@ -119,6 +168,143 @@ class CompositionRepository {
             block()
         } catch (error: IOException) {
             block()
+        }
+    }
+
+    private suspend fun executeStreamRequest(
+        imageFile: File,
+        onUpdate: suspend (StreamAnalysisUpdate) -> Unit
+    ): AnalysisResponse {
+        val multipartBody = MultipartBody.Builder()
+            .setType(FORM)
+            .addFormDataPart(
+                "image",
+                imageFile.name,
+                imageFile.asRequestBody("image/*".toMediaTypeOrNull())
+            )
+            .build()
+
+        val request = Request.Builder()
+            .url("${ApiConfig.AI_COMPOSITION_URL}composition_analyze_stream")
+            .post(multipartBody)
+            .addHeader("Accept", "text/event-stream")
+            .build()
+
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw HttpException(retrofit2.Response.error<String>(
+                    response.code,
+                    response.body?.string().orEmpty().toResponseBody("text/plain".toMediaTypeOrNull())
+                ))
+            }
+
+            val body = response.body ?: throw IOException("服务未返回响应体")
+            val reader = body.charStream().buffered()
+            val compositions = mutableListOf<com.photoframer.data.api.CompositionResult>()
+            var selectedTechniques: List<String> = emptyList()
+            var totalTechniques = 0
+            var completedCount = 0
+            var applicableCount = 0
+            var totalTimeMs = 0f
+
+            fun buildPartialResponse(): AnalysisResponse {
+                return AnalysisResponse(
+                    success = true,
+                    message = null,
+                    totalTechniques = when {
+                        totalTechniques > 0 -> totalTechniques
+                        selectedTechniques.isNotEmpty() -> selectedTechniques.size
+                        else -> selectedTechniques.size
+                    },
+                    applicableCount = applicableCount.coerceAtLeast(compositions.size),
+                    totalTimeMs = totalTimeMs,
+                    compositions = compositions.toList()
+                )
+            }
+
+            while (true) {
+                val line = reader.readLine() ?: break
+                if (!line.startsWith("data:")) continue
+                val payload = line.removePrefix("data:").trim()
+                if (payload.isBlank()) continue
+                if (payload == "[DONE]") break
+
+                val eventType = gson.fromJson(payload, Map::class.java)["event"] as? String ?: continue
+                when (eventType) {
+                    "analysis_started" -> {
+                        val event = gson.fromJson(payload, StreamStartedEvent::class.java)
+                        selectedTechniques = event.selectedTechniques
+                        totalTechniques = when {
+                            event.requestedTechniques.isNotEmpty() -> event.requestedTechniques.size
+                            else -> 0
+                        }
+                        onUpdate(
+                            StreamAnalysisUpdate(
+                                selectedTechniques = selectedTechniques,
+                                completedCount = completedCount,
+                                totalCandidateCount = selectedTechniques.size,
+                                partialResponse = buildPartialResponse()
+                            )
+                        )
+                    }
+                    "candidate_ready" -> {
+                        val event = gson.fromJson(payload, StreamCandidateReadyEvent::class.java)
+                        completedCount = event.completedCount
+                        applicableCount = event.applicableCount
+                        compositions.removeAll { it.technique == event.composition.technique }
+                        compositions += event.composition
+                        onUpdate(
+                            StreamAnalysisUpdate(
+                                completedCount = completedCount,
+                                totalCandidateCount = if (totalTechniques > 0) totalTechniques else selectedTechniques.size,
+                                partialResponse = buildPartialResponse()
+                            )
+                        )
+                    }
+                    "technique_skipped", "candidate_duplicate_skipped" -> {
+                        val rawMap = gson.fromJson(payload, Map::class.java)
+                        completedCount = (rawMap["completed_count"] as? Number)?.toInt() ?: completedCount
+                        onUpdate(
+                            StreamAnalysisUpdate(
+                                completedCount = completedCount,
+                                totalCandidateCount = if (totalTechniques > 0) totalTechniques else selectedTechniques.size,
+                                partialResponse = buildPartialResponse()
+                            )
+                        )
+                    }
+                    "summary" -> {
+                        val event = gson.fromJson(payload, StreamSummaryEvent::class.java)
+                        totalTechniques = when {
+                            event.totalTechniques > 0 -> event.totalTechniques
+                            else -> totalTechniques
+                        }
+                        applicableCount = event.applicableCount
+                        totalTimeMs = event.totalTimeMs
+                        val finalResponse = buildPartialResponse()
+                        onUpdate(
+                            StreamAnalysisUpdate(
+                                completedCount = completedCount,
+                                totalCandidateCount = totalTechniques,
+                                finalResponse = finalResponse
+                            )
+                        )
+                        return finalResponse
+                    }
+                }
+            }
+
+            val fallbackResponse = buildPartialResponse()
+            if (fallbackResponse.compositions.isEmpty()) {
+                throw IOException("未收到可用构图方案")
+            }
+            onUpdate(
+                StreamAnalysisUpdate(
+                    completedCount = completedCount,
+                    totalCandidateCount = if (totalTechniques > 0) totalTechniques else selectedTechniques.size,
+                    finalResponse = fallbackResponse
+                )
+            )
+            return fallbackResponse
         }
     }
 

@@ -139,6 +139,7 @@ fun CameraScreen(
     val stepCompleted by viewModel.stepCompleted.collectAsState()
     val allStepsCompleted by viewModel.allStepsCompleted.collectAsState()
     val showStepSkip by viewModel.showStepSkip.collectAsState()
+    val postCapturePrompt by viewModel.postCapturePrompt.collectAsState()
 
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
@@ -395,7 +396,7 @@ fun CameraScreen(
         captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
             saveCapturedPhoto(file, "photoframer_final")
             scope.launch {
-                viewModel.backToPreview()
+                viewModel.handleGuidedCaptureCompleted()
             }
         }
     }
@@ -622,6 +623,17 @@ fun CameraScreen(
                     )
                 }
 
+                if (allStepsCompleted && postCapturePrompt != null) {
+                    PostCaptureChoiceOverlay(
+                        message = postCapturePrompt?.message.orEmpty(),
+                        onViewCandidates = { viewModel.viewOtherCandidatesAfterCapture() },
+                        onDismiss = { viewModel.dismissPostCapturePrompt() },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(start = 20.dp, end = 20.dp, bottom = 156.dp)
+                    )
+                }
+
                 if (!allStepsCompleted && needsPoseTracking) {
                     ArCoreStatusChip(
                         status = arCoreStatus,
@@ -816,9 +828,12 @@ fun CameraScreen(
 
                 is CameraUiState.Candidates -> {
                     CandidatesBottomPanel(
+                        totalTechniques = state.totalTechniques,
+                        completedCount = state.completedCount,
                         applicableCount = state.applicableCount,
                         totalTimeMs = state.totalTimeMs,
                         compositions = state.compositions,
+                        postCaptureHint = state.postCaptureHint,
                         onStartGuidance = { composition -> viewModel.selectComposition(composition) },
                         getCompositionBitmap = { technique -> viewModel.getCachedImage(technique) },
                         onSaveComposition = { technique ->
@@ -939,6 +954,62 @@ private fun StepSkipOverlay(
                 shape = RoundedCornerShape(999.dp)
             ) {
                 Text("跳过此步")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PostCaptureChoiceOverlay(
+    message: String,
+    onViewCandidates: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = SurfaceDark.copy(alpha = 0.94f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "当前方案已拍完",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = message,
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White.copy(alpha = 0.08f)
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("留在当前方案", color = Color.White)
+                }
+                Button(
+                    onClick = onViewCandidates,
+                    colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("查看其他方案", color = Color.White)
+                }
             }
         }
     }

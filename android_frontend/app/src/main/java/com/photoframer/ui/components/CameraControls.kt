@@ -129,17 +129,25 @@ private fun GuidingShutterButton(
  */
 @Composable
 fun CandidatesBottomPanel(
+    totalTechniques: Int,
+    completedCount: Int,
     applicableCount: Int,
     totalTimeMs: Float,
     compositions: List<CompositionResult>,
+    postCaptureHint: String?,
     onStartGuidance: (CompositionResult) -> Unit,
     getCompositionBitmap: (String) -> Bitmap?,
     onSaveComposition: (String) -> Unit,
     onRescan: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedTechnique by remember(compositions) {
-        mutableStateOf(compositions.firstOrNull()?.technique)
+    var selectedTechnique by remember {
+        mutableStateOf<String?>(null)
+    }
+    LaunchedEffect(compositions, selectedTechnique) {
+        if (selectedTechnique == null || compositions.none { it.technique == selectedTechnique }) {
+            selectedTechnique = compositions.firstOrNull()?.technique
+        }
     }
     val selectedComposition = compositions.firstOrNull { it.technique == selectedTechnique }
         ?: compositions.firstOrNull()
@@ -153,7 +161,7 @@ fun CandidatesBottomPanel(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // 统计信息
-        if (applicableCount > 0) {
+        if (totalTechniques > 0 || applicableCount > 0) {
             Text(
                 text = "选择一个参考构图",
                 color = Color.White.copy(alpha = 0.82f),
@@ -162,10 +170,24 @@ fun CandidatesBottomPanel(
             )
 
             Text(
-                text = buildCandidatesStatsText(applicableCount, totalTimeMs),
+                text = buildCandidatesStatsText(
+                    totalTechniques = totalTechniques,
+                    completedCount = completedCount,
+                    applicableCount = applicableCount,
+                    totalTimeMs = totalTimeMs
+                ),
                 color = Color.White.copy(alpha = 0.46f),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 14.dp)
+            )
+        }
+
+        if (!postCaptureHint.isNullOrBlank()) {
+            Text(
+                text = postCaptureHint,
+                color = SuccessGreen,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp)
             )
         }
 
@@ -264,9 +286,21 @@ private fun buildSelectionSummary(composition: CompositionResult): String {
     return "预计 ${composition.steps.size} 步完成"
 }
 
-private fun buildCandidatesStatsText(applicableCount: Int, totalTimeMs: Float): String {
-    if (totalTimeMs <= 0f) {
-        return "共生成 $applicableCount 个可用方案"
+private fun buildCandidatesStatsText(
+    totalTechniques: Int,
+    completedCount: Int,
+    applicableCount: Int,
+    totalTimeMs: Float
+): String {
+    val progressText = if (totalTechniques > 0) {
+        "共有 $totalTechniques 个候选方案，目前已完成 ${completedCount.coerceAtMost(totalTechniques)} 个"
+    } else {
+        "正在生成候选方案"
     }
-    return "共生成 $applicableCount 个可用方案  ·  ${totalTimeMs.toInt()}ms"
+
+    val usableText = "可用 $applicableCount 个"
+    if (totalTimeMs <= 0f) {
+        return "$progressText  ·  $usableText"
+    }
+    return "$progressText  ·  $usableText  ·  ${totalTimeMs.toInt()}ms"
 }
