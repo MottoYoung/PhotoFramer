@@ -1,10 +1,10 @@
 """
-两阶段后端配置
+三阶段后端配置
 
 目标：
-1. Stage 1（分析）与 Stage 2（生图）可独立切换 provider / model
+1. Stage 0（软预筛）、Stage 1（分析）与 Stage 2（生图）可独立切换 provider / model
 2. 默认使用 Gemini 组合，避免 Qwen 官方速率限制影响默认体验
-3. 同时支持 Gemini 作为分析器或生图器接入
+3. 同时支持 Gemini 作为预筛器、分析器或生图器接入
 """
 import os
 from pathlib import Path
@@ -13,10 +13,10 @@ from typing import Dict
 
 
 # ==================== Provider 选择 ==================== #
-# STAGE1_PROVIDER = os.environ.get("STAGE1_PROVIDER", "gemini").strip().lower()
-# STAGE2_PROVIDER = os.environ.get("STAGE2_PROVIDER", "gemini").strip().lower()
 STAGE1_PROVIDER = os.environ.get("STAGE1_PROVIDER", "gemini").strip().lower()
 STAGE2_PROVIDER = os.environ.get("STAGE2_PROVIDER", "gemini").strip().lower()
+#stage0 是预筛阶段，用于从众多构图技术中筛选出更适合当前图片的技术，默认和 stage1 保持一致，但也可以单独指定为 "gemini" 或 "qwen"
+STAGE0_PROVIDER = os.environ.get("STAGE0_PROVIDER", STAGE1_PROVIDER).strip().lower()
 
 # ==================== API Keys / Base URLs ==================== #
 DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
@@ -46,11 +46,17 @@ GEMINI_DOMESTIC_API_VERSION = os.environ.get("GEMINI_DOMESTIC_API_VERSION", "v1b
 # ==================== Model Names ==================== #
 QWEN_STAGE1_MODEL = os.environ.get("QWEN_STAGE1_MODEL", "qwen3.6-flash-2026-04-16")
 QWEN_STAGE2_MODEL = os.environ.get("QWEN_STAGE2_MODEL", "qwen-image-2.0-2026-03-03")
+QWEN_STAGE0_MODEL = os.environ.get("QWEN_STAGE0_MODEL", QWEN_STAGE1_MODEL)
 
 GEMINI_STAGE1_MODEL = os.environ.get("GEMINI_STAGE1_MODEL", "gemini-3-flash-preview")
 # GEMINI_STAGE1_MODEL = os.environ.get("GEMINI_STAGE1_MODEL", "gemini-2.5-flash")
 # GEMINI_STAGE1_MODEL = os.environ.get("GEMINI_STAGE1_MODEL", "gemini-2.5-flash-lite")
 GEMINI_STAGE2_MODEL = os.environ.get("GEMINI_STAGE2_MODEL", "gemini-2.5-flash-image")
+
+GEMINI_STAGE0_MODEL = os.environ.get(
+    "GEMINI_STAGE0_MODEL",
+    os.environ.get("GEMINI_SOFT_PREFILTER_MODEL", "gemini-3.1-flash-lite"),
+)
 
 # 常用 Gemini 候选：
 # - gemini-2.5-flash
@@ -60,6 +66,12 @@ GEMINI_STAGE2_MODEL = os.environ.get("GEMINI_STAGE2_MODEL", "gemini-2.5-flash-im
 # - gemini-2.0-flash-preview-image-generation
 # - gemini-3.1-flash-image-preview
 # - gemini-3-pro-image-preview
+
+
+def get_stage0_model_name() -> str:
+    if STAGE0_PROVIDER == "gemini":
+        return GEMINI_STAGE0_MODEL
+    return QWEN_STAGE0_MODEL
 
 
 def get_stage1_model_name() -> str:
@@ -95,6 +107,7 @@ class TechniqueConfig:
 
 
 SYSTEM_INSTRUCTION = load_prompt_file("stage1_system_instruction.md")
+STAGE0_SOFT_PREFILTER_PROMPT_TEMPLATE = load_prompt_file("stage0_soft_prefilter.md")
 
 
 TECHNIQUE_CONFIGS: Dict[str, TechniqueConfig] = {
@@ -127,6 +140,26 @@ TECHNIQUE_CONFIGS: Dict[str, TechniqueConfig] = {
 
 
 # ==================== Stage 1 参数 ==================== #
+ENABLE_STAGE0 = (
+    os.environ.get(
+        "ENABLE_STAGE0",
+        os.environ.get("ENABLE_GEMINI_SOFT_PREFILTER", "true"),
+    ).strip().lower() == "true"
+)
+STAGE0_MAX_TECHNIQUES = int(
+    os.environ.get(
+        "STAGE0_MAX_TECHNIQUES",
+        os.environ.get("GEMINI_SOFT_PREFILTER_MAX_TECHNIQUES", "5"),
+    )
+)
+STAGE0_TEMPERATURE = float(
+    os.environ.get(
+        "STAGE0_TEMPERATURE",
+        os.environ.get("GEMINI_SOFT_PREFILTER_TEMPERATURE", "0.1"),
+    )
+)
+STAGE0_TOP_P = float(os.environ.get("STAGE0_TOP_P", "0.9"))
+
 MODEL_TEMPERATURE = float(os.environ.get("MODEL_TEMPERATURE", "0.35"))
 MODEL_TOP_P = float(os.environ.get("MODEL_TOP_P", "0.80"))
 MODEL_TOP_K = int(os.environ.get("MODEL_TOP_K", "40"))
@@ -144,6 +177,10 @@ QWEN_STAGE1_ENABLE_THINKING = (
     os.environ.get("QWEN_STAGE1_ENABLE_THINKING", "false").strip().lower() == "true"
 )
 QWEN_STAGE1_THINKING_BUDGET = int(os.environ.get("QWEN_STAGE1_THINKING_BUDGET", "0"))
+QWEN_STAGE0_ENABLE_THINKING = (
+    os.environ.get("QWEN_STAGE0_ENABLE_THINKING", "false").strip().lower() == "true"
+)
+QWEN_STAGE0_THINKING_BUDGET = int(os.environ.get("QWEN_STAGE0_THINKING_BUDGET", "0"))
 
 GEMINI_STAGE1_FORCE_MINIMAL_THINKING = (
     os.environ.get("GEMINI_STAGE1_FORCE_MINIMAL_THINKING", "true").strip().lower() == "true"
@@ -161,7 +198,7 @@ GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS = (
     os.environ.get("GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS", "true").strip().lower() == "true"
 )
 
-STAGE1_MAX_CONCURRENCY = int(os.environ.get("STAGE1_MAX_CONCURRENCY", "3"))
+STAGE1_MAX_CONCURRENCY = int(os.environ.get("STAGE1_MAX_CONCURRENCY", "5"))
 STAGE1_TIMEOUT_SECONDS = float(os.environ.get("STAGE1_TIMEOUT_SECONDS", "20"))
 STAGE2_TIMEOUT_SECONDS = float(os.environ.get("STAGE2_TIMEOUT_SECONDS", "40"))
 

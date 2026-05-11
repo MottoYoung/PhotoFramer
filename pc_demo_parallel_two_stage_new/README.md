@@ -1,12 +1,16 @@
 # PhotoFramer Backend - Two-Stage New
 
-一个可插拔的两阶段后端：
+一个可插拔的三阶段后端：
 
+- Stage 0：候选构图技术软预筛
 - Stage 1：构图分析与步骤生成
 - Stage 2：参考构图图生成
 
 支持自由组合：
 
+- `qwen -> qwen -> qwen`
+- `qwen -> qwen -> gemini`
+- `gemini -> gemini -> qwen`
 - `qwen -> qwen`
 - `qwen -> gemini`
 - `gemini -> qwen`
@@ -14,7 +18,7 @@
 
 默认配置现在是：
 
-- `gemini -> gemini`
+- `gemini -> gemini -> gemini`
 
 这样默认不会撞上 Qwen 官方速率限制；Qwen 保留为按需切换的可选 provider。
 
@@ -29,6 +33,7 @@
 ## 目录特点
 
 - 新目录，不影响旧的 `pc_demo_parallel_two_stage`
+- Stage 0/1/2 都支持按 provider 切换
 - Qwen Stage 1 保留了 `prompt` 前置流式能力
 - Gemini Stage 1 改成“只做 JSON 分析”
 - Stage 2 统一消费 `image_prompt`
@@ -38,6 +43,7 @@
 ```bash
 export STAGE1_PROVIDER=gemini
 export STAGE2_PROVIDER=gemini
+export STAGE0_PROVIDER=gemini
 
 export DASHSCOPE_API_KEY=sk-xxx
 export GEMINI_API_KEY=xxx
@@ -63,8 +69,18 @@ export GEMINI_DOMESTIC_API_VERSION=v1beta
 ```bash
 export QWEN_STAGE1_MODEL=qwen3.5-flash-2026-02-23
 export QWEN_STAGE2_MODEL=qwen-image-2.0-2026-03-03
+export QWEN_STAGE0_MODEL=qwen3.5-flash-2026-02-23
 export GEMINI_STAGE1_MODEL=gemini-2.5-flash
 export GEMINI_STAGE2_MODEL=gemini-2.5-flash-image
+export GEMINI_STAGE0_MODEL=gemini-3.1-flash-lite
+```
+
+Stage 0 相关可选参数：
+
+```bash
+export ENABLE_STAGE0=true
+export STAGE0_MAX_TECHNIQUES=5
+export STAGE0_TEMPERATURE=0.1
 ```
 
 ## 运行
@@ -86,7 +102,11 @@ http://aicrop.312237.xyz
 
 ### `POST /composition_analyze`
 
-统一两阶段入口。
+统一三阶段入口。
+
+- Stage 0 先做软预筛，决定哪些 technique 值得进入正式分析
+- Stage 1 输出步骤、弱几何目标和 `image_prompt`
+- Stage 2 只对通过 Stage 1 的候选执行生图
 
 - 如果 Stage 1 支持 prompt 前置流式（当前 Qwen、Gemini 都支持），会自动走流水线：
   - prompt 一出来就触发 Stage 2

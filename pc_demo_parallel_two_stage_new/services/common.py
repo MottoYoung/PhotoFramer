@@ -1,5 +1,5 @@
 """
-两阶段 provider 共享的数据结构与工具函数。
+多阶段 provider 共享的数据结构与工具函数。
 """
 import base64
 import json

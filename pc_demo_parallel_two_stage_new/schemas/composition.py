@@ -1,4 +1,4 @@
-"""两阶段构图分析响应模型。"""
+"""三阶段构图分析响应模型。"""
 from typing import List, Optional
 from pydantic import BaseModel, Field, AliasChoices
 
