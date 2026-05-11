@@ -262,7 +262,14 @@ class ViewChangeAnalyzer(
         val poseScore = computePoseDirectionScore(actionType, direction, cameraPoseSample)
         val temporalScore = computeTemporalDirectionScore()
         val directionScore = if (poseScore != null) {
-            (poseScore * 0.75f + temporalScore * 0.25f).coerceIn(0f, 1f)
+            if (isVerticalCameraAction) {
+                max(
+                    temporalScore,
+                    (poseScore * 0.45f + temporalScore * 0.55f).coerceIn(0f, 1f)
+                )
+            } else {
+                (poseScore * 0.75f + temporalScore * 0.25f).coerceIn(0f, 1f)
+            }
         } else {
             temporalScore
         }
@@ -624,14 +631,23 @@ class ViewChangeAnalyzer(
         sample: CameraPoseSample,
         shouldRaise: Boolean
     ): Float {
-        if (sample.source != CameraPoseSource.ARCORE || !sample.isTracking) {
+        if (!sample.isTracking) {
             return 0f
         }
 
+        if (sample.source != CameraPoseSource.ARCORE) {
+            val signedPitchDelta = if (shouldRaise) {
+                -sample.pitchDeltaDegrees
+            } else {
+                sample.pitchDeltaDegrees
+            }
+            return (0.12f + (signedPitchDelta / 14f) * 0.48f).coerceIn(0f, 0.55f)
+        }
+
         val verticalProgress = if (shouldRaise) {
-            sample.verticalMeters / 0.09f
+            sample.verticalMeters / 0.07f
         } else {
-            -sample.verticalMeters / 0.09f
+            -sample.verticalMeters / 0.06f
         }
 
         return (0.18f + verticalProgress * 0.82f).coerceIn(0f, 1f)
@@ -694,10 +710,13 @@ class ViewChangeAnalyzer(
         }
 
         val tiltMagnitude = max(abs(sample.pitchDeltaDegrees), abs(sample.rollDeltaDegrees))
-        return sample.source == CameraPoseSource.ARCORE &&
-            sample.isTracking &&
-            abs(sample.verticalMeters) < 0.03f &&
-            tiltMagnitude > 8f
+        if (!sample.isTracking) return false
+
+        return if (sample.source == CameraPoseSource.ARCORE) {
+            abs(sample.verticalMeters) < 0.03f && tiltMagnitude > 8f
+        } else {
+            tiltMagnitude > 10f
+        }
     }
 
     private fun detectReferenceObject(
@@ -1033,8 +1052,7 @@ class ViewChangeAnalyzer(
         val normalizedActionType = actionType.normalizedActionType()
         if (
             normalizedActionType in setOf("raisecamera", "lowercamera") &&
-            cameraPoseSample?.source == CameraPoseSource.ARCORE &&
-            cameraPoseSample.isTracking &&
+            cameraPoseSample?.isTracking == true &&
             directionScore < 0.34f
         ) {
             return when (normalizedActionType) {

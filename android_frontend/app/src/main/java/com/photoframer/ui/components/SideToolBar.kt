@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Timer
@@ -66,6 +67,8 @@ fun SideToolBar(
     onTouchScreenPhotoToggle: () -> Unit,
     backgroundBlurEnabled: Boolean,
     onBackgroundBlurToggle: () -> Unit,
+    arExperimentEnabled: Boolean,
+    onArExperimentToggle: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(vertical = 24.dp)
 ) {
@@ -192,6 +195,13 @@ fun SideToolBar(
             label = "背景虚化",
             isSelected = backgroundBlurEnabled,
             onClick = onBackgroundBlurToggle
+        )
+
+        SideToggleCircleButton(
+            icon = Icons.Default.CenterFocusStrong,
+            label = "AR",
+            isSelected = arExperimentEnabled,
+            onClick = onArExperimentToggle
         )
     }
 }

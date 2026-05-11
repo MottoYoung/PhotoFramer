@@ -2,8 +2,13 @@ package com.photoframer.ui.screens
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import android.view.Surface
+import android.view.HapticFeedbackConstants
 import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -67,6 +72,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -82,6 +88,7 @@ import com.photoframer.arcore.ArCorePoseTracker
 import com.photoframer.arcore.ArCoreStatus
 import com.photoframer.arcore.ArCoreSupport
 import com.photoframer.arcore.findActivity
+import com.photoframer.guidance.isLevelAction
 import com.photoframer.guidance.isViewpointAction
 import com.photoframer.ui.components.AllStepsCompletedBanner
 import com.photoframer.ui.components.AspectRatioOption
@@ -113,6 +120,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -123,11 +131,14 @@ fun CameraScreen(
     viewModel: CameraViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
     val validationResult by viewModel.validationResult.collectAsState()
+    val stepCompleted by viewModel.stepCompleted.collectAsState()
     val allStepsCompleted by viewModel.allStepsCompleted.collectAsState()
+    val showStepSkip by viewModel.showStepSkip.collectAsState()
 
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
@@ -158,23 +169,55 @@ fun CameraScreen(
     var arCoreStatus by remember { mutableStateOf(ArCoreSupport.idleStatus()) }
     var hasRequestedArCoreInstall by remember { mutableStateOf(false) }
     var latestPoseSample by remember { mutableStateOf<CameraPoseSample?>(null) }
+    var arExperimentEnabled by remember { mutableStateOf(ArCoreSupport.isEnabled(context)) }
 
     val guidingStep = (uiState as? CameraUiState.Guiding)?.currentStep
-    val needsArCore = guidingStep?.isViewpointAction() == true
-    val analyzeEveryNFrames = if (needsArCore) 6 else 4
-    val minAnalysisInterval = if (needsArCore) 90L else 66L
+    val needsPoseTracking = guidingStep?.let { it.isViewpointAction() || it.isLevelAction() } == true
+    val isViewpointStep = guidingStep?.isViewpointAction() == true
+    val shouldUseArCore = isViewpointStep && arExperimentEnabled
+    val analyzeEveryNFrames = if (needsPoseTracking) 6 else 4
+    val minAnalysisInterval = if (needsPoseTracking) 90L else 66L
+
+    fun performHaptic(constant: Int) {
+        view.performHapticFeedback(constant)
+    }
+
+    fun performCompletionVibration() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibrator = context.getSystemService(VibratorManager::class.java)?.defaultVibrator
+            vibrator?.vibrate(VibrationEffect.createOneShot(180, 160))
+        } else {
+            @Suppress("DEPRECATION")
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(VibrationEffect.createOneShot(180, 160))
+        }
+    }
 
     androidx.compose.runtime.DisposableEffect(
         lifecycleOwner,
-        needsArCore,
+        needsPoseTracking,
+        shouldUseArCore,
         guidingStep?.stepOrder
     ) {
-        if (!needsArCore) {
+        if (!needsPoseTracking) {
             arCoreStatus = ArCoreSupport.idleStatus()
             hasRequestedArCoreInstall = false
             arCorePoseTracker.stop()
             return@DisposableEffect onDispose {}
         }
+        if (!isViewpointStep) {
+            arCoreStatus = ArCoreSupport.disabledStatus()
+            hasRequestedArCoreInstall = false
+            return@DisposableEffect onDispose {}
+        }
+        if (!shouldUseArCore) {
+            arCoreStatus = ArCoreSupport.disabledStatus()
+            hasRequestedArCoreInstall = false
+            return@DisposableEffect onDispose {}
+        }
+
+        var checkingJob: Job? = null
 
         fun refreshArCoreStatus() {
             val activity = context.findActivity()
@@ -196,29 +239,56 @@ fun CameraScreen(
             }
         }
 
+        fun scheduleCheckingPoll() {
+            checkingJob?.cancel()
+            val activity = context.findActivity() ?: return
+            checkingJob = scope.launch {
+                repeat(6) { attempt ->
+                    if (arCoreStatus.state != ArCoreRuntimeState.Checking) return@launch
+                    delay(1200)
+                    refreshArCoreStatus()
+                    if (arCoreStatus.state != ArCoreRuntimeState.Checking) return@launch
+                    if (attempt == 5) {
+                        arCoreStatus = ArCoreSupport.checkingTimeoutStatus(activity)
+                    }
+                }
+            }
+        }
+
         refreshArCoreStatus()
+        if (arCoreStatus.state == ArCoreRuntimeState.Checking) {
+            scheduleCheckingPoll()
+        }
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 refreshArCoreStatus()
+                if (arCoreStatus.state == ArCoreRuntimeState.Checking) {
+                    scheduleCheckingPoll()
+                } else {
+                    checkingJob?.cancel()
+                    checkingJob = null
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
+            checkingJob?.cancel()
             lifecycleOwner.lifecycle.removeObserver(observer)
             arCorePoseTracker.stop()
         }
     }
 
     LaunchedEffect(
-        needsArCore,
+        needsPoseTracking,
+        shouldUseArCore,
         guidingStep?.stepOrder,
         arCoreStatus.state,
         previewView?.width,
         previewView?.height,
         useFrontCamera
     ) {
-        if (!needsArCore || useFrontCamera) {
+        if (!needsPoseTracking || useFrontCamera) {
             arCorePoseTracker.stop()
             latestPoseSample = null
             return@LaunchedEffect
@@ -227,7 +297,7 @@ fun CameraScreen(
         val currentPreview = previewView
         arCorePoseTracker.start(
             activity = context.findActivity(),
-            preferArCore = arCoreStatus.isReady,
+            preferArCore = shouldUseArCore && arCoreStatus.isReady,
             viewportWidth = currentPreview?.width ?: 0,
             viewportHeight = currentPreview?.height ?: 0,
             displayRotation = currentPreview?.display?.rotation ?: Surface.ROTATION_0
@@ -240,6 +310,24 @@ fun CameraScreen(
             countdownValue = null
             isBursting = false
             burstCount = 0
+        }
+    }
+
+    LaunchedEffect((uiState as? CameraUiState.Guiding)?.composition?.technique) {
+        if (uiState is CameraUiState.Guiding) {
+            performHaptic(HapticFeedbackConstants.CONTEXT_CLICK)
+        }
+    }
+
+    LaunchedEffect(stepCompleted) {
+        if (stepCompleted) {
+            performHaptic(HapticFeedbackConstants.CONFIRM)
+        }
+    }
+
+    LaunchedEffect(allStepsCompleted) {
+        if (allStepsCompleted) {
+            performCompletionVibration()
         }
     }
 
@@ -262,6 +350,7 @@ fun CameraScreen(
         if (countdownValue != null) return
         val timerSeconds = selectedTimer.seconds
         if (timerSeconds <= 0) {
+            performHaptic(HapticFeedbackConstants.LONG_PRESS)
             capturePreviewPhoto()
             return
         }
@@ -302,6 +391,7 @@ fun CameraScreen(
     }
 
     val captureGuidedPhoto = {
+        performHaptic(HapticFeedbackConstants.LONG_PRESS)
         captureAndAnalyze(context, imageCapture, cameraExecutor) { file ->
             saveCapturedPhoto(file, "photoframer_final")
             scope.launch {
@@ -532,13 +622,22 @@ fun CameraScreen(
                     )
                 }
 
-                if (!allStepsCompleted && guidingStep?.isViewpointAction() == true) {
+                if (!allStepsCompleted && needsPoseTracking) {
                     ArCoreStatusChip(
                         status = arCoreStatus,
                         poseSample = latestPoseSample,
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(end = 16.dp, bottom = 156.dp)
+                    )
+                }
+
+                if (!allStepsCompleted && showStepSkip) {
+                    StepSkipOverlay(
+                        onSkip = { viewModel.skipCurrentStep() },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 156.dp)
                     )
                 }
 
@@ -604,7 +703,13 @@ fun CameraScreen(
                     title = errorState.title,
                     message = errorState.message,
                     actionText = errorState.actionText,
-                    onRetry = { viewModel.backToPreview() }
+                    onRetry = {
+                        if (errorState.actionText == "重试") {
+                            viewModel.retryLastAnalysis()
+                        } else {
+                            viewModel.backToPreview()
+                        }
+                    }
                 )
             }
 
@@ -631,6 +736,12 @@ fun CameraScreen(
                     onTouchScreenPhotoToggle = { touchScreenPhotoEnabled = !touchScreenPhotoEnabled },
                     backgroundBlurEnabled = backgroundBlurEnabled,
                     onBackgroundBlurToggle = { backgroundBlurEnabled = !backgroundBlurEnabled },
+                    arExperimentEnabled = arExperimentEnabled,
+                    onArExperimentToggle = {
+                        val newValue = !arExperimentEnabled
+                        arExperimentEnabled = newValue
+                        ArCoreSupport.setEnabled(context, newValue)
+                    },
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = 12.dp, top = 32.dp, bottom = 96.dp)
@@ -786,6 +897,48 @@ private fun ErrorOverlay(
                 colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)
             ) {
                 Text(actionText)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepSkipOverlay(
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = SurfaceDark.copy(alpha = 0.92f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "这一步有点卡住了",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "可以先跳过，后面继续拍摄",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Button(
+                onClick = onSkip,
+                colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                shape = RoundedCornerShape(999.dp)
+            ) {
+                Text("跳过此步")
             }
         }
     }

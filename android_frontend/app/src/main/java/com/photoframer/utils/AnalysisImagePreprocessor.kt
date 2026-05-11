@@ -22,7 +22,7 @@ data class PreparedAnalysisImage(
  * 将拍照结果压缩到更适合网络分析的尺寸，减少上传和服务端处理时间。
  */
 object AnalysisImagePreprocessor {
-    private const val MAX_DIMENSION = 1920
+    private const val MAX_DIMENSION = 1280
     private const val JPEG_QUALITY = 85
     private const val MAX_UPLOAD_FILE_BYTES = 1_800_000L
 

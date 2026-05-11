@@ -76,6 +76,7 @@ fun GuidanceOverlay(
     )
 
     val isCompleted = validationResult?.isCompleted == true
+    val isShiftStep = step?.actionType.equals("shift", ignoreCase = true)
     val isZoomStep = step?.actionType.equals("zoom", ignoreCase = true)
     val isViewChangeStep = step?.actionType?.isViewpointActionType() == true
     val isLevelStep = step?.actionType.equals("level", ignoreCase = true)
@@ -96,7 +97,8 @@ fun GuidanceOverlay(
                 ((validationResult?.tx ?: 0f) * (validationResult?.tx ?: 0f) +
                     (validationResult?.ty ?: 0f) * (validationResult?.ty ?: 0f)).toDouble()
             ).toFloat()
-            val inDeadZone = isCompleted || rawDistance < 25f
+            val deadZone = 25f
+            val inDeadZone = isCompleted || rawDistance < deadZone
             rawTx = if (inDeadZone) 0f else (validationResult?.tx ?: 0f)
             rawTy = if (inDeadZone) 0f else (validationResult?.ty ?: 0f)
         }
@@ -126,7 +128,6 @@ fun GuidanceOverlay(
         val centerX = size.width / 2
         val centerY = size.height / 2
         val center = Offset(centerX, centerY)
-
         val accentColor = if (isCompleted) SuccessGreen else BlueAccent.copy(alpha = 0.96f)
         val neutralColor = Color.White.copy(alpha = 0.92f)
         val faintColor = Color.White.copy(alpha = 0.16f)
@@ -170,7 +171,7 @@ fun GuidanceOverlay(
             )
         }
 
-        if (step?.actionType.equals("shift", ignoreCase = true)) {
+        if (isShiftStep) {
             val scaleFactor = size.width / 360f
             var targetX = centerX + animTx * scaleFactor
             var targetY = centerY + animTy * scaleFactor
@@ -187,7 +188,7 @@ fun GuidanceOverlay(
                 val dx = (targetX - centerX) / distance
                 val dy = (targetY - centerY) / distance
                 val start = Offset(centerX + dx * 31f, centerY + dy * 31f)
-                val end = Offset(targetX - dx * (ringRadius + 10f), targetY - dy * (ringRadius + 10f))
+                val end = Offset(target.x - dx * (ringRadius + 10f), target.y - dy * (ringRadius + 10f))
                 val dashEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f), orbitPhase / 10f)
 
                 drawLine(

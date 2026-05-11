@@ -45,6 +45,20 @@ class CameraViewModel : ViewModel() {
         val requestId: Long
     )
 
+    private data class PendingAnalysisRequest(
+        val mode: AnalysisMode,
+        val imageFile: File
+    )
+
+    private enum class AnalysisMode {
+        AiComposition,
+        InFrameComposition
+    }
+
+    companion object {
+        private const val STEP_TIMEOUT_MS = 15_000L
+    }
+
     private val validationLock = Any()
     
     private val repository = CompositionRepository()
@@ -67,6 +81,9 @@ class CameraViewModel : ViewModel() {
     // 所有步骤完成状态
     private val _allStepsCompleted = MutableStateFlow(false)
     val allStepsCompleted: StateFlow<Boolean> = _allStepsCompleted.asStateFlow()
+
+    private val _showStepSkip = MutableStateFlow(false)
+    val showStepSkip: StateFlow<Boolean> = _showStepSkip.asStateFlow()
     
     // 缓存解码后的图片 (使用 technique 作为 key)
     private val imageCache = mutableStateMapOf<String, Bitmap>()
@@ -88,6 +105,8 @@ class CameraViewModel : ViewModel() {
     
     // 当前分析任务
     private var analysisJob: Job? = null
+    private var stepTimeoutJob: Job? = null
+    private var pendingAnalysisRequest: PendingAnalysisRequest? = null
 
     // 引导会话与验证请求版本号，确保只有“当前步骤、当前请求”的结果可以生效
     private var guidanceSessionId = 0L
@@ -98,6 +117,10 @@ class CameraViewModel : ViewModel() {
      * 分析图片构图 (v3.1 并行化后端)
      */
     fun analyzeImage(imageFile: File) {
+        pendingAnalysisRequest = PendingAnalysisRequest(
+            mode = AnalysisMode.AiComposition,
+            imageFile = imageFile
+        )
         analysisJob?.cancel()  // 取消之前的分析任务
         analysisJob = viewModelScope.launch {
             _uiState.value = CameraUiState.Analyzing
@@ -137,7 +160,8 @@ class CameraViewModel : ViewModel() {
                     }
                     .onFailure { error ->
                         _uiState.value = CameraUiState.Error(
-                            error.message ?: "网络错误，请检查连接"
+                            error.message ?: "网络错误，请检查连接",
+                            actionText = "重试"
                         )
                     }
             } finally {
@@ -150,6 +174,10 @@ class CameraViewModel : ViewModel() {
      * 画面内构图分析
      */
     fun analyzeInFrameComposition(imageFile: File) {
+        pendingAnalysisRequest = PendingAnalysisRequest(
+            mode = AnalysisMode.InFrameComposition,
+            imageFile = imageFile
+        )
         analysisJob?.cancel()
         analysisJob = viewModelScope.launch {
             _uiState.value = CameraUiState.Analyzing
@@ -172,7 +200,8 @@ class CameraViewModel : ViewModel() {
                 val result = repository.analyzeInFrameComposition(preparedImage.file)
                 val response = result.getOrElse { error ->
                     _uiState.value = CameraUiState.Error(
-                        error.message ?: "画面内构图分析失败"
+                        error.message ?: "画面内构图分析失败",
+                        actionText = "重试"
                     )
                     return@launch
                 }
@@ -227,6 +256,7 @@ class CameraViewModel : ViewModel() {
         analysisJob?.cancel()
         analysisJob = null
         invalidateGuidanceSession()
+        clearStepTimeout()
         _uiState.value = CameraUiState.Preview
     }
     
@@ -260,6 +290,7 @@ class CameraViewModel : ViewModel() {
             composition = guidanceComposition,
             currentStepIndex = 0
         )
+        armStepTimeout()
     }
 
     private fun prepareCompositionForGuidance(composition: CompositionResult): CompositionResult {
@@ -432,7 +463,8 @@ class CameraViewModel : ViewModel() {
                             stepKey = step.stepOrder,
                             actionType = step.actionType,
                             direction = step.direction,
-                            currentZoomRatio = currentZoomRatio
+                            currentZoomRatio = currentZoomRatio,
+                            cameraPoseSample = cameraPoseSample
                         )
                     }
 
@@ -458,6 +490,7 @@ class CameraViewModel : ViewModel() {
     private fun handleStepCompleted(sessionId: Long, stepIndex: Int) {
         isAutoAdvancing = true
         _stepCompleted.value = true
+        clearStepTimeout()
         invalidatePendingValidation()
         
         viewModelScope.launch {
@@ -481,6 +514,7 @@ class CameraViewModel : ViewModel() {
             if (currentState.isLastStep) {
                 // 所有步骤完成
                 _allStepsCompleted.value = true
+                clearStepTimeout()
                 invalidatePendingValidation()
             } else {
                 // 跳转到下一步
@@ -498,6 +532,40 @@ class CameraViewModel : ViewModel() {
     fun toggleAutoAdvance() {
         _autoAdvanceEnabled.value = !_autoAdvanceEnabled.value
     }
+
+    fun skipCurrentStep() {
+        val currentState = _uiState.value as? CameraUiState.Guiding ?: return
+        clearStepTimeout()
+        invalidatePendingValidation()
+        isAutoAdvancing = false
+        stepValidator?.resetStableFrames()
+        _validationResult.value = null
+        _stepCompleted.value = false
+
+        if (currentState.isLastStep) {
+            _allStepsCompleted.value = true
+        } else {
+            _allStepsCompleted.value = false
+            _uiState.value = currentState.copy(
+                currentStepIndex = currentState.currentStepIndex + 1
+            )
+            armStepTimeout()
+        }
+    }
+
+    fun retryLastAnalysis() {
+        val request = pendingAnalysisRequest
+            ?.takeIf { it.imageFile.exists() }
+            ?: run {
+                _uiState.value = CameraUiState.Preview
+                return
+            }
+
+        when (request.mode) {
+            AnalysisMode.AiComposition -> analyzeImage(request.imageFile)
+            AnalysisMode.InFrameComposition -> analyzeInFrameComposition(request.imageFile)
+        }
+    }
     
     /**
      * 下一步
@@ -514,12 +582,14 @@ class CameraViewModel : ViewModel() {
             _uiState.value = currentState.copy(
                 currentStepIndex = currentState.currentStepIndex + 1
             )
+            armStepTimeout()
         } else if (
             currentState is CameraUiState.Guiding &&
             currentState.isLastStep &&
             _validationResult.value?.isCompleted == true
         ) {
             _allStepsCompleted.value = true
+            clearStepTimeout()
             invalidatePendingValidation()
         }
     }
@@ -539,6 +609,7 @@ class CameraViewModel : ViewModel() {
             _uiState.value = currentState.copy(
                 currentStepIndex = currentState.currentStepIndex - 1
             )
+            armStepTimeout()
         }
     }
     
@@ -547,6 +618,7 @@ class CameraViewModel : ViewModel() {
      */
     fun backToPreview() {
         invalidateGuidanceSession()
+        clearStepTimeout()
         imageCache.clear()
         validationImageCache.clear()
         inFrameGuideConfigCache.clear()
@@ -566,6 +638,7 @@ class CameraViewModel : ViewModel() {
         val cached = cachedCandidatesState
         if (cached != null) {
             invalidateGuidanceSession()
+            clearStepTimeout()
             stepValidator?.close()  // 释放 ML Kit 资源
             stepValidator = null
             _validationResult.value = null
@@ -643,12 +716,37 @@ class CameraViewModel : ViewModel() {
         latestValidationRequestId = 0L
         isAutoAdvancing = false
         resetActiveValidation()
+        clearStepTimeout()
     }
 
     private fun invalidateGuidanceSession() {
         guidanceSessionId += 1
         invalidatePendingValidation()
         isAutoAdvancing = false
+        clearStepTimeout()
+    }
+
+    private fun armStepTimeout() {
+        clearStepTimeout()
+        val currentState = _uiState.value as? CameraUiState.Guiding ?: return
+        val sessionId = guidanceSessionId
+        val stepIndex = currentState.currentStepIndex
+        stepTimeoutJob = viewModelScope.launch {
+            delay(STEP_TIMEOUT_MS)
+            if (
+                isGuidanceStepCurrent(sessionId, stepIndex) &&
+                !_stepCompleted.value &&
+                !_allStepsCompleted.value
+            ) {
+                _showStepSkip.value = true
+            }
+        }
+    }
+
+    private fun clearStepTimeout() {
+        stepTimeoutJob?.cancel()
+        stepTimeoutJob = null
+        _showStepSkip.value = false
     }
 
     private fun nextValidationRequestId(): Long {
@@ -728,6 +826,7 @@ class CameraViewModel : ViewModel() {
             val currentState = _uiState.value as? CameraUiState.Guiding
             if (!_autoAdvanceEnabled.value && currentState?.isLastStep == true) {
                 _allStepsCompleted.value = true
+                clearStepTimeout()
                 invalidatePendingValidation()
             } else if (_autoAdvanceEnabled.value) {
                 handleStepCompleted(sessionId, stepIndex)

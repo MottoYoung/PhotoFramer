@@ -118,7 +118,8 @@ class StepValidator(
         stepKey: Int,
         actionType: String,
         direction: String,
-        currentZoomRatio: Float = 1.0f
+        currentZoomRatio: Float = 1.0f,
+        cameraPoseSample: CameraPoseSample? = null
     ): StepValidationResult {
         Log.d(TAG, "开始验证: actionType=$actionType, direction=$direction, zoom=$currentZoomRatio")
         val normalizedActionType = actionType.normalizedActionType()
@@ -135,12 +136,15 @@ class StepValidator(
             val currentTime = System.currentTimeMillis()
             var components: HomographyComponents? = null
             var matchQuality = 0f
+            var usingFallbackComponents = false
 
             if (result.homography != null && result.matchCount >= MIN_MATCH_QUALITY) {
-                 // 分解单应性矩阵
+                // 分解单应性矩阵
                 components = homographyAnalyzer.decompose(result.homography)
                 val orbQuality = computeOrbQuality(result.matchCount)
                 matchQuality = (orbQuality * 0.6f + pHashSimilarity * 0.4f).coerceIn(0f, 1f)
+            } else {
+                matchQuality = (pHashSimilarity * 0.55f).coerceIn(0f, 1f)
             }
 
             // 策略：如果当前帧识别失败，但在有效期内，则使用上一次的有效数据
@@ -150,11 +154,13 @@ class StepValidator(
                 }
                 if (pHashSimilarity > 0.75f && lastValidComponents != null) {
                     components = lastValidComponents
+                    usingFallbackComponents = true
                     matchQuality = (pHashSimilarity * 0.5f).coerceIn(0f, 1f)
                     Log.d(TAG, "ORB 匹配不足，使用 pHash 兜底缓存")
                 } else if (currentTime - lastValidTime < PERSISTENCE_DURATION && lastValidComponents != null) {
                     // 使用缓存数据，但稍微降低匹配质量
                     components = lastValidComponents
+                    usingFallbackComponents = true
                     matchQuality = maxOf(matchQuality, pHashSimilarity * 0.35f, 0.24f)
                     Log.d(TAG, "处于保持期，使用缓存数据")
                 } else {
@@ -190,14 +196,19 @@ class StepValidator(
             return when (normalizedActionType) {
                 "shift" -> {
                     if (inFrameGuideConfig != null) {
-                        validateInFrameShift(components, direction, matchQuality)
+                        validateInFrameShift(
+                            components = components,
+                            direction = direction,
+                            matchQuality = matchQuality
+                        )
                     } else {
                         validateShift(
                             stepKey = stepKey,
                             actionType = normalizedActionType,
                             components = components,
                             direction = direction,
-                            matchQuality = matchQuality
+                            matchQuality = matchQuality,
+                            usingFallbackComponents = usingFallbackComponents
                         )
                     }
                 }
@@ -205,7 +216,8 @@ class StepValidator(
                     stepKey = stepKey,
                     components = components,
                     direction = direction,
-                    matchQuality = matchQuality
+                    matchQuality = matchQuality,
+                    cameraPoseSample = cameraPoseSample
                 )
                 "zoom" -> {
                     if (inFrameGuideConfig != null) {
@@ -229,7 +241,8 @@ class StepValidator(
                             actionType = normalizedActionType,
                             components = components,
                             direction = direction,
-                            matchQuality = matchQuality
+                            matchQuality = matchQuality,
+                            usingFallbackComponents = usingFallbackComponents
                         )
                     }
                 }
@@ -248,7 +261,8 @@ class StepValidator(
         actionType: String,
         components: HomographyComponents,
         direction: String,
-        matchQuality: Float
+        matchQuality: Float,
+        usingFallbackComponents: Boolean = false
     ): StepValidationResult {
         val distance = components.translationDistance
         val tx = components.translationX
@@ -370,7 +384,8 @@ class StepValidator(
         stepKey: Int,
         components: HomographyComponents,
         direction: String,
-        matchQuality: Float
+        matchQuality: Float,
+        cameraPoseSample: CameraPoseSample? = null
     ): StepValidationResult {
         val rollAngle = components.rotationAngle
         val rollError = abs(rollAngle)
@@ -379,6 +394,7 @@ class StepValidator(
         val rotationProgress = (
             1.0 / (1.0 + exp((rollError - LEVEL_ROTATION_THRESHOLD) / 0.95))
             ).toFloat()
+        val deviceMotionScore = computeLevelDeviceMotionScore(direction, cameraPoseSample)
 
         val baseline = ensureMotionBaseline(
             stepKey = stepKey,
@@ -404,12 +420,18 @@ class StepValidator(
         motionStableFrames = alignedFrames
         val isCompleted = rawCompleted &&
             (motionStableFrames >= requiredStableFrames || sustainedHold)
-        val progress = (rotationProgress * 0.82f + improvementScore * 0.18f).coerceIn(0f, 1f)
+        val progress = if (deviceMotionScore != null) {
+            (rotationProgress * 0.72f + improvementScore * 0.16f + deviceMotionScore * 0.12f).coerceIn(0f, 1f)
+        } else {
+            (rotationProgress * 0.82f + improvementScore * 0.18f).coerceIn(0f, 1f)
+        }
 
         val feedbackText = if (isCompleted) {
             "✓ 画面已放平"
         } else if (strongAlignmentHold || sustainedHold) {
             "保持一下，正在确认画面水平"
+        } else if (deviceMotionScore != null && deviceMotionScore < 0.18f) {
+            generateRotationFeedback(rollAngle, translationDistance, direction.lowercase())
         } else {
             generateRotationFeedback(rollAngle, translationDistance, direction.lowercase())
         }
@@ -424,6 +446,7 @@ class StepValidator(
             scaleFactor = components.scaleFactor.toFloat(),
             rotationAngle = rollAngle.toFloat(),
             matchQuality = matchQuality,
+            directionConfidence = deviceMotionScore,
             uiSpaceWidth = uiSpaceWidth(),
             uiSpaceHeight = uiSpaceHeight()
         )
@@ -501,8 +524,8 @@ class StepValidator(
         matchQuality: Float,
         currentZoom: Float
     ): StepValidationResult {
-        // scaleFactor 已经来自“当前帧 vs 目标图”的仿射匹配，天然包含了当前缩放状态。
-        // 这里不再乘 currentZoom，避免把同一次缩放重复计算两次。
+        // scaleFactor 来自“当前帧 vs 目标图”的仿射匹配，当前帧已经包含系统变焦效果。
+        // 这里不要再乘 currentZoom，否则普通 AI Zoom 步骤会把同一次缩放重复计算。
         val visualScale = components.scaleFactor.coerceAtLeast(1e-3)
         val scaleError = abs(1.0 - visualScale)
         
@@ -863,6 +886,23 @@ class StepValidator(
         }
     }
 
+    private fun computeLevelDeviceMotionScore(
+        direction: String,
+        cameraPoseSample: CameraPoseSample?
+    ): Float? {
+        val sample = cameraPoseSample ?: return null
+        if (!sample.isTracking) return null
+
+        val normalizedDirection = direction.lowercase()
+        val signedRollDelta = when (normalizedDirection) {
+            "cw", "rotate-cw" -> sample.rollDeltaDegrees
+            "ccw", "rotate-ccw" -> -sample.rollDeltaDegrees
+            else -> return null
+        }
+
+        return (0.18f + (signedRollDelta / 10f) * 0.82f).coerceIn(0f, 1f)
+    }
+
     private fun computeOrbQuality(matchCount: Int): Float {
         val baseQuality = (matchCount.toFloat() / 50f).coerceIn(0f, 1f)
         return if (matchCount < 10) {
@@ -1185,7 +1225,7 @@ class StepValidator(
         var initialScaleError: Double,
         var framesSeen: Int = 0
     )
-    
+
     /**
      * 释放资源
      */
