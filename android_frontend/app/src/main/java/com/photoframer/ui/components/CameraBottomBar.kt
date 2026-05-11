@@ -1,7 +1,6 @@
 package com.photoframer.ui.components
 
 import android.graphics.Bitmap
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -19,21 +18,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -51,24 +43,16 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.photoframer.ui.theme.AccentYellow
-import com.photoframer.ui.theme.BlueAccent
 import com.photoframer.ui.theme.ControlBackground
-import com.photoframer.ui.theme.ControlSelectedBackground
-import com.photoframer.ui.theme.PillBackground
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val LABEL_PHOTO = "\u62cd\u7167"
-private const val LABEL_RECENT_PHOTO = "\u6700\u8fd1\u7167\u7247"
-private const val LABEL_SWITCH_CAMERA = "\u5207\u6362\u6444\u50cf\u5934"
+private const val LABEL_PHOTO = "拍照"
+private const val LABEL_RECENT_PHOTO = "最近照片"
 
 private val ClassicPanel = Color(0xFFF8F7F4)
-private val ClassicPanelRaised = Color(0xFFFFFEFC)
-private val ClassicBorder = Color(0xFFD9D6D1)
 private val ClassicTextPrimary = Color(0xFF2F2B28)
-private val ClassicTextSecondary = Color(0xFF5B5650)
-private val ClassicZoomPill = Color(0xFFE3E1DE)
-private val ClassicZoomSelected = Color(0xFFFFFEFC)
+private val ClassicBorder = Color(0xFFD9D6D1)
 private val ClassicShutterOuter = Color(0xFFD9EEFF)
 private val ClassicShutterGlow = Color(0xFFAED9FF)
 private val ClassicShutterRing = Color(0xFF56AFFF)
@@ -83,12 +67,17 @@ enum class CameraMode(val displayName: String) {
 fun CameraBottomBar(
     currentMode: CameraMode,
     visualStyle: CameraVisualStyle,
-    currentZoom: Float,
-    onZoomChange: (Float) -> Unit,
+    zoomUiState: CameraZoomUiState,
+    onZoomPresetClick: (Int) -> Unit,
+    onZoomRulerReveal: () -> Unit,
+    onZoomRulerDrag: (Float) -> Unit,
+    onZoomRulerDragEnd: () -> Unit,
     onShutterClick: () -> Unit,
-    onCameraSwitch: () -> Unit,
     lastPhotoThumbnail: Bitmap? = null,
     isGalleryAvailable: Boolean = false,
+    onGalleryClick: (() -> Unit)? = null,
+    canSwitchFacing: Boolean = false,
+    onFacingSwitch: (() -> Unit)? = null,
     onLongPressStart: (() -> Unit)? = null,
     onLongPressEnd: (() -> Unit)? = null,
     burstCount: Int = 0,
@@ -106,18 +95,20 @@ fun CameraBottomBar(
             .padding(top = 10.dp, bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ZoomSelector(
-            currentZoom = currentZoom,
-            onZoomChange = onZoomChange,
-            visualStyle = visualStyle,
-            modifier = Modifier.padding(bottom = 12.dp)
+        CameraZoomControls(
+            state = zoomUiState,
+            onPresetClick = onZoomPresetClick,
+            onRulerReveal = onZoomRulerReveal,
+            onRulerDrag = onZoomRulerDrag,
+            onRulerDragEnd = onZoomRulerDragEnd,
+            modifier = Modifier.padding(bottom = 10.dp)
         )
 
         Text(
             text = currentMode.displayName,
             color = titleColor,
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(bottom = 18.dp)
+            modifier = Modifier.padding(bottom = 16.dp)
         )
 
         Row(
@@ -130,7 +121,8 @@ fun CameraBottomBar(
             GalleryThumbnail(
                 thumbnail = lastPhotoThumbnail,
                 enabled = isGalleryAvailable,
-                visualStyle = visualStyle
+                visualStyle = visualStyle,
+                onClick = onGalleryClick
             )
 
             ShutterButton(
@@ -141,65 +133,10 @@ fun CameraBottomBar(
                 burstCount = burstCount
             )
 
-            CameraSwitchButton(
-                onClick = onCameraSwitch,
-                visualStyle = visualStyle
+            CameraFacingSwitchButton(
+                enabled = canSwitchFacing && onFacingSwitch != null,
+                onClick = { onFacingSwitch?.invoke() }
             )
-        }
-    }
-}
-
-@Composable
-fun ZoomSelector(
-    currentZoom: Float,
-    onZoomChange: (Float) -> Unit,
-    visualStyle: CameraVisualStyle,
-    modifier: Modifier = Modifier
-) {
-    val isClassic = visualStyle == CameraVisualStyle.CLASSIC
-    val containerColor = if (isClassic) ClassicZoomPill else Color(0xFF111111)
-    val containerBorderColor = if (isClassic) Color.Transparent else Color.White.copy(alpha = 0.06f)
-    val selectedBackground = if (isClassic) ClassicZoomSelected else Color(0xFF2B2B2B)
-    val selectedTextColor = if (isClassic) ClassicTextPrimary else AccentYellow
-    val idleTextColor = if (isClassic) ClassicTextSecondary else Color.White.copy(alpha = 0.80f)
-    val zoomOptions = listOf(1f, 2f)
-
-    Row(
-        modifier = modifier
-            .height(44.dp)
-            .width(124.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(containerColor)
-            .border(1.dp, containerBorderColor, RoundedCornerShape(22.dp))
-            .padding(horizontal = 6.dp, vertical = 5.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        zoomOptions.forEach { zoom ->
-            val isSelected = kotlin.math.abs(currentZoom - zoom) < 0.3f ||
-                (zoom == 1f && currentZoom >= 0.8f && currentZoom < 1.5f) ||
-                (zoom == 2f && currentZoom >= 1.5f)
-
-            Box(
-                modifier = Modifier
-                    .height(32.dp)
-                    .weight(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) selectedBackground else Color.Transparent)
-                    .clickable { onZoomChange(zoom) }
-                    .padding(horizontal = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (isSelected && kotlin.math.abs(currentZoom - zoom) > 0.05f) {
-                        String.format("%.1f", currentZoom)
-                    } else {
-                        zoom.toInt().toString()
-                    },
-                    color = if (isSelected) selectedTextColor else idleTextColor,
-                    style = if (isSelected) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodyMedium
-                )
-            }
         }
     }
 }
@@ -234,7 +171,8 @@ private fun ShutterButton(
 
     val ringColor = if (isClassic) ClassicShutterRing else Color.White
     val outerGlowColor = if (isClassic) ClassicShutterGlow else AccentYellow
-    val longPressFeedback = if (isClassic) ClassicShutterRing.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.30f)
+    val longPressFeedback =
+        if (isClassic) ClassicShutterRing.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.30f)
     val outerRingColor = if (isClassic) ClassicShutterOuter else Color(0x66D7C36A)
     val coreBrush = if (isClassic) {
         Brush.radialGradient(
@@ -310,7 +248,8 @@ private fun ShutterButton(
 private fun GalleryThumbnail(
     thumbnail: Bitmap?,
     enabled: Boolean,
-    visualStyle: CameraVisualStyle
+    visualStyle: CameraVisualStyle,
+    onClick: (() -> Unit)?
 ) {
     val isClassic = visualStyle == CameraVisualStyle.CLASSIC
     val backgroundColor = if (isClassic) Color(0xFFF0EEEB) else ControlBackground
@@ -326,7 +265,10 @@ private fun GalleryThumbnail(
             .size(52.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(backgroundColor)
-            .border(1.5.dp, borderColor, RoundedCornerShape(10.dp)),
+            .border(1.5.dp, borderColor, RoundedCornerShape(10.dp))
+            .clickable(enabled = enabled && onClick != null) {
+                onClick?.invoke()
+            },
         contentAlignment = Alignment.Center
     ) {
         if (thumbnail != null) {
@@ -347,45 +289,5 @@ private fun GalleryThumbnail(
                     .background(placeholderColor)
             )
         }
-    }
-}
-
-@Composable
-private fun CameraSwitchButton(
-    onClick: () -> Unit,
-    visualStyle: CameraVisualStyle
-) {
-    val isClassic = visualStyle == CameraVisualStyle.CLASSIC
-    var rotationAngle by remember { mutableFloatStateOf(0f) }
-    val rotation by animateFloatAsState(
-        targetValue = rotationAngle,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f),
-        label = "rotation"
-    )
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isClassic) Color(0xFF2A2825) else ControlBackground,
-        animationSpec = tween(180),
-        label = "switch_background"
-    )
-
-    Box(
-        modifier = Modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .background(backgroundColor)
-            .clickable {
-                rotationAngle += 180f
-                onClick()
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Cameraswitch,
-            contentDescription = LABEL_SWITCH_CAMERA,
-            tint = if (isClassic) ClassicPanelRaised else Color.White,
-            modifier = Modifier
-                .size(26.dp)
-                .rotate(rotation)
-        )
     }
 }

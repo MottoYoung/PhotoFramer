@@ -10,6 +10,7 @@ import android.util.Log
 import android.view.Surface
 import android.view.HapticFeedbackConstants
 import androidx.camera.core.CameraControl
+import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -97,6 +98,7 @@ import com.photoframer.ui.components.CameraEntryMode
 import com.photoframer.ui.components.CameraMode
 import com.photoframer.ui.components.CameraTopBar
 import com.photoframer.ui.components.CameraVisualStyle
+import com.photoframer.ui.components.CameraZoomUiState
 import com.photoframer.ui.components.CandidatesBottomPanel
 import com.photoframer.ui.components.CaptureTimer
 import com.photoframer.ui.components.FlashMode
@@ -106,13 +108,16 @@ import com.photoframer.ui.components.GuidingBottomBar
 import com.photoframer.ui.components.LoadingOverlay
 import com.photoframer.ui.components.SideToolBar
 import com.photoframer.ui.components.TopGuidanceBar
-import com.photoframer.ui.components.ZoomSelector
 import com.photoframer.ui.state.CameraUiState
 import com.photoframer.ui.theme.BackgroundDark
 import com.photoframer.ui.theme.ErrorRed
 import com.photoframer.ui.theme.PurplePrimary
 import com.photoframer.ui.theme.SurfaceDark
 import com.photoframer.ui.theme.TextSecondary
+import com.photoframer.utils.CameraLensManager
+import com.photoframer.utils.CameraLensOption
+import com.photoframer.utils.CameraZoomController
+import com.photoframer.utils.GalleryUtils
 import com.photoframer.utils.ImageFileDecoder
 import com.photoframer.utils.ImageSaver
 import com.photoframer.viewmodel.CameraViewModel
@@ -121,10 +126,14 @@ import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "CameraScreen"
+private const val ZOOM_RULER_AUTO_HIDE_DELAY_MS = 1500L
+private const val ZOOM_DRAG_SENSITIVITY = 0.0075f
 
 @Composable
 fun CameraScreen(
@@ -143,8 +152,9 @@ fun CameraScreen(
 
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
+    var cameraInfo by remember { mutableStateOf<CameraInfo?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
-    var zoomRatio by remember { mutableFloatStateOf(1f) }
+    var rawZoomRatio by remember { mutableFloatStateOf(1f) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val arCorePoseTracker = remember(context.applicationContext) {
         ArCorePoseTracker(context.applicationContext)
@@ -152,8 +162,12 @@ fun CameraScreen(
 
     var flashMode by remember { mutableStateOf(FlashMode.OFF) }
     var gridEnabled by remember { mutableStateOf(false) }
-    var useFrontCamera by remember { mutableStateOf(false) }
     var lastPhotoThumbnail by remember { mutableStateOf<Bitmap?>(null) }
+    var availableLenses by remember { mutableStateOf(CameraLensManager.getAvailableLenses(context)) }
+    var selectedLensIndex by remember { mutableIntStateOf(0) }
+    var desiredEffectiveZoom by remember { mutableFloatStateOf(1f) }
+    var isZoomRulerVisible by remember { mutableStateOf(false) }
+    var zoomInteractionVersion by remember { mutableIntStateOf(0) }
 
     var touchScreenPhotoEnabled by remember { mutableStateOf(false) }
     var backgroundBlurEnabled by remember { mutableStateOf(false) }
@@ -178,6 +192,27 @@ fun CameraScreen(
     val shouldUseArCore = isViewpointStep && arExperimentEnabled
     val analyzeEveryNFrames = if (needsPoseTracking) 6 else 4
     val minAnalysisInterval = if (needsPoseTracking) 90L else 66L
+    val canOpenGallery = remember(context) {
+        GalleryUtils.canOpenGallery(context)
+    }
+    val selectedLens = availableLenses.getOrNull(selectedLensIndex)
+    val selectedFacing = selectedLens?.lensFacing ?: CameraSelector.LENS_FACING_BACK
+    val currentFacingLenses = availableLenses.mapIndexedNotNull { index, lens ->
+        if (lens.lensFacing == selectedFacing) {
+            index to lens
+        } else {
+            null
+        }
+    }
+    val zoomPresets = CameraZoomController.buildPresets(currentFacingLenses)
+    val actualEffectiveZoom = CameraZoomController.effectiveZoomRatio(selectedLens, rawZoomRatio)
+    val displayedZoom = if (isZoomRulerVisible) desiredEffectiveZoom else actualEffectiveZoom
+    val zoomUiState = CameraZoomUiState(
+        presets = zoomPresets,
+        selectedLensIndex = selectedLensIndex,
+        displayedZoomText = CameraZoomController.formatZoomRatio(displayedZoom),
+        isRulerVisible = isZoomRulerVisible
+    )
 
     fun performHaptic(constant: Int) {
         view.performHapticFeedback(constant)
@@ -287,9 +322,9 @@ fun CameraScreen(
         arCoreStatus.state,
         previewView?.width,
         previewView?.height,
-        useFrontCamera
+        selectedFacing
     ) {
-        if (!needsPoseTracking || useFrontCamera) {
+        if (!needsPoseTracking || selectedFacing == CameraSelector.LENS_FACING_FRONT) {
             arCorePoseTracker.stop()
             latestPoseSample = null
             return@LaunchedEffect
@@ -303,6 +338,139 @@ fun CameraScreen(
             viewportHeight = currentPreview?.height ?: 0,
             displayRotation = currentPreview?.display?.rotation ?: Surface.ROTATION_0
         )
+    }
+
+    fun defaultLensIndex(lenses: List<CameraLensOption>): Int {
+        val mainBackLensIndex = lenses.indexOfFirst { lens ->
+            lens.lensFacing == CameraSelector.LENS_FACING_BACK &&
+                (lens.targetZoomRatio?.let { kotlin.math.abs(it - 1f) < 0.15f } == true)
+        }
+        if (mainBackLensIndex >= 0) {
+            return mainBackLensIndex
+        }
+
+        return lenses.indexOfFirst { lens ->
+            lens.lensFacing == CameraSelector.LENS_FACING_BACK
+        }.takeIf { it >= 0 } ?: 0
+    }
+
+    fun refreshLatestThumbnail() {
+        scope.launch {
+            val latestThumbnail = withContext(Dispatchers.IO) {
+                GalleryUtils.loadLatestThumbnail(context)
+            }
+            if (latestThumbnail != null) {
+                lastPhotoThumbnail = latestThumbnail
+            }
+        }
+    }
+
+    fun openGallery() {
+        GalleryUtils.openGallery(context)
+    }
+
+    fun refreshZoomAutoHide() {
+        zoomInteractionVersion += 1
+    }
+
+    fun supportedEffectiveZoomRange(
+        lens: CameraLensOption?,
+        info: CameraInfo?,
+        presets: List<com.photoframer.utils.CameraZoomPreset>
+    ): ClosedFloatingPointRange<Float> {
+        val zoomState = info?.zoomState?.value
+        val minPresetZoom = presets.minOfOrNull { it.effectiveZoomRatio } ?: 1f
+        val maxPresetZoom = presets.maxOfOrNull { it.effectiveZoomRatio } ?: 1f
+        val maxZoom = maxOf(maxPresetZoom, maxPresetZoom * (zoomState?.maxZoomRatio ?: 8f))
+        val minZoom = minPresetZoom
+        return minZoom..maxZoom
+    }
+
+    fun applyTargetEffectiveZoom(
+        targetZoom: Float,
+        revealRuler: Boolean = false
+    ) {
+        if (zoomPresets.isEmpty()) return
+
+        val zoomRange = supportedEffectiveZoomRange(selectedLens, cameraInfo, zoomPresets)
+        val clampedZoom = targetZoom.coerceIn(zoomRange.start, zoomRange.endInclusive)
+        val targetPreset = CameraZoomController.chooseLensForZoom(zoomPresets, clampedZoom)
+            ?: return
+
+        desiredEffectiveZoom = clampedZoom
+        if (revealRuler) {
+            isZoomRulerVisible = true
+            refreshZoomAutoHide()
+        }
+
+        if (targetPreset.lensIndex != selectedLensIndex) {
+            selectedLensIndex = targetPreset.lensIndex
+            return
+        }
+
+        val rawTargetZoom = CameraZoomController.computeRawZoomRatio(
+            lens = selectedLens,
+            targetEffectiveZoom = clampedZoom,
+            cameraInfo = cameraInfo
+        )
+        cameraControl?.setZoomRatio(rawTargetZoom)
+    }
+
+    fun revealZoomRuler() {
+        desiredEffectiveZoom = actualEffectiveZoom
+        isZoomRulerVisible = true
+        refreshZoomAutoHide()
+    }
+
+    fun finishZoomInteraction() {
+        val snappedZoom = CameraZoomController.snapZoomRatio(desiredEffectiveZoom, zoomPresets)
+        applyTargetEffectiveZoom(snappedZoom, revealRuler = true)
+    }
+
+    fun switchCameraFacing() {
+        val targetFacing = if (selectedFacing == CameraSelector.LENS_FACING_BACK) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
+        val targetLenses = availableLenses.mapIndexedNotNull { index, lens ->
+            if (lens.lensFacing == targetFacing) {
+                index to lens
+            } else {
+                null
+            }
+        }
+        val targetIndex = CameraZoomController.findDefaultLensIndex(targetLenses) ?: return
+        selectedLensIndex = targetIndex
+        desiredEffectiveZoom = availableLenses.getOrNull(targetIndex)?.targetZoomRatio ?: 1f
+        isZoomRulerVisible = false
+    }
+
+    LaunchedEffect(context) {
+        availableLenses = CameraLensManager.getAvailableLenses(context)
+        selectedLensIndex = defaultLensIndex(availableLenses)
+        desiredEffectiveZoom =
+            availableLenses.getOrNull(selectedLensIndex)?.targetZoomRatio ?: 1f
+        refreshLatestThumbnail()
+    }
+
+    LaunchedEffect(selectedLensIndex, cameraInfo, desiredEffectiveZoom) {
+        if (selectedLens == null) return@LaunchedEffect
+        val rawTargetZoom = CameraZoomController.computeRawZoomRatio(
+            lens = selectedLens,
+            targetEffectiveZoom = desiredEffectiveZoom,
+            cameraInfo = cameraInfo
+        )
+        cameraControl?.setZoomRatio(rawTargetZoom)
+    }
+
+    LaunchedEffect(isZoomRulerVisible, zoomInteractionVersion) {
+        if (!isZoomRulerVisible) {
+            return@LaunchedEffect
+        }
+
+        delay(ZOOM_RULER_AUTO_HIDE_DELAY_MS)
+        isZoomRulerVisible = false
     }
 
     LaunchedEffect(uiState) {
@@ -333,11 +501,17 @@ fun CameraScreen(
     }
 
     fun saveCapturedPhoto(file: File, namePrefix: String) {
-        val adjustedFile = applyAspectRatioToCapturedFile(context, file, selectedRatio)
-        val bitmap = ImageFileDecoder.decodeBitmapRespectingExif(adjustedFile) ?: return
         scope.launch {
-            lastPhotoThumbnail = bitmap
-            ImageSaver.saveImageToGallery(context, bitmap, namePrefix)
+            val adjustedFile = withContext(Dispatchers.IO) {
+                applyAspectRatioToCapturedFile(context, file, selectedRatio)
+            }
+            val thumbnail = withContext(Dispatchers.IO) {
+                ImageFileDecoder.decodeThumbnailRespectingExif(adjustedFile, maxDimension = 512)
+            }
+            if (thumbnail != null) {
+                lastPhotoThumbnail = thumbnail
+            }
+            ImageSaver.saveImageFileToGallery(context, adjustedFile, namePrefix)
         }
     }
 
@@ -450,10 +624,15 @@ fun CameraScreen(
                 .clipToBounds()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, _, zoom, _ ->
-                        val currentZoom = zoomRatio
-                        val newZoom = (currentZoom * zoom).coerceIn(1f, 8f)
-                        if (newZoom != currentZoom) {
-                            cameraControl?.setZoomRatio(newZoom)
+                        val currentZoom = desiredEffectiveZoom
+                        val zoomRange = supportedEffectiveZoomRange(selectedLens, cameraInfo, zoomPresets)
+                        val newZoom = (currentZoom * zoom).coerceIn(
+                            zoomRange.start,
+                            zoomRange.endInclusive
+                        )
+                        if (kotlin.math.abs(newZoom - currentZoom) > 0.001f) {
+                            desiredEffectiveZoom = newZoom
+                            applyTargetEffectiveZoom(newZoom)
                         }
                     }
                 }
@@ -469,7 +648,7 @@ fun CameraScreen(
                     }
                 }
         ) {
-            key(useFrontCamera, flashMode) {
+            key(selectedLens?.logicalCameraId, selectedLens?.physicalCameraId, flashMode) {
                 AndroidView(
                     factory = { ctx ->
                         PreviewView(ctx).apply {
@@ -535,7 +714,10 @@ fun CameraScreen(
                                                         }
                                                         viewModel.validateCurrentFrame(
                                                             currentFrame = scaledBitmap,
-                                                            currentZoomRatio = zoomRatio,
+                                                            currentZoomRatio = CameraZoomController.effectiveZoomRatio(
+                                                                selectedLens,
+                                                                rawZoomRatio
+                                                            ),
                                                             cameraPoseSample = poseSample
                                                         )
                                                     }
@@ -545,11 +727,9 @@ fun CameraScreen(
                                         }
                                     }
 
-                                val cameraSelector = if (useFrontCamera) {
-                                    CameraSelector.DEFAULT_FRONT_CAMERA
-                                } else {
-                                    CameraSelector.DEFAULT_BACK_CAMERA
-                                }
+                                val cameraSelector = selectedLens?.let(
+                                    CameraLensManager::buildCameraSelector
+                                ) ?: CameraSelector.DEFAULT_BACK_CAMERA
 
                                 try {
                                     cameraProvider.unbindAll()
@@ -561,8 +741,9 @@ fun CameraScreen(
                                         imageAnalyzer
                                     )
                                     cameraControl = camera.cameraControl
+                                    cameraInfo = camera.cameraInfo
                                     camera.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
-                                        zoomRatio = state.zoomRatio
+                                        rawZoomRatio = state.zoomRatio
                                     }
                                 } catch (e: Exception) {
                                     Log.e(TAG, "相机绑定失败", e)
@@ -776,12 +957,36 @@ fun CameraScreen(
                     CameraBottomBar(
                         currentMode = CameraMode.PHOTO,
                         visualStyle = visualStyle,
-                        currentZoom = zoomRatio,
-                        onZoomChange = { cameraControl?.setZoomRatio(it) },
+                        zoomUiState = zoomUiState,
+                        onZoomPresetClick = { index ->
+                            val preset = zoomPresets.firstOrNull { it.lensIndex == index }
+                            if (preset != null) {
+                                isZoomRulerVisible = false
+                                desiredEffectiveZoom = preset.effectiveZoomRatio
+                                if (selectedLensIndex != index) {
+                                    selectedLensIndex = index
+                                } else {
+                                    applyTargetEffectiveZoom(preset.effectiveZoomRatio)
+                                }
+                            }
+                        },
+                        onZoomRulerReveal = { revealZoomRuler() },
+                        onZoomRulerDrag = { dragAmount ->
+                            if (!isZoomRulerVisible) {
+                                revealZoomRuler()
+                            }
+                            val zoomRange = supportedEffectiveZoomRange(selectedLens, cameraInfo, zoomPresets)
+                            val nextZoom = (desiredEffectiveZoom + dragAmount * ZOOM_DRAG_SENSITIVITY)
+                                .coerceIn(zoomRange.start, zoomRange.endInclusive)
+                            applyTargetEffectiveZoom(nextZoom, revealRuler = true)
+                        },
+                        onZoomRulerDragEnd = { finishZoomInteraction() },
                         onShutterClick = { startCountdownCapture() },
-                        onCameraSwitch = { useFrontCamera = !useFrontCamera },
                         lastPhotoThumbnail = lastPhotoThumbnail,
-                        isGalleryAvailable = false,
+                        isGalleryAvailable = canOpenGallery,
+                        onGalleryClick = ::openGallery,
+                        canSwitchFacing = availableLenses.any { it.lensFacing != selectedFacing },
+                        onFacingSwitch = ::switchCameraFacing,
                         onLongPressStart = startBurst,
                         onLongPressEnd = stopBurst,
                         burstCount = burstCount
@@ -860,12 +1065,36 @@ fun CameraScreen(
                     CameraBottomBar(
                         currentMode = CameraMode.PHOTO,
                         visualStyle = visualStyle,
-                        currentZoom = zoomRatio,
-                        onZoomChange = { cameraControl?.setZoomRatio(it) },
+                        zoomUiState = zoomUiState,
+                        onZoomPresetClick = { index ->
+                            val preset = zoomPresets.firstOrNull { it.lensIndex == index }
+                            if (preset != null) {
+                                isZoomRulerVisible = false
+                                desiredEffectiveZoom = preset.effectiveZoomRatio
+                                if (selectedLensIndex != index) {
+                                    selectedLensIndex = index
+                                } else {
+                                    applyTargetEffectiveZoom(preset.effectiveZoomRatio)
+                                }
+                            }
+                        },
+                        onZoomRulerReveal = { revealZoomRuler() },
+                        onZoomRulerDrag = { dragAmount ->
+                            if (!isZoomRulerVisible) {
+                                revealZoomRuler()
+                            }
+                            val zoomRange = supportedEffectiveZoomRange(selectedLens, cameraInfo, zoomPresets)
+                            val nextZoom = (desiredEffectiveZoom + dragAmount * ZOOM_DRAG_SENSITIVITY)
+                                .coerceIn(zoomRange.start, zoomRange.endInclusive)
+                            applyTargetEffectiveZoom(nextZoom, revealRuler = true)
+                        },
+                        onZoomRulerDragEnd = { finishZoomInteraction() },
                         onShutterClick = {},
-                        onCameraSwitch = { useFrontCamera = !useFrontCamera },
                         lastPhotoThumbnail = lastPhotoThumbnail,
-                        isGalleryAvailable = false
+                        isGalleryAvailable = canOpenGallery,
+                        onGalleryClick = ::openGallery,
+                        canSwitchFacing = availableLenses.any { it.lensFacing != selectedFacing },
+                        onFacingSwitch = ::switchCameraFacing
                     )
                 }
             }
