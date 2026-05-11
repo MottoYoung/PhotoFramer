@@ -18,6 +18,32 @@ object ImageFileDecoder {
         return applyExifOrientation(bitmap, readExifOrientation(file))
     }
 
+    fun decodeThumbnailRespectingExif(
+        file: File,
+        maxDimension: Int
+    ): Bitmap? {
+        val bounds = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        BitmapFactory.decodeFile(file.absolutePath, bounds)
+
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            return null
+        }
+
+        val largestDimension = maxOf(bounds.outWidth, bounds.outHeight)
+        var sampleSize = 1
+        while (largestDimension / sampleSize > maxDimension) {
+            sampleSize *= 2
+        }
+
+        val decodeOptions = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize.coerceAtLeast(1)
+            inPreferredConfig = Bitmap.Config.RGB_565
+        }
+        return decodeBitmapRespectingExif(file, decodeOptions)
+    }
+
     fun requiresOrientationNormalization(file: File): Boolean {
         return when (readExifOrientation(file)) {
             ExifInterface.ORIENTATION_NORMAL,
