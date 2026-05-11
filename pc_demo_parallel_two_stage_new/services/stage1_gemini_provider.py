@@ -13,10 +13,6 @@ from PIL import Image
 
 from config import (
     ENABLE_THINKING,
-    ENABLE_GEMINI_TECHNIQUE_PREFILTER,
-    GEMINI_PREFILTER_MAX_TECHNIQUES,
-    GEMINI_PREFILTER_MODEL,
-    GEMINI_PREFILTER_TEMPERATURE,
     GEMINI_STAGE1_FORCE_MINIMAL_THINKING,
     GEMINI_STAGE1_MODEL,
     GEMINI_STAGE1_THINKING_BUDGET,
@@ -52,7 +48,6 @@ class GeminiStage1Provider:
     provider_name = "gemini"
     model_name = GEMINI_STAGE1_MODEL
     supports_prompt_streaming_pipeline = True
-    supports_technique_prefilter = True
 
     def __init__(self):
         self.client = create_gemini_client()
@@ -134,32 +129,6 @@ class GeminiStage1Provider:
                 config=self._build_config(response_mime_type=None),
             )
 
-    def _build_prefilter_config(self) -> types.GenerateContentConfig:
-        return types.GenerateContentConfig(
-            temperature=GEMINI_PREFILTER_TEMPERATURE,
-            top_p=0.8,
-            response_modalities=["TEXT"],
-            response_mime_type="application/json",
-        )
-
-    def _build_prefilter_prompt(self, techniques: List[str]) -> str:
-        technique_lines = [
-            f'- "{technique_id}": {TECHNIQUE_CONFIGS[technique_id].name}'
-            for technique_id in techniques
-        ]
-        return (
-            "You are a fast composition triage assistant.\n"
-            "Given one input photo, quickly select only the most promising composition techniques "
-            "for a slower detailed analysis stage.\n"
-            f"Select at most {GEMINI_PREFILTER_MAX_TECHNIQUES} techniques.\n"
-            "Be conservative: do not select weak or marginal techniques.\n"
-            "Prefer techniques that are both credible and meaningfully different from one another.\n"
-            "Do not select multiple techniques if they would likely produce near-duplicate framing suggestions.\n"
-            "Return only JSON:\n"
-            '{ "selected": ["technique_id_1", "technique_id_2"] }\n'
-            "Candidate techniques:\n" + "\n".join(technique_lines)
-        )
-
     def _stream_call_sync(self, image_data_url: str, technique_id: str) -> str:
         image = self._image_from_data_url(image_data_url)
         start_ts = now_perf()
@@ -201,73 +170,6 @@ class GeminiStage1Provider:
                 flush=True,
             )
             raise
-
-    def _prefilter_call_sync(self, image_data_url: str, techniques: List[str]) -> List[str]:
-        if not ENABLE_GEMINI_TECHNIQUE_PREFILTER or len(techniques) <= GEMINI_PREFILTER_MAX_TECHNIQUES:
-            return techniques
-
-        image = self._image_from_data_url(image_data_url)
-        start_ts = now_perf()
-        print(
-            f"  🚀 [gemini-prefilter:{GEMINI_PREFILTER_MODEL}] request start "
-            f"candidates={len(techniques)}",
-            flush=True,
-        )
-        response = self.client.models.generate_content(
-            model=GEMINI_PREFILTER_MODEL,
-            contents=[self._build_prefilter_prompt(techniques), image],
-            config=self._build_prefilter_config(),
-        )
-        elapsed_ms = (now_perf() - start_ts) * 1000
-        print(
-            f"  📥 [gemini-prefilter:{GEMINI_PREFILTER_MODEL}] response received "
-            f"{elapsed_ms:.0f}ms",
-            flush=True,
-        )
-        text = getattr(response, "text", None) or ""
-        parsed = parse_json_from_text(text) or {}
-        selected = parsed.get("selected") or []
-        if not isinstance(selected, list):
-            return techniques
-
-        normalized = [
-            technique_id for technique_id in selected
-            if isinstance(technique_id, str) and technique_id in techniques
-        ]
-        if not normalized:
-            return techniques
-        return normalized[:GEMINI_PREFILTER_MAX_TECHNIQUES]
-
-    async def prefilter_techniques(
-        self,
-        image_bytes: bytes,
-        techniques: List[str],
-    ) -> List[str]:
-        if not ENABLE_GEMINI_TECHNIQUE_PREFILTER or len(techniques) <= GEMINI_PREFILTER_MAX_TECHNIQUES:
-            return techniques
-        start_ts = now_perf()
-        _, _, image_data_url = self.prepare_image_payload(image_bytes)
-        try:
-            selected = await asyncio.to_thread(
-                self._prefilter_call_sync,
-                image_data_url,
-                techniques,
-            )
-            elapsed_ms = (now_perf() - start_ts) * 1000
-            print(
-                f"  🔎 [gemini-prefilter:{GEMINI_PREFILTER_MODEL}] "
-                f"{elapsed_ms:.0f}ms selected={selected}",
-                flush=True,
-            )
-            return selected
-        except Exception as error:
-            elapsed_ms = (now_perf() - start_ts) * 1000
-            print(
-                f"  ⚠️ [gemini-prefilter:{GEMINI_PREFILTER_MODEL}] "
-                f"{elapsed_ms:.0f}ms failed={error}",
-                flush=True,
-            )
-            return techniques
 
     def _stream_call_with_prompt_callback(
         self,

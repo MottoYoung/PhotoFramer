@@ -11,7 +11,8 @@ from fastapi.responses import StreamingResponse
 
 from config import (
     STAGE1_MAX_CONCURRENCY,
-    STAGE1_PIPELINE_TIMEOUT_SECONDS,
+    STAGE1_TIMEOUT_SECONDS,
+    STAGE2_TIMEOUT_SECONDS,
     TECHNIQUE_CONFIGS,
     get_stage1_model_name,
 )
@@ -49,29 +50,66 @@ def _subject_size(composition: CompositionResult) -> float | None:
     return float(shot_spec.target_subject_size)
 
 
-def _is_near_duplicate(candidate: CompositionResult, kept: CompositionResult) -> bool:
-    if _normalized_steps_signature(candidate) != _normalized_steps_signature(kept):
-        return False
+def _count_viewpoint_moves(composition: CompositionResult) -> int:
+    viewpoint_actions = {"orbit", "raisecamera", "lowercamera", "step"}
+    return sum(
+        1
+        for step in composition.steps
+        if step.action_type.strip().lower() in viewpoint_actions
+    )
+
+
+def _duplicate_score(candidate: CompositionResult, kept: CompositionResult) -> float:
+    score = 0.0
+
+    candidate_signature = _normalized_steps_signature(candidate)
+    kept_signature = _normalized_steps_signature(kept)
+    if candidate_signature == kept_signature:
+        score += 0.55
+    elif candidate_signature and kept_signature and candidate_signature[:1] == kept_signature[:1]:
+        score += 0.20
+
+    candidate_viewpoint_required = bool(candidate.shot_spec and candidate.shot_spec.viewpoint_required)
+    kept_viewpoint_required = bool(kept.shot_spec and kept.shot_spec.viewpoint_required)
+    if candidate_viewpoint_required == kept_viewpoint_required:
+        score += 0.10
+    if _count_viewpoint_moves(candidate) == _count_viewpoint_moves(kept):
+        score += 0.05
 
     candidate_center = _subject_center(candidate)
     kept_center = _subject_center(kept)
-    candidate_size = _subject_size(candidate)
-    kept_size = _subject_size(kept)
-
     if candidate_center and kept_center:
         center_dx = abs(candidate_center[0] - kept_center[0])
         center_dy = abs(candidate_center[1] - kept_center[1])
-        if center_dx > 0.10 or center_dy > 0.10:
-            return False
-    elif candidate.technique != kept.technique:
-        # 两个不同技术如果都没有几何先验，只在步骤签名完全相同的情况下视作重复。
-        return True
+        max_delta = max(center_dx, center_dy)
+        if max_delta <= 0.06:
+            score += 0.20
+        elif max_delta <= 0.10:
+            score += 0.10
+    elif candidate_center is None and kept_center is None:
+        score += 0.05
 
+    candidate_size = _subject_size(candidate)
+    kept_size = _subject_size(kept)
     if candidate_size is not None and kept_size is not None:
-        if abs(candidate_size - kept_size) > 0.12:
-            return False
+        size_delta = abs(candidate_size - kept_size)
+        if size_delta <= 0.08:
+            score += 0.10
+        elif size_delta <= 0.12:
+            score += 0.05
+    elif candidate_size is None and kept_size is None:
+        score += 0.03
 
-    return True
+    if candidate.technique == kept.technique:
+        score += 0.20
+
+    return score
+
+
+def _is_near_duplicate(candidate: CompositionResult, kept: CompositionResult) -> bool:
+    if candidate.technique == kept.technique:
+        return True
+    return _duplicate_score(candidate, kept) >= 0.85
 
 
 def _diversify_compositions(compositions: list[CompositionResult]) -> list[CompositionResult]:
@@ -88,9 +126,15 @@ def _diversify_compositions(compositions: list[CompositionResult]) -> list[Compo
     )
     diversified: list[CompositionResult] = []
     for composition in prioritized:
-        if any(_is_near_duplicate(composition, kept) for kept in diversified):
+        duplicate_of = next(
+            (kept for kept in diversified if _is_near_duplicate(composition, kept)),
+            None,
+        )
+        if duplicate_of is not None:
+            score = _duplicate_score(composition, duplicate_of)
             print(
-                f"  🪄 [{composition.technique}] 近似重复，已跳过",
+                f"  🪄 [{composition.technique}] 与 [{duplicate_of.technique}] 近似重复 "
+                f"(score={score:.2f})，已跳过",
                 flush=True,
             )
             continue
@@ -109,29 +153,24 @@ async def analyze_composition(
     try:
         image_bytes = await image.read()
         overall_start = time.perf_counter()
-        requested_techniques = list(TECHNIQUE_CONFIGS.keys())
+        techniques = list(TECHNIQUE_CONFIGS.keys())
         stage1 = get_stage1_service()
         stage2 = get_stage2_service()
-        techniques = requested_techniques
         stage1_semaphore = asyncio.Semaphore(max(1, STAGE1_MAX_CONCURRENCY))
-
-        if getattr(stage1, "supports_technique_prefilter", False):
-            selected = await stage1.prefilter_techniques(image_bytes, requested_techniques)
-            if selected:
-                techniques = selected
+        timeout_stats = {
+            "stage1_timeouts": 0,
+            "stage2_timeouts": 0,
+            "stage2_failures": 0,
+        }
 
         print(f"\n{'=' * 60}")
         print(f"📷 接收到图片: {image.filename}, 大小: {len(image_bytes)} bytes")
         print(
             f"🚀 启动两阶段分析 "
             f"[stage1={stage1.provider_name}:{stage1.model_name}] "
-            f"[stage2={stage2.provider_name}:{stage2.model_name}]"
+            f"[stage2={stage2.provider_name}:{stage2.model_name}] "
+            f"[timeouts s1={STAGE1_TIMEOUT_SECONDS:.0f}s s2={STAGE2_TIMEOUT_SECONDS:.0f}s total<=60s]"
         )
-        if techniques != requested_techniques:
-            print(
-                f"🎯 预筛后详细分析 {len(techniques)}/{len(requested_techniques)} 个构图: {techniques}",
-                flush=True,
-            )
         print(f"{'=' * 60}")
 
         if getattr(stage1, "supports_prompt_streaming_pipeline", False):
@@ -143,8 +182,23 @@ async def analyze_composition(
                 async with stage1_semaphore:
                     prompt_ready_event = asyncio.Event()
                     prompt_ref = [None]
+                    stage2_started_ts_ref = [None]
                     start_time = datetime.now()
                     start_ts = time.perf_counter()
+
+                    async def run_s2():
+                        await prompt_ready_event.wait()
+                        prompt = prompt_ref[0]
+                        if not prompt:
+                            return None
+                        stage2_started_ts_ref[0] = time.perf_counter()
+                        return await stage2.generate_single_with_timing(
+                            ImageRequest(
+                                technique_id=technique_id,
+                                image_prompt=prompt,
+                                original_image_b64=original_b64,
+                            )
+                        )
 
                     s1_task = asyncio.create_task(
                         asyncio.to_thread(
@@ -156,36 +210,36 @@ async def analyze_composition(
                             prompt_ref,
                         )
                     )
-
-                    async def run_s2():
-                        await prompt_ready_event.wait()
-                        prompt = prompt_ref[0]
-                        if not prompt:
-                            return None, None
-                        return await stage2.generate_single_with_timing(
-                            ImageRequest(
-                                technique_id=technique_id,
-                                image_prompt=prompt,
-                                original_image_b64=original_b64,
-                            )
-                        )
-
                     s2_task = asyncio.create_task(run_s2())
+
                     try:
-                        s1_payload, s2_payload = await asyncio.wait_for(
-                            asyncio.gather(s1_task, s2_task, return_exceptions=True),
-                            timeout=STAGE1_PIPELINE_TIMEOUT_SECONDS,
+                        s1_payload = await asyncio.wait_for(
+                            s1_task,
+                            timeout=STAGE1_TIMEOUT_SECONDS,
                         )
                     except asyncio.TimeoutError:
                         s1_task.cancel()
                         s2_task.cancel()
+                        await asyncio.gather(s1_task, s2_task, return_exceptions=True)
+                        timeout_stats["stage1_timeouts"] += 1
                         print(
-                            f"  ⏱️ [{technique_id}] pipeline timeout after {STAGE1_PIPELINE_TIMEOUT_SECONDS:.1f}s",
+                            f"  ⏱️ [{technique_id}] stage1 timeout after "
+                            f"{STAGE1_TIMEOUT_SECONDS:.1f}s",
+                            flush=True,
+                        )
+                        return None
+                    except Exception as error:
+                        s2_task.cancel()
+                        await asyncio.gather(s2_task, return_exceptions=True)
+                        print(
+                            f"  ❌ [{technique_id}] S1 异常: {type(error).__name__}: {error}",
                             flush=True,
                         )
                         return None
 
-                    if isinstance(s1_payload, Exception) or not s1_payload:
+                    if not s1_payload:
+                        s2_task.cancel()
+                        await asyncio.gather(s2_task, return_exceptions=True)
                         print(f"  ❌ [{technique_id}] S1 异常: {s1_payload}", flush=True)
                         return None
 
@@ -201,17 +255,63 @@ async def analyze_composition(
                         timing=stage1_timing,
                     )
                     if not stage1_result.is_applicable or not prompt_ref[0]:
+                        if not s2_task.done():
+                            s2_task.cancel()
+                        await asyncio.gather(s2_task, return_exceptions=True)
                         print(f"  ⏭️  [{technique_id}] 不适用，跳过", flush=True)
                         return None
 
                     image_b64 = None
                     stage2_ms = None
+                    s2_payload = None
+                    try:
+                        if stage2_started_ts_ref[0] is None:
+                            s2_payload = await asyncio.wait_for(
+                                s2_task,
+                                timeout=STAGE2_TIMEOUT_SECONDS,
+                            )
+                        else:
+                            stage2_elapsed = time.perf_counter() - stage2_started_ts_ref[0]
+                            remaining_timeout = max(
+                                0.0,
+                                STAGE2_TIMEOUT_SECONDS - stage2_elapsed,
+                            )
+                            if remaining_timeout == 0.0:
+                                raise asyncio.TimeoutError()
+                            s2_payload = await asyncio.wait_for(
+                                s2_task,
+                                timeout=remaining_timeout,
+                            )
+                    except asyncio.TimeoutError:
+                        s2_task.cancel()
+                        await asyncio.gather(s2_task, return_exceptions=True)
+                        s2_payload = None
+                        timeout_stats["stage2_timeouts"] += 1
+                        print(
+                            f"  ⏱️ [{technique_id}] stage2 timeout after "
+                            f"{STAGE2_TIMEOUT_SECONDS:.1f}s，保留 stage1 结果",
+                            flush=True,
+                        )
+                    except Exception as error:
+                        s2_payload = error
+                        timeout_stats["stage2_failures"] += 1
+                        print(
+                            f"  ⚠️ [{technique_id}] stage2 失败，保留 stage1 结果 "
+                            f"error={type(error).__name__}: {error}",
+                            flush=True,
+                        )
+
                     if not isinstance(s2_payload, Exception) and s2_payload is not None:
                         image_result, _ = s2_payload
-                        if image_result and image_result.success:
-                            image_b64 = image_result.image_base64
                         if image_result:
                             stage2_ms = image_result.response_time_ms
+                            if image_result.success:
+                                image_b64 = image_result.image_base64
+                            else:
+                                print(
+                                    f"  ⚠️ [{technique_id}] stage2 未返回可用图片，保留 stage1 结果",
+                                    flush=True,
+                                )
                     total_ms = (time.perf_counter() - start_ts) * 1000
                     timing = {
                         "stage1_ms": round(stage1_result.response_time_ms, 2),
@@ -298,7 +398,10 @@ async def analyze_composition(
         total_time_ms = (time.perf_counter() - overall_start) * 1000
         print(
             f"🏁 两阶段分析完成 total={total_time_ms:.0f}ms "
-            f"applicable={len(final_compositions)}/{len(techniques)}",
+            f"applicable={len(final_compositions)}/{len(techniques)} "
+            f"timeouts(s1={timeout_stats['stage1_timeouts']}, "
+            f"s2={timeout_stats['stage2_timeouts']}) "
+            f"s2_failures={timeout_stats['stage2_failures']}",
             flush=True,
         )
         return AnalysisResponse(

@@ -161,17 +161,9 @@ GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS = (
     os.environ.get("GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS", "true").strip().lower() == "true"
 )
 
-# Gemini Stage 1 预筛参数：
-# 在高延迟网络 + 重模型场景下可能有帮助；
-# 当 Stage 1 已经切到 2.5-lite 时，额外多一跳请求往往不划算，所以默认关闭。
-ENABLE_GEMINI_TECHNIQUE_PREFILTER = (
-    os.environ.get("ENABLE_GEMINI_TECHNIQUE_PREFILTER", "true").strip().lower() == "true"
-)
-GEMINI_PREFILTER_MODEL = os.environ.get("GEMINI_PREFILTER_MODEL", "gemini-2.5-flash-lite")
-GEMINI_PREFILTER_MAX_TECHNIQUES = int(os.environ.get("GEMINI_PREFILTER_MAX_TECHNIQUES", "4"))
-GEMINI_PREFILTER_TEMPERATURE = float(os.environ.get("GEMINI_PREFILTER_TEMPERATURE", "0.1"))
 STAGE1_MAX_CONCURRENCY = int(os.environ.get("STAGE1_MAX_CONCURRENCY", "3"))
-STAGE1_PIPELINE_TIMEOUT_SECONDS = float(os.environ.get("STAGE1_PIPELINE_TIMEOUT_SECONDS", "25"))
+STAGE1_TIMEOUT_SECONDS = float(os.environ.get("STAGE1_TIMEOUT_SECONDS", "20"))
+STAGE2_TIMEOUT_SECONDS = float(os.environ.get("STAGE2_TIMEOUT_SECONDS", "40"))
 
 
 # ==================== Stage 2 参数 ==================== #
