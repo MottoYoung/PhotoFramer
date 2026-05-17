@@ -44,6 +44,10 @@ class CameraViewModel : ViewModel() {
         val message: String
     )
 
+    data class NewCandidatePrompt(
+        val message: String
+    )
+
     private data class ActiveValidation(
         val sessionId: Long,
         val stepIndex: Int,
@@ -92,6 +96,9 @@ class CameraViewModel : ViewModel() {
 
     private val _postCapturePrompt = MutableStateFlow<PostCapturePrompt?>(null)
     val postCapturePrompt: StateFlow<PostCapturePrompt?> = _postCapturePrompt.asStateFlow()
+
+    private val _newCandidatePrompt = MutableStateFlow<NewCandidatePrompt?>(null)
+    val newCandidatePrompt: StateFlow<NewCandidatePrompt?> = _newCandidatePrompt.asStateFlow()
     
     // 缓存解码后的图片 (使用 technique 作为 key)
     private val imageCache = mutableStateMapOf<String, Bitmap>()
@@ -127,6 +134,7 @@ class CameraViewModel : ViewModel() {
      */
     fun analyzeImage(imageFile: File) {
         _postCapturePrompt.value = null
+        _newCandidatePrompt.value = null
         pendingAnalysisRequest = PendingAnalysisRequest(
             mode = AnalysisMode.AiComposition,
             imageFile = imageFile
@@ -192,6 +200,7 @@ class CameraViewModel : ViewModel() {
      */
     fun analyzeInFrameComposition(imageFile: File) {
         _postCapturePrompt.value = null
+        _newCandidatePrompt.value = null
         pendingAnalysisRequest = PendingAnalysisRequest(
             mode = AnalysisMode.InFrameComposition,
             imageFile = imageFile
@@ -275,6 +284,7 @@ class CameraViewModel : ViewModel() {
         analysisJob?.cancel()
         analysisJob = null
         _postCapturePrompt.value = null
+        _newCandidatePrompt.value = null
         invalidateGuidanceSession()
         clearStepTimeout()
         _uiState.value = CameraUiState.Preview
@@ -285,6 +295,7 @@ class CameraViewModel : ViewModel() {
      */
     fun selectComposition(composition: CompositionResult) {
         _postCapturePrompt.value = null
+        _newCandidatePrompt.value = null
         stepValidator?.close()
         val guidanceComposition = prepareCompositionForGuidance(composition)
 
@@ -640,6 +651,7 @@ class CameraViewModel : ViewModel() {
     fun backToPreview() {
         _postCapturePrompt.value = null
         pendingPostCaptureHint = null
+        _newCandidatePrompt.value = null
         invalidateGuidanceSession()
         clearStepTimeout()
         imageCache.clear()
@@ -661,6 +673,7 @@ class CameraViewModel : ViewModel() {
         val cached = cachedCandidatesState
         if (cached != null) {
             _postCapturePrompt.value = null
+            _newCandidatePrompt.value = null
             invalidateGuidanceSession()
             clearStepTimeout()
             stepValidator?.close()  // 释放 ML Kit 资源
@@ -688,12 +701,13 @@ class CameraViewModel : ViewModel() {
         val stillProcessing = cached.completedCount < cached.totalTechniques
         if (hasOtherChoices || stillProcessing) {
             val hint = if (stillProcessing) {
-                "当前候选仍在补充中，也可以试试其他方案"
+                "还有方案正在生成，也可以先拍下这一张"
             } else {
-                "这张拍完了，也可以试试其他候选方案"
+                "已发现新的构图方案，也可以换一个角度再拍"
             }
             pendingPostCaptureHint = hint
             _postCapturePrompt.value = PostCapturePrompt(message = hint)
+            _newCandidatePrompt.value = null
             return
         }
 
@@ -707,7 +721,18 @@ class CameraViewModel : ViewModel() {
 
     fun viewOtherCandidatesAfterCapture() {
         _postCapturePrompt.value = null
+        _newCandidatePrompt.value = null
         backToCandidates()
+    }
+
+    fun viewUpdatedCandidates() {
+        _newCandidatePrompt.value = null
+        _postCapturePrompt.value = null
+        backToCandidates()
+    }
+
+    fun dismissNewCandidatePrompt() {
+        _newCandidatePrompt.value = null
     }
     
     /**
@@ -789,6 +814,8 @@ class CameraViewModel : ViewModel() {
         totalCandidateCount: Int? = null
     ) {
         val previousHint = (cachedCandidatesState ?: _uiState.value as? CameraUiState.Candidates)?.postCaptureHint
+        val previousCandidateCount = cachedCandidatesState?.compositions?.size ?: 0
+        val currentUiState = _uiState.value
         val candidatesState = CameraUiState.Candidates(
             totalTechniques = totalCandidateCount ?: response.totalTechniques,
             completedCount = completedCount ?: response.compositions.size,
@@ -799,10 +826,23 @@ class CameraViewModel : ViewModel() {
         )
         cachedCandidatesState = candidatesState
         warmCandidateImagesAsync(response.compositions)
-        when (_uiState.value) {
+        when (currentUiState) {
             is CameraUiState.Analyzing,
             is CameraUiState.Candidates -> {
                 _uiState.value = candidatesState
+            }
+            is CameraUiState.Guiding -> {
+                val hasNewCandidate = candidatesState.compositions.size > previousCandidateCount
+                val isStillProcessing = candidatesState.completedCount < candidatesState.totalTechniques
+                if (hasNewCandidate && !_allStepsCompleted.value) {
+                    _newCandidatePrompt.value = NewCandidatePrompt(
+                        message = if (isStillProcessing) {
+                            "有新的方案，可先继续当前构图"
+                        } else {
+                            "发现新的构图方案"
+                        }
+                    )
+                }
             }
             else -> Unit
         }

@@ -1,0 +1,2211 @@
+diff --git a/android_frontend/app/build.gradle.kts b/android_frontend/app/build.gradle.kts
+index 19580e7..251d519 100644
+--- a/android_frontend/app/build.gradle.kts
++++ b/android_frontend/app/build.gradle.kts
+@@ -52,6 +52,7 @@ dependencies {
+     // Core Android
+     implementation(libs.androidx.core.ktx)
+     implementation(libs.androidx.lifecycle.runtime.ktx)
++    implementation(libs.androidx.lifecycle.runtime.compose)
+     implementation(libs.androidx.lifecycle.viewmodel.compose)
+     implementation(libs.androidx.activity.compose)
+     
+diff --git a/android_frontend/app/src/main/java/com/photoframer/arcore/ArCorePoseTracker.kt b/android_frontend/app/src/main/java/com/photoframer/arcore/ArCorePoseTracker.kt
+index 4f0bf56..73ef3ea 100644
+--- a/android_frontend/app/src/main/java/com/photoframer/arcore/ArCorePoseTracker.kt
++++ b/android_frontend/app/src/main/java/com/photoframer/arcore/ArCorePoseTracker.kt
+@@ -9,6 +9,7 @@ import android.hardware.SensorManager
+ import com.google.ar.core.Config
+ import com.google.ar.core.Session
+ import com.google.ar.core.TrackingState
++import java.util.concurrent.atomic.AtomicInteger
+ import java.util.concurrent.Executors
+ import java.util.concurrent.Future
+ import java.util.concurrent.atomic.AtomicBoolean
+@@ -49,6 +50,8 @@ class ArCorePoseTracker(
+         sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+     private val executor = Executors.newSingleThreadExecutor()
+     private val running = AtomicBoolean(false)
++    private val motionSensorsRegistered = AtomicBoolean(false)
++    private val trackingGeneration = AtomicInteger(0)
+     private val latestSample = AtomicReference<CameraPoseSample?>()
+     private val orientationLock = Any()
+ 
+@@ -75,16 +78,27 @@ class ArCorePoseTracker(
+         preferArCore: Boolean,
+         viewportWidth: Int,
+         viewportHeight: Int,
+-        displayRotation: Int
++        displayRotation: Int,
++        resetBaseline: Boolean = false
+     ) {
+         updateViewport(viewportWidth, viewportHeight, displayRotation)
++        if (resetBaseline || !running.get()) {
++            resetPoseBaseline()
++        }
+         registerMotionSensors()
+         running.set(true)
+         shouldAttemptArCore = preferArCore && activity != null
+ 
++        val currentFuture = arCoreFuture
++        if (!shouldAttemptArCore && currentFuture != null) {
++            currentFuture.cancel(true)
++            arCoreFuture = null
++        }
++
+         if (shouldAttemptArCore && arCoreFuture == null) {
++            val generation = trackingGeneration.incrementAndGet()
+             arCoreFuture = executor.submit {
+-                runArCoreLoop(activity!!)
++                runArCoreLoop(activity!!, generation)
+             }
+         } else if (!shouldAttemptArCore) {
+             publishMotionOnlySample()
+@@ -94,13 +108,11 @@ class ArCorePoseTracker(
+     fun stop() {
+         running.set(false)
+         shouldAttemptArCore = false
++        trackingGeneration.incrementAndGet()
+         arCoreFuture?.cancel(true)
+         arCoreFuture = null
+         unregisterMotionSensors()
+-        synchronized(orientationLock) {
+-            baselineOrientation = null
+-            latestOrientationDelta = floatArrayOf(0f, 0f, 0f)
+-        }
++        resetPoseBaseline()
+         latestSample.set(null)
+     }
+ 
+@@ -150,18 +162,29 @@ class ArCorePoseTracker(
+ 
+     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+ 
++    private fun resetPoseBaseline() {
++        synchronized(orientationLock) {
++            baselineOrientation = null
++            latestOrientationDelta = floatArrayOf(0f, 0f, 0f)
++        }
++        latestSample.set(null)
++    }
++
+     private fun registerMotionSensors() {
+         rotationVectorSensor?.let {
+-            sensorManager.unregisterListener(this)
+-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
++            if (motionSensorsRegistered.compareAndSet(false, true)) {
++                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
++            }
+         }
+     }
+ 
+     private fun unregisterMotionSensors() {
+-        sensorManager.unregisterListener(this)
++        if (motionSensorsRegistered.compareAndSet(true, false)) {
++            sensorManager.unregisterListener(this)
++        }
+     }
+ 
+-    private fun runArCoreLoop(activity: Activity) {
++    private fun runArCoreLoop(activity: Activity, generation: Int) {
+         var session: Session? = null
+         try {
+             session = Session(activity, setOf(Session.Feature.SHARED_CAMERA))
+@@ -175,7 +198,12 @@ class ArCorePoseTracker(
+ 
+             var baselineTranslation: FloatArray? = null
+ 
+-            while (running.get() && shouldAttemptArCore && !Thread.currentThread().isInterrupted) {
++            while (
++                running.get() &&
++                shouldAttemptArCore &&
++                trackingGeneration.get() == generation &&
++                !Thread.currentThread().isInterrupted
++            ) {
+                 applyDisplayGeometry(session)
+                 val frame = session.update()
+                 val camera = frame.camera
+@@ -212,7 +240,9 @@ class ArCorePoseTracker(
+                 session?.close()
+             } catch (_: Exception) {
+             }
+-            arCoreFuture = null
++            if (trackingGeneration.get() == generation) {
++                arCoreFuture = null
++            }
+         }
+     }
+ 
+diff --git a/android_frontend/app/src/main/java/com/photoframer/data/repository/CompositionRepository.kt b/android_frontend/app/src/main/java/com/photoframer/data/repository/CompositionRepository.kt
+index b4a3669..4b77887 100644
+--- a/android_frontend/app/src/main/java/com/photoframer/data/repository/CompositionRepository.kt
++++ b/android_frontend/app/src/main/java/com/photoframer/data/repository/CompositionRepository.kt
+@@ -19,8 +19,14 @@ import java.io.IOException
+ import java.io.File
+ import java.net.SocketTimeoutException
+ import java.security.MessageDigest
++import kotlin.coroutines.resume
++import kotlin.coroutines.resumeWithException
++import kotlinx.coroutines.CancellationException
+ import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.suspendCancellableCoroutine
+ import kotlinx.coroutines.withContext
++import okhttp3.Call
++import okhttp3.Response
+ import retrofit2.HttpException
+ 
+ /**
+@@ -64,15 +70,13 @@ class CompositionRepository {
+         }
+ 
+         return try {
+-            val response = executeWithSingleRetry {
+-                val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
+-                val imagePart = MultipartBody.Part.createFormData(
+-                    "image",
+-                    imageFile.name,
+-                    requestFile
+-                )
+-                api.analyzeComposition(imagePart)
+-            }
++            val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
++            val imagePart = MultipartBody.Part.createFormData(
++                "image",
++                imageFile.name,
++                requestFile
++            )
++            val response = api.analyzeComposition(imagePart)
+ 
+             if (response.success) {
+                 if (response.compositions.isNotEmpty()) {
+@@ -88,6 +92,8 @@ class CompositionRepository {
+             Result.failure(Exception("分析超时，请重试"))
+         } catch (e: IOException) {
+             Result.failure(Exception("网络连接失败，已自动重试一次，请检查网络后再试"))
++        } catch (e: CancellationException) {
++            throw e
+         } catch (e: Exception) {
+             Result.failure(e)
+         }
+@@ -117,6 +123,8 @@ class CompositionRepository {
+             Result.failure(Exception("分析超时，请重试"))
+         } catch (e: IOException) {
+             Result.failure(Exception("网络连接失败，已自动重试一次，请检查网络后再试"))
++        } catch (e: CancellationException) {
++            throw e
+         } catch (e: Exception) {
+             Result.failure(e)
+         }
+@@ -146,6 +154,8 @@ class CompositionRepository {
+             Result.failure(Exception(mapInFrameHttpError(e)))
+         } catch (e: IOException) {
+             Result.failure(Exception("网络连接失败，请确认当前设备可以访问画面内分析服务"))
++        } catch (e: CancellationException) {
++            throw e
+         } catch (e: Exception) {
+             Result.failure(e)
+         }
+@@ -158,19 +168,13 @@ class CompositionRepository {
+         return try {
+             val response = api.healthCheck()
+             Result.success(response.status == "healthy")
++        } catch (e: CancellationException) {
++            throw e
+         } catch (e: Exception) {
+             Result.failure(e)
+         }
+     }
+ 
+-    private suspend fun <T> executeWithSingleRetry(block: suspend () -> T): T {
+-        return try {
+-            block()
+-        } catch (error: IOException) {
+-            block()
+-        }
+-    }
+-
+     private suspend fun executeStreamRequest(
+         imageFile: File,
+         onUpdate: suspend (StreamAnalysisUpdate) -> Unit
+@@ -190,7 +194,7 @@ class CompositionRepository {
+             .addHeader("Accept", "text/event-stream")
+             .build()
+ 
+-        httpClient.newCall(request).execute().use { response ->
++        executeCancellable(call = httpClient.newCall(request)).use { response ->
+             if (!response.isSuccessful) {
+                 throw HttpException(retrofit2.Response.error<String>(
+                     response.code,
+@@ -308,6 +312,27 @@ class CompositionRepository {
+         }
+     }
+ 
++    private suspend fun executeCancellable(call: Call): Response {
++        return suspendCancellableCoroutine { continuation ->
++            continuation.invokeOnCancellation {
++                call.cancel()
++            }
++
++            try {
++                val response = call.execute()
++                if (continuation.isActive) {
++                    continuation.resume(response)
++                } else {
++                    response.close()
++                }
++            } catch (error: IOException) {
++                if (continuation.isActive) {
++                    continuation.resumeWithException(error)
++                }
++            }
++        }
++    }
++
+     private fun getCachedAnalysis(cacheKey: String): AnalysisResponse? {
+         pruneExpiredCache()
+         val cached = analysisCache[cacheKey] ?: return null
+diff --git a/android_frontend/app/src/main/java/com/photoframer/ui/components/CameraControls.kt b/android_frontend/app/src/main/java/com/photoframer/ui/components/CameraControls.kt
+index fe8eed5..68664f9 100644
+--- a/android_frontend/app/src/main/java/com/photoframer/ui/components/CameraControls.kt
++++ b/android_frontend/app/src/main/java/com/photoframer/ui/components/CameraControls.kt
+@@ -292,15 +292,30 @@ private fun buildCandidatesStatsText(
+     applicableCount: Int,
+     totalTimeMs: Float
+ ): String {
+-    val progressText = if (totalTechniques > 0) {
+-        "共有 $totalTechniques 个候选方案，目前已完成 ${completedCount.coerceAtMost(totalTechniques)} 个"
++    val safeCompletedCount = if (totalTechniques > 0) {
++        completedCount.coerceIn(0, totalTechniques)
+     } else {
+-        "正在生成候选方案"
++        completedCount.coerceAtLeast(0)
++    }
++    val isProcessing = totalTechniques <= 0 || safeCompletedCount < totalTechniques
++
++    val progressText = when {
++        isProcessing && totalTechniques > 0 ->
++            "正在加紧生成中，可先用已有方案构图"
++        isProcessing ->
++            "正在生成候选方案，可先用已有方案构图"
++        else ->
++            "已完成分析"
++    }
++
++    val detailText = if (totalTechniques > 0) {
++        "已检查 $safeCompletedCount/$totalTechniques 种构图，可用 $applicableCount 个"
++    } else {
++        "可用 $applicableCount 个"
+     }
+ 
+-    val usableText = "可用 $applicableCount 个"
+     if (totalTimeMs <= 0f) {
+-        return "$progressText  ·  $usableText"
++        return "$progressText  ·  $detailText"
+     }
+-    return "$progressText  ·  $usableText  ·  ${totalTimeMs.toInt()}ms"
++    return "$progressText  ·  $detailText  ·  ${totalTimeMs.toInt()}ms"
+ }
+diff --git a/android_frontend/app/src/main/java/com/photoframer/ui/components/GuidanceOverlay.kt b/android_frontend/app/src/main/java/com/photoframer/ui/components/GuidanceOverlay.kt
+index bb35e71..bad5284 100644
+--- a/android_frontend/app/src/main/java/com/photoframer/ui/components/GuidanceOverlay.kt
++++ b/android_frontend/app/src/main/java/com/photoframer/ui/components/GuidanceOverlay.kt
+@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
+ import androidx.compose.ui.graphics.drawscope.rotate
+ import com.photoframer.data.api.CompositionStep
+ import com.photoframer.guidance.isViewpointActionType
++import com.photoframer.guidance.canonicalViewDirection
+ import com.photoframer.guidance.normalizedActionType
+ import com.photoframer.ui.theme.BlueAccent
+ import com.photoframer.ui.theme.SuccessGreen
+@@ -603,7 +604,7 @@ private fun DrawScope.drawViewChangeActionGuide(
+         "orbit" -> drawOrbitGuide(
+             centerX = centerX,
+             centerY = centerY,
+-            moveRight = !direction.equals("left", ignoreCase = true),
++            moveRight = direction.canonicalViewDirection() == "right",
+             progress = progress,
+             guideStrength = guideStrength,
+             pulseScale = pulseScale,
+diff --git a/android_frontend/app/src/main/java/com/photoframer/ui/components/TopGuidanceBar.kt b/android_frontend/app/src/main/java/com/photoframer/ui/components/TopGuidanceBar.kt
+index b4883b2..c66ce47 100644
+--- a/android_frontend/app/src/main/java/com/photoframer/ui/components/TopGuidanceBar.kt
++++ b/android_frontend/app/src/main/java/com/photoframer/ui/components/TopGuidanceBar.kt
+@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.text.style.TextAlign
+ import androidx.compose.ui.unit.dp
+ import com.photoframer.data.api.CompositionStep
++import com.photoframer.guidance.canonicalViewDirection
+ import com.photoframer.guidance.isViewpointActionType
+ import com.photoframer.guidance.normalizedActionType
+ import com.photoframer.ui.theme.BlueAccent
+@@ -377,7 +378,7 @@ private fun getViewChangeHelperText(actionType: String, direction: String): Stri
+     return when (actionType.normalizedActionType()) {
+         "raisecamera" -> "抬高手机，让机位更高一些"
+         "lowercamera" -> "压低手机，让机位更低一些"
+-        "orbit" -> if (direction.equals("left", ignoreCase = true)) {
++        "orbit" -> if (direction.canonicalViewDirection() == "left") {
+             "围绕主体向左绕拍，切到侧视角"
+         } else {
+             "围绕主体向右绕拍，切到侧视角"
+@@ -387,11 +388,11 @@ private fun getViewChangeHelperText(actionType: String, direction: String): Stri
+         } else {
+             "带着手机向前一步，靠近主体"
+         }
+-        else -> when (direction.lowercase()) {
++        else -> when (direction.canonicalViewDirection()) {
+             "high-angle" -> "抬高手机，从更高的角度看向主体"
+             "low-angle" -> "压低手机，从更低的角度看向主体"
+-            "side-view-left" -> "围绕主体向左侧移动，切到侧视角"
+-            "side-view-right" -> "围绕主体向右侧移动，切到侧视角"
++            "left" -> "围绕主体向左侧移动，切到侧视角"
++            "right" -> "围绕主体向右侧移动，切到侧视角"
+             else -> "围绕主体移动，逐步改变拍摄视角"
+         }
+     }
+diff --git a/android_frontend/app/src/main/java/com/photoframer/ui/screens/CameraScreen.kt b/android_frontend/app/src/main/java/com/photoframer/ui/screens/CameraScreen.kt
+index e909dee..5e98b00 100644
+--- a/android_frontend/app/src/main/java/com/photoframer/ui/screens/CameraScreen.kt
++++ b/android_frontend/app/src/main/java/com/photoframer/ui/screens/CameraScreen.kt
+@@ -55,7 +55,6 @@ import androidx.compose.material3.Text
+ import androidx.compose.material3.TextButton
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.LaunchedEffect
+-import androidx.compose.runtime.collectAsState
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.key
+ import androidx.compose.runtime.mutableFloatStateOf
+@@ -72,7 +71,6 @@ import androidx.compose.ui.graphics.asImageBitmap
+ import androidx.compose.ui.input.pointer.pointerInput
+ import androidx.compose.ui.layout.ContentScale
+ import androidx.compose.ui.platform.LocalContext
+-import androidx.compose.ui.platform.LocalLifecycleOwner
+ import androidx.compose.ui.platform.LocalView
+ import androidx.compose.ui.text.style.TextAlign
+ import androidx.compose.ui.unit.Dp
+@@ -81,6 +79,8 @@ import androidx.compose.ui.viewinterop.AndroidView
+ import androidx.core.content.ContextCompat
+ import androidx.lifecycle.Lifecycle
+ import androidx.lifecycle.LifecycleEventObserver
++import androidx.lifecycle.compose.collectAsStateWithLifecycle
++import androidx.lifecycle.compose.LocalLifecycleOwner
+ import androidx.lifecycle.viewmodel.compose.viewModel
+ import com.photoframer.arcore.ArCoreRuntimeState
+ import com.photoframer.arcore.CameraPoseSample
+@@ -123,6 +123,8 @@ import com.photoframer.utils.ImageSaver
+ import com.photoframer.viewmodel.CameraViewModel
+ import java.io.File
+ import java.io.FileOutputStream
++import java.util.concurrent.atomic.AtomicInteger
++import java.util.concurrent.atomic.AtomicLong
+ import java.util.concurrent.ExecutorService
+ import java.util.concurrent.Executors
+ import kotlinx.coroutines.Job
+@@ -143,12 +145,13 @@ fun CameraScreen(
+     val view = LocalView.current
+     val lifecycleOwner = LocalLifecycleOwner.current
+     val scope = rememberCoroutineScope()
+-    val uiState by viewModel.uiState.collectAsState()
+-    val validationResult by viewModel.validationResult.collectAsState()
+-    val stepCompleted by viewModel.stepCompleted.collectAsState()
+-    val allStepsCompleted by viewModel.allStepsCompleted.collectAsState()
+-    val showStepSkip by viewModel.showStepSkip.collectAsState()
+-    val postCapturePrompt by viewModel.postCapturePrompt.collectAsState()
++    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
++    val validationResult by viewModel.validationResult.collectAsStateWithLifecycle()
++    val stepCompleted by viewModel.stepCompleted.collectAsStateWithLifecycle()
++    val allStepsCompleted by viewModel.allStepsCompleted.collectAsStateWithLifecycle()
++    val showStepSkip by viewModel.showStepSkip.collectAsStateWithLifecycle()
++    val postCapturePrompt by viewModel.postCapturePrompt.collectAsStateWithLifecycle()
++    val newCandidatePrompt by viewModel.newCandidatePrompt.collectAsStateWithLifecycle()
+ 
+     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
+@@ -179,8 +182,8 @@ fun CameraScreen(
+     var activeEntryMode by remember { mutableStateOf(CameraEntryMode.NONE) }
+     var visualStyle by remember { mutableStateOf(CameraVisualStyle.DEFAULT) }
+ 
+-    var frameCounter by remember { mutableIntStateOf(0) }
+-    var lastAnalysisTime by remember { mutableStateOf(0L) }
++    val frameCounter = remember { AtomicInteger(0) }
++    val lastAnalysisTime = remember { AtomicLong(0L) }
+     var arCoreStatus by remember { mutableStateOf(ArCoreSupport.idleStatus()) }
+     var hasRequestedArCoreInstall by remember { mutableStateOf(false) }
+     var latestPoseSample by remember { mutableStateOf<CameraPoseSample?>(null) }
+@@ -320,8 +323,6 @@ fun CameraScreen(
+         shouldUseArCore,
+         guidingStep?.stepOrder,
+         arCoreStatus.state,
+-        previewView?.width,
+-        previewView?.height,
+         selectedFacing
+     ) {
+         if (!needsPoseTracking || selectedFacing == CameraSelector.LENS_FACING_FRONT) {
+@@ -336,7 +337,8 @@ fun CameraScreen(
+             preferArCore = shouldUseArCore && arCoreStatus.isReady,
+             viewportWidth = currentPreview?.width ?: 0,
+             viewportHeight = currentPreview?.height ?: 0,
+-            displayRotation = currentPreview?.display?.rotation ?: Surface.ROTATION_0
++            displayRotation = currentPreview?.display?.rotation ?: Surface.ROTATION_0,
++            resetBaseline = true
+         )
+     }
+ 
+@@ -676,54 +678,60 @@ fun CameraScreen(
+                                     .build()
+                                     .also { analysis ->
+                                         analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+-                                            val currentState = viewModel.uiState.value
+-                                            if (currentState is CameraUiState.Guiding) {
+-                                                frameCounter += 1
+-                                                val currentTime = System.currentTimeMillis()
+-                                                if (frameCounter % analyzeEveryNFrames == 0 &&
+-                                                    currentTime - lastAnalysisTime > minAnalysisInterval
+-                                                ) {
+-                                                    lastAnalysisTime = currentTime
+-                                                    val bitmap =
+-                                                        com.photoframer.vision.ImageConverter.imageProxyToBitmap(
+-                                                            imageProxy
+-                                                        )
+-                                                    if (bitmap != null) {
+-                                                        val croppedBitmap =
+-                                                            selectedRatio.toTargetAspectRatio()?.let { targetRatio ->
+-                                                                com.photoframer.vision.ImageConverter.centerCropToAspectRatio(
+-                                                                    bitmap,
+-                                                                    targetRatio
++                                            try {
++                                                val currentState = viewModel.uiState.value
++                                                if (currentState is CameraUiState.Guiding) {
++                                                    val currentFrameCount = frameCounter.incrementAndGet()
++                                                    val currentTime = System.currentTimeMillis()
++                                                    val previousAnalysisTime = lastAnalysisTime.get()
++                                                    if (currentFrameCount % analyzeEveryNFrames == 0 &&
++                                                        currentTime - previousAnalysisTime > minAnalysisInterval &&
++                                                        lastAnalysisTime.compareAndSet(previousAnalysisTime, currentTime)
++                                                    ) {
++                                                        val bitmap =
++                                                            com.photoframer.vision.ImageConverter.imageProxyToBitmap(
++                                                                imageProxy
++                                                            )
++                                                        if (bitmap != null) {
++                                                            val croppedBitmap =
++                                                                selectedRatio.toTargetAspectRatio()?.let { targetRatio ->
++                                                                    com.photoframer.vision.ImageConverter.centerCropToAspectRatio(
++                                                                        bitmap,
++                                                                        targetRatio
++                                                                    )
++                                                                } ?: bitmap
++                                                            val scaledBitmap =
++                                                                com.photoframer.vision.ImageConverter.scaleBitmapToWidth(
++                                                                    croppedBitmap,
++                                                                    com.photoframer.vision.StepValidator.VALIDATION_FRAME_WIDTH
+                                                                 )
+-                                                            } ?: bitmap
+-                                                        val scaledBitmap =
+-                                                            com.photoframer.vision.ImageConverter.scaleBitmapToWidth(
+-                                                                croppedBitmap,
+-                                                                com.photoframer.vision.StepValidator.VALIDATION_FRAME_WIDTH
++                                                            val currentPreview = previewView
++                                                            arCorePoseTracker.updateViewport(
++                                                                width = currentPreview?.width ?: scaledBitmap.width,
++                                                                height = currentPreview?.height ?: scaledBitmap.height,
++                                                                rotation = currentPreview?.display?.rotation
++                                                                    ?: Surface.ROTATION_0
++                                                            )
++                                                            val poseSample = arCorePoseTracker.latestPoseSample()
++                                                            scope.launch {
++                                                                latestPoseSample = poseSample
++                                                            }
++                                                            viewModel.validateCurrentFrame(
++                                                                currentFrame = scaledBitmap,
++                                                                currentZoomRatio = CameraZoomController.effectiveZoomRatio(
++                                                                    selectedLens,
++                                                                    rawZoomRatio
++                                                                ),
++                                                                cameraPoseSample = poseSample
+                                                             )
+-                                                        val currentPreview = previewView
+-                                                        arCorePoseTracker.updateViewport(
+-                                                            width = currentPreview?.width ?: scaledBitmap.width,
+-                                                            height = currentPreview?.height ?: scaledBitmap.height,
+-                                                            rotation = currentPreview?.display?.rotation
+-                                                                ?: Surface.ROTATION_0
+-                                                        )
+-                                                        val poseSample = arCorePoseTracker.latestPoseSample()
+-                                                        scope.launch {
+-                                                            latestPoseSample = poseSample
+                                                         }
+-                                                        viewModel.validateCurrentFrame(
+-                                                            currentFrame = scaledBitmap,
+-                                                            currentZoomRatio = CameraZoomController.effectiveZoomRatio(
+-                                                                selectedLens,
+-                                                                rawZoomRatio
+-                                                            ),
+-                                                            cameraPoseSample = poseSample
+-                                                        )
+                                                     }
+                                                 }
++                                            } catch (error: Exception) {
++                                                Log.e(TAG, "相机帧分析失败", error)
++                                            } finally {
++                                                imageProxy.close()
+                                             }
+-                                            imageProxy.close()
+                                         }
+                                     }
+ 
+@@ -834,6 +842,17 @@ fun CameraScreen(
+                     )
+                 }
+ 
++                if (!allStepsCompleted && newCandidatePrompt != null) {
++                    NewCandidateOverlay(
++                        message = newCandidatePrompt?.message.orEmpty(),
++                        onViewCandidates = { viewModel.viewUpdatedCandidates() },
++                        onDismiss = { viewModel.dismissNewCandidatePrompt() },
++                        modifier = Modifier
++                            .align(Alignment.BottomCenter)
++                            .padding(start = 20.dp, end = 20.dp, bottom = 96.dp)
++                    )
++                }
++
+                 val targetBitmap = viewModel.getCachedImage(guidingState.composition.technique)
+ 
+                 Box(
+@@ -1244,6 +1263,47 @@ private fun PostCaptureChoiceOverlay(
+     }
+ }
+ 
++@Composable
++private fun NewCandidateOverlay(
++    message: String,
++    onViewCandidates: () -> Unit,
++    onDismiss: () -> Unit,
++    modifier: Modifier = Modifier
++) {
++    Card(
++        modifier = modifier,
++        shape = RoundedCornerShape(999.dp),
++        colors = CardDefaults.cardColors(
++            containerColor = SurfaceDark.copy(alpha = 0.90f)
++        ),
++        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
++    ) {
++        Row(
++            modifier = Modifier.padding(start = 14.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
++            verticalAlignment = Alignment.CenterVertically,
++            horizontalArrangement = Arrangement.spacedBy(10.dp)
++        ) {
++            Text(
++                text = message,
++                color = Color.White,
++                style = MaterialTheme.typography.bodySmall,
++                modifier = Modifier.weight(1f, fill = false)
++            )
++            TextButton(onClick = onDismiss) {
++                Text("稍后", color = TextSecondary)
++            }
++            Button(
++                onClick = onViewCandidates,
++                colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
++                shape = RoundedCornerShape(999.dp),
++                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
++            ) {
++                Text("查看", color = Color.White)
++            }
++        }
++    }
++}
++
+ @Composable
+ private fun ArCoreStatusChip(
+     status: ArCoreStatus,
+diff --git a/android_frontend/app/src/main/java/com/photoframer/viewmodel/CameraViewModel.kt b/android_frontend/app/src/main/java/com/photoframer/viewmodel/CameraViewModel.kt
+index 73d211e..7a6c6c0 100644
+--- a/android_frontend/app/src/main/java/com/photoframer/viewmodel/CameraViewModel.kt
++++ b/android_frontend/app/src/main/java/com/photoframer/viewmodel/CameraViewModel.kt
+@@ -44,6 +44,10 @@ class CameraViewModel : ViewModel() {
+         val message: String
+     )
+ 
++    data class NewCandidatePrompt(
++        val message: String
++    )
++
+     private data class ActiveValidation(
+         val sessionId: Long,
+         val stepIndex: Int,
+@@ -92,6 +96,9 @@ class CameraViewModel : ViewModel() {
+ 
+     private val _postCapturePrompt = MutableStateFlow<PostCapturePrompt?>(null)
+     val postCapturePrompt: StateFlow<PostCapturePrompt?> = _postCapturePrompt.asStateFlow()
++
++    private val _newCandidatePrompt = MutableStateFlow<NewCandidatePrompt?>(null)
++    val newCandidatePrompt: StateFlow<NewCandidatePrompt?> = _newCandidatePrompt.asStateFlow()
+     
+     // 缓存解码后的图片 (使用 technique 作为 key)
+     private val imageCache = mutableStateMapOf<String, Bitmap>()
+@@ -127,6 +134,7 @@ class CameraViewModel : ViewModel() {
+      */
+     fun analyzeImage(imageFile: File) {
+         _postCapturePrompt.value = null
++        _newCandidatePrompt.value = null
+         pendingAnalysisRequest = PendingAnalysisRequest(
+             mode = AnalysisMode.AiComposition,
+             imageFile = imageFile
+@@ -192,6 +200,7 @@ class CameraViewModel : ViewModel() {
+      */
+     fun analyzeInFrameComposition(imageFile: File) {
+         _postCapturePrompt.value = null
++        _newCandidatePrompt.value = null
+         pendingAnalysisRequest = PendingAnalysisRequest(
+             mode = AnalysisMode.InFrameComposition,
+             imageFile = imageFile
+@@ -275,6 +284,7 @@ class CameraViewModel : ViewModel() {
+         analysisJob?.cancel()
+         analysisJob = null
+         _postCapturePrompt.value = null
++        _newCandidatePrompt.value = null
+         invalidateGuidanceSession()
+         clearStepTimeout()
+         _uiState.value = CameraUiState.Preview
+@@ -285,6 +295,7 @@ class CameraViewModel : ViewModel() {
+      */
+     fun selectComposition(composition: CompositionResult) {
+         _postCapturePrompt.value = null
++        _newCandidatePrompt.value = null
+         stepValidator?.close()
+         val guidanceComposition = prepareCompositionForGuidance(composition)
+ 
+@@ -640,6 +651,7 @@ class CameraViewModel : ViewModel() {
+     fun backToPreview() {
+         _postCapturePrompt.value = null
+         pendingPostCaptureHint = null
++        _newCandidatePrompt.value = null
+         invalidateGuidanceSession()
+         clearStepTimeout()
+         imageCache.clear()
+@@ -661,6 +673,7 @@ class CameraViewModel : ViewModel() {
+         val cached = cachedCandidatesState
+         if (cached != null) {
+             _postCapturePrompt.value = null
++            _newCandidatePrompt.value = null
+             invalidateGuidanceSession()
+             clearStepTimeout()
+             stepValidator?.close()  // 释放 ML Kit 资源
+@@ -688,12 +701,13 @@ class CameraViewModel : ViewModel() {
+         val stillProcessing = cached.completedCount < cached.totalTechniques
+         if (hasOtherChoices || stillProcessing) {
+             val hint = if (stillProcessing) {
+-                "当前候选仍在补充中，也可以试试其他方案"
++                "还有方案正在生成，也可以先拍下这一张"
+             } else {
+-                "这张拍完了，也可以试试其他候选方案"
++                "已发现新的构图方案，也可以换一个角度再拍"
+             }
+             pendingPostCaptureHint = hint
+             _postCapturePrompt.value = PostCapturePrompt(message = hint)
++            _newCandidatePrompt.value = null
+             return
+         }
+ 
+@@ -706,9 +720,20 @@ class CameraViewModel : ViewModel() {
+     }
+ 
+     fun viewOtherCandidatesAfterCapture() {
++        _postCapturePrompt.value = null
++        _newCandidatePrompt.value = null
++        backToCandidates()
++    }
++
++    fun viewUpdatedCandidates() {
++        _newCandidatePrompt.value = null
+         _postCapturePrompt.value = null
+         backToCandidates()
+     }
++
++    fun dismissNewCandidatePrompt() {
++        _newCandidatePrompt.value = null
++    }
+     
+     /**
+      * 获取缓存的图片 (使用 technique 作为 key)
+@@ -789,6 +814,8 @@ class CameraViewModel : ViewModel() {
+         totalCandidateCount: Int? = null
+     ) {
+         val previousHint = (cachedCandidatesState ?: _uiState.value as? CameraUiState.Candidates)?.postCaptureHint
++        val previousCandidateCount = cachedCandidatesState?.compositions?.size ?: 0
++        val currentUiState = _uiState.value
+         val candidatesState = CameraUiState.Candidates(
+             totalTechniques = totalCandidateCount ?: response.totalTechniques,
+             completedCount = completedCount ?: response.compositions.size,
+@@ -799,11 +826,24 @@ class CameraViewModel : ViewModel() {
+         )
+         cachedCandidatesState = candidatesState
+         warmCandidateImagesAsync(response.compositions)
+-        when (_uiState.value) {
++        when (currentUiState) {
+             is CameraUiState.Analyzing,
+             is CameraUiState.Candidates -> {
+                 _uiState.value = candidatesState
+             }
++            is CameraUiState.Guiding -> {
++                val hasNewCandidate = candidatesState.compositions.size > previousCandidateCount
++                val isStillProcessing = candidatesState.completedCount < candidatesState.totalTechniques
++                if (hasNewCandidate && !_allStepsCompleted.value) {
++                    _newCandidatePrompt.value = NewCandidatePrompt(
++                        message = if (isStillProcessing) {
++                            "有新的方案，可先继续当前构图"
++                        } else {
++                            "发现新的构图方案"
++                        }
++                    )
++                }
++            }
+             else -> Unit
+         }
+     }
+diff --git a/android_frontend/app/src/main/java/com/photoframer/vision/ViewChangeAnalyzer.kt b/android_frontend/app/src/main/java/com/photoframer/vision/ViewChangeAnalyzer.kt
+index adb38d2..7298da6 100644
+--- a/android_frontend/app/src/main/java/com/photoframer/vision/ViewChangeAnalyzer.kt
++++ b/android_frontend/app/src/main/java/com/photoframer/vision/ViewChangeAnalyzer.kt
+@@ -10,6 +10,7 @@ import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+ import com.photoframer.arcore.CameraPoseSample
+ import com.photoframer.arcore.CameraPoseSource
+ import com.photoframer.data.api.ShotSpec
++import com.photoframer.guidance.canonicalViewDirection
+ import com.photoframer.guidance.normalizedActionType
+ import kotlin.math.abs
+ import kotlin.math.max
+@@ -77,6 +78,8 @@ class ViewChangeAnalyzer(
+ 
+     private var sourceBoundingBox: NormalizedBoundingBox? = null
+     private var targetBoundingBox: NormalizedBoundingBox? = null
++    private var sourceReferenceDetectionSettled: Boolean = false
++    private var targetReferenceDetectionSettled: Boolean = false
+     private var targetReferenceDetected: Boolean = false
+     private var lastTrackedSubjectBox: NormalizedBoundingBox? = null
+     private var lastSubjectLockScore: Float = 0f
+@@ -88,7 +91,7 @@ class ViewChangeAnalyzer(
+         private const val HISTORY_CAPACITY = 8
+         private const val ARRIVAL_THRESHOLD = 0.52f
+         private const val ARRIVAL_THRESHOLD_VERTICAL = 0.40f
+-        private const val ARRIVAL_THRESHOLD_LOWER_CAMERA = 0.32f
++        private const val ARRIVAL_THRESHOLD_LOWER_CAMERA = 0.42f
+         private const val ARRIVAL_THRESHOLD_ORBIT = 0.46f
+         private const val ARRIVAL_THRESHOLD_STEP = 0.45f
+         private const val DIRECTION_THRESHOLD = 0.40f
+@@ -108,12 +111,15 @@ class ViewChangeAnalyzer(
+         private const val NEAR_TARGET_SUBJECT_MARGIN = 0.06f
+         private const val NEAR_TARGET_DIRECTION_FLOOR = 0.05f
+         private const val NEAR_TARGET_DIRECTION_FLOOR_VERTICAL = 0.01f
++        private const val ARCORE_VERTICAL_COMPLETION_FLOOR = 0.38f
++        private const val DEVICE_VERTICAL_COMPLETION_FLOOR = 0.46f
++        private const val VERTICAL_SCENE_ARRIVAL_MARGIN = 0.06f
+         private const val TARGET_SIMILARITY_FLOOR_VERTICAL = 0.42f
+         private const val TARGET_SIMILARITY_FLOOR_LOWER_CAMERA = 0.40f
+         private const val TARGET_SIMILARITY_FLOOR_ORBIT = 0.54f
+         private const val TARGET_SIMILARITY_FLOOR_STEP = 0.52f
+         private const val TARGET_ALIGNMENT_FLOOR_VERTICAL = 0.32f
+-        private const val TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA = 0.28f
++        private const val TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA = 0.22f
+         private const val TARGET_ALIGNMENT_FLOOR_ORBIT = 0.42f
+         private const val TARGET_ALIGNMENT_FLOOR_STEP = 0.40f
+         private const val NEAR_TARGET_SIMILARITY_FLOOR_VERTICAL = 0.48f
+@@ -121,11 +127,12 @@ class ViewChangeAnalyzer(
+         private const val NEAR_TARGET_SIMILARITY_FLOOR_ORBIT = 0.62f
+         private const val NEAR_TARGET_SIMILARITY_FLOOR_STEP = 0.60f
+         private const val NEAR_TARGET_ALIGNMENT_FLOOR_VERTICAL = 0.36f
+-        private const val NEAR_TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA = 0.32f
++        private const val NEAR_TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA = 0.26f
+         private const val NEAR_TARGET_ALIGNMENT_FLOOR_ORBIT = 0.46f
+         private const val NEAR_TARGET_ALIGNMENT_FLOOR_STEP = 0.44f
+         private const val STABLE_FRAME_COUNT = 3
+         private const val STABLE_FRAME_COUNT_VERTICAL = 2
++        private const val STABLE_FRAME_COUNT_LOWER_CAMERA = 3
+         private const val STABLE_FRAME_COUNT_MOVING_POSE = 2
+         private const val SUBJECT_MISS_GRACE_FRAMES = 4
+ 
+@@ -165,7 +172,7 @@ class ViewChangeAnalyzer(
+                 nearTargetSimilarityFloor = NEAR_TARGET_SIMILARITY_FLOOR_LOWER_CAMERA,
+                 nearTargetAlignmentFloor = NEAR_TARGET_ALIGNMENT_FLOOR_LOWER_CAMERA,
+                 nearTargetDirectionFloor = NEAR_TARGET_DIRECTION_FLOOR_VERTICAL,
+-                requiredStableFrames = STABLE_FRAME_COUNT_VERTICAL
++                requiredStableFrames = STABLE_FRAME_COUNT_LOWER_CAMERA
+             ),
+             "orbit" to ActionProfile(
+                 arrivalThreshold = ARRIVAL_THRESHOLD_ORBIT,
+@@ -213,11 +220,13 @@ class ViewChangeAnalyzer(
+ 
+         detectReferenceObject(sourceBitmap) { box ->
+             sourceBoundingBox = box
++            sourceReferenceDetectionSettled = true
+             Log.d(TAG, "source subject=$box")
+         }
+         detectReferenceObject(targetBitmap) { detected ->
+             targetReferenceDetected = detected != null
+             targetBoundingBox = applyShotSpecToBox(detected)
++            targetReferenceDetectionSettled = true
+             Log.d(TAG, "target subject=$targetBoundingBox")
+         }
+ 
+@@ -236,6 +245,7 @@ class ViewChangeAnalyzer(
+         callback: (ViewChangeAnalysisResult) -> Unit
+     ) {
+         val normalizedActionType = actionType.normalizedActionType()
++        val canonicalDirection = direction.canonicalViewDirection()
+         val isVerticalCameraAction = normalizedActionType in setOf("raisecamera", "lowercamera")
+         val isLowerCameraAction = normalizedActionType == "lowercamera"
+         val isOrbitAction = normalizedActionType == "orbit"
+@@ -259,7 +269,7 @@ class ViewChangeAnalyzer(
+             perspectiveScore = perspectiveScore
+         )
+ 
+-        val poseScore = computePoseDirectionScore(actionType, direction, cameraPoseSample)
++        val poseScore = computePoseDirectionScore(actionType, canonicalDirection, cameraPoseSample)
+         val temporalScore = computeTemporalDirectionScore()
+         val directionScore = if (poseScore != null) {
+             if (isVerticalCameraAction) {
+@@ -289,11 +299,32 @@ class ViewChangeAnalyzer(
+                     frameWidth = currentFrame.width,
+                     frameHeight = currentFrame.height,
+                     actionType = actionType,
+-                    direction = direction,
++                    direction = canonicalDirection,
+                     baseArrivalScore = baseArrivalScore
+                 )
+ 
+                 if (currentBox == null) {
++                    if (canUseSceneOnlyValidation()) {
++                        val sceneResult = validateSceneOnlyViewChange(
++                            normalizedActionType = normalizedActionType,
++                            actionType = actionType,
++                            direction = canonicalDirection,
++                            profile = profile,
++                            baseArrivalScore = baseArrivalScore,
++                            blendedTargetSimilarity = blendedTargetSimilarity,
++                            targetGainScore = targetGainScore,
++                            directionScore = directionScore,
++                            poseScore = poseScore,
++                            stepVisualDirectionSatisfied = stepVisualDirectionSatisfied,
++                            wristOnlyMotion = wristOnlyMotion,
++                            isMovingPoseAction = isMovingPoseAction,
++                            isVerticalCameraAction = isVerticalCameraAction,
++                            cameraPoseSample = cameraPoseSample
++                        )
++                        callback(sceneResult)
++                        return@addOnSuccessListener
++                    }
++
+                     consecutiveMissingSubjectFrames += 1
+                     val hasRecentSubject =
+                         lastTrackedSubjectBox != null &&
+@@ -310,7 +341,7 @@ class ViewChangeAnalyzer(
+                     }
+                     val uiHint = computeUiHint(
+                         actionType = actionType,
+-                        direction = direction,
++                        direction = canonicalDirection,
+                         progress = reducedArrival,
+                         subjectAssessment = null
+                     )
+@@ -341,7 +372,7 @@ class ViewChangeAnalyzer(
+                 val subjectAssessment = assessSubject(
+                     currentBox = currentBox,
+                     actionType = actionType,
+-                    direction = direction,
++                    direction = canonicalDirection,
+                     baseArrivalScore = baseArrivalScore
+                 )
+                 lastTrackedSubjectBox = currentBox
+@@ -371,10 +402,16 @@ class ViewChangeAnalyzer(
+                 } else {
+                     subjectAssessment.requiresSubjectGate
+                 }
++                val movingPoseVisualReady = isMovingPoseAction &&
++                    blendedTargetSimilarity >= profile.nearTargetSimilarityFloor &&
++                    adjustedArrival >= profile.arrivalThreshold &&
++                    directionScore >= profile.directionThreshold &&
++                    subjectGateScore >= profile.subjectThreshold
+                 val residualReady = blendedTargetSimilarity >= profile.targetSimilarityFloor &&
+                     (
+                         !subjectAssessment.hasTargetAnchor ||
+-                            subjectAssessment.targetAlignmentScore >= profile.targetAlignmentFloor
++                            subjectAssessment.targetAlignmentScore >= profile.targetAlignmentFloor ||
++                            movingPoseVisualReady
+                         )
+                 val effectiveDirectionThreshold = if (stepVisualDirectionSatisfied) {
+                     0.12f
+@@ -408,24 +445,31 @@ class ViewChangeAnalyzer(
+                             orbitVisualDirectionSatisfied
+                         )
+                 val directionSatisfied = normalDirectionSatisfied || nearTargetSatisfied
+-
+-                val rawCompleted = adjustedArrival >= profile.arrivalThreshold &&
+-                    residualReady &&
++                val verticalPoseSatisfied = !isVerticalCameraAction ||
++                    isVerticalPoseCompletionSatisfied(poseScore, cameraPoseSample)
++                val verticalSceneCompleted = isVerticalCameraAction &&
++                    verticalPoseSatisfied &&
++                    adjustedArrival >= (profile.arrivalThreshold - VERTICAL_SCENE_ARRIVAL_MARGIN) &&
++                    blendedTargetSimilarity >= profile.targetSimilarityFloor &&
+                     directionSatisfied &&
+                     !wristOnlyMotion &&
+-                    (!requiresStrictSubjectGate || subjectGateScore >= profile.subjectThreshold)
+-                val orbitFastCompletion = isOrbitAction &&
+-                    rawCompleted &&
+-                    blendedTargetSimilarity >= (profile.targetSimilarityFloor + 0.04f) &&
+-                    adjustedArrival >= (profile.arrivalThreshold + 0.08f)
++                    subjectGateScore >= nearTargetSubjectThreshold
+ 
++                val rawCompleted = if (isVerticalCameraAction) {
++                    verticalSceneCompleted
++                } else {
++                    adjustedArrival >= profile.arrivalThreshold &&
++                        residualReady &&
++                        directionSatisfied &&
++                        !wristOnlyMotion &&
++                        (!requiresStrictSubjectGate || subjectGateScore >= profile.subjectThreshold)
++                }
+                 stableCompletionFrames = if (rawCompleted) {
+                     stableCompletionFrames + 1
+                 } else {
+                     0
+                 }
+-                val completed = orbitFastCompletion ||
+-                    stableCompletionFrames >= profile.requiredStableFrames
++                val completed = stableCompletionFrames >= profile.requiredStableFrames
+                 val uiProgress = computeDisplayedArrivalProgress(
+                     normalizedActionType = normalizedActionType,
+                     baseArrivalScore = baseArrivalScore,
+@@ -439,23 +483,27 @@ class ViewChangeAnalyzer(
+ 
+                 val uiHint = computeUiHint(
+                     actionType = actionType,
+-                    direction = direction,
++                    direction = canonicalDirection,
+                     progress = uiProgress,
+                     subjectAssessment = subjectAssessment
+                 )
+ 
+                 Log.d(
+                     TAG,
+-                    "action=%s arrival=%.2f->%.2f ui=%.2f dir=%.2f subject=%.2f gate=%.2f strict=%s nearTarget=%s stable=%d/%d".format(
++                    "action=%s arrival=%.2f->%.2f ui=%.2f dir=%.2f targetSim=%.2f targetAlign=%.2f residual=%s subject=%.2f gate=%.2f strict=%s nearTarget=%s raw=%s stable=%d/%d".format(
+                         normalizedActionType,
+                         baseArrivalScore,
+                         adjustedArrival,
+                         uiProgress,
+                         directionScore,
++                        blendedTargetSimilarity,
++                        subjectAssessment.targetAlignmentScore,
++                        residualReady,
+                         subjectAssessment.lockScore,
+                         subjectGateScore,
+                         requiresStrictSubjectGate,
+                         nearTargetSatisfied,
++                        rawCompleted,
+                         stableCompletionFrames,
+                         profile.requiredStableFrames
+                     )
+@@ -467,11 +515,11 @@ class ViewChangeAnalyzer(
+                         progress = uiProgress,
+                         feedbackText = generateFeedback(
+                             actionType = actionType,
+-                        direction = direction,
+-                        targetSimilarityScore = blendedTargetSimilarity,
+-                        targetGainScore = targetGainScore,
+-                        arrivalScore = adjustedArrival,
+-                        directionScore = directionScore,
++                            direction = canonicalDirection,
++                            targetSimilarityScore = blendedTargetSimilarity,
++                            targetGainScore = targetGainScore,
++                            arrivalScore = adjustedArrival,
++                            directionScore = directionScore,
+                             cameraPoseSample = cameraPoseSample,
+                             subjectAssessment = subjectAssessment,
+                             nearTargetSatisfied = nearTargetSatisfied,
+@@ -498,7 +546,7 @@ class ViewChangeAnalyzer(
+                 val reducedArrival = (baseArrivalScore * 0.42f).coerceIn(0f, 0.32f)
+                 val uiHint = computeUiHint(
+                     actionType = actionType,
+-                    direction = direction,
++                    direction = canonicalDirection,
+                     progress = reducedArrival,
+                     subjectAssessment = null
+                 )
+@@ -531,6 +579,126 @@ class ViewChangeAnalyzer(
+         return (gapScore * 0.70f + departureScore * 0.30f).coerceIn(0f, 1f)
+     }
+ 
++    private fun canUseSceneOnlyValidation(): Boolean {
++        return sourceReferenceDetectionSettled &&
++            targetReferenceDetectionSettled &&
++            targetSpecCenter == null &&
++            targetSpecSize == null &&
++            lastTrackedSubjectBox == null &&
++            (
++                !targetReferenceDetected ||
++                    targetBoundingBox?.isWeakSceneProxyBox() == true
++                )
++    }
++
++    private fun validateSceneOnlyViewChange(
++        normalizedActionType: String,
++        actionType: String,
++        direction: String,
++        profile: ActionProfile,
++        baseArrivalScore: Float,
++        blendedTargetSimilarity: Float,
++        targetGainScore: Float,
++        directionScore: Float,
++        poseScore: Float?,
++        stepVisualDirectionSatisfied: Boolean,
++        wristOnlyMotion: Boolean,
++        isMovingPoseAction: Boolean,
++        isVerticalCameraAction: Boolean,
++        cameraPoseSample: CameraPoseSample?
++    ): ViewChangeAnalysisResult {
++        consecutiveMissingSubjectFrames = 0
++        val sceneArrival = baseArrivalScore
++        val sceneResidualReady = blendedTargetSimilarity >= profile.targetSimilarityFloor
++        val orbitVisualDirectionSatisfied = normalizedActionType == "orbit" &&
++            targetGainScore >= 0.34f &&
++            blendedTargetSimilarity >= (profile.targetSimilarityFloor + 0.04f) &&
++            sceneArrival >= (profile.arrivalThreshold + 0.08f)
++        val directionSatisfied = directionScore >= profile.directionThreshold ||
++            stepVisualDirectionSatisfied ||
++            orbitVisualDirectionSatisfied
++        val nearTargetSatisfied = (isMovingPoseAction || isVerticalCameraAction) &&
++            sceneArrival >= profile.nearTargetArrivalThreshold &&
++            blendedTargetSimilarity >= profile.nearTargetSimilarityFloor &&
++            (
++                directionScore >= profile.nearTargetDirectionFloor ||
++                    stepVisualDirectionSatisfied ||
++                    orbitVisualDirectionSatisfied
++                )
++        val rawCompleted = sceneArrival >= profile.arrivalThreshold &&
++            sceneResidualReady &&
++            (directionSatisfied || nearTargetSatisfied) &&
++            (!isVerticalCameraAction || isVerticalPoseCompletionSatisfied(poseScore, cameraPoseSample)) &&
++            !wristOnlyMotion
++        val effectiveRawCompleted = if (isVerticalCameraAction) {
++            sceneArrival >= (profile.arrivalThreshold - VERTICAL_SCENE_ARRIVAL_MARGIN) &&
++                sceneResidualReady &&
++                (directionSatisfied || nearTargetSatisfied) &&
++                isVerticalPoseCompletionSatisfied(poseScore, cameraPoseSample) &&
++                !wristOnlyMotion
++        } else {
++            rawCompleted
++        }
++
++        stableCompletionFrames = if (effectiveRawCompleted) {
++            stableCompletionFrames + 1
++        } else {
++            0
++        }
++        val completed = stableCompletionFrames >= profile.requiredStableFrames
++        val uiProgress = computeDisplayedArrivalProgress(
++            normalizedActionType = normalizedActionType,
++            baseArrivalScore = baseArrivalScore,
++            adjustedArrival = sceneArrival,
++            targetSimilarityScore = blendedTargetSimilarity,
++            directionScore = directionScore,
++            poseScore = poseScore,
++            nearTargetSatisfied = nearTargetSatisfied,
++            isCompleted = completed
++        )
++        val uiHint = computeUiHint(
++            actionType = actionType,
++            direction = direction,
++            progress = uiProgress,
++            subjectAssessment = null
++        )
++        val feedback = generateSceneOnlyFeedback(
++            actionType = actionType,
++            direction = direction,
++            targetGainScore = targetGainScore,
++            directionScore = directionScore,
++            nearTargetSatisfied = nearTargetSatisfied,
++            isCompleted = completed,
++            cameraPoseSample = cameraPoseSample
++        )
++
++        Log.d(
++            TAG,
++            "scene-only action=%s arrival=%.2f ui=%.2f dir=%.2f nearTarget=%s stable=%d/%d".format(
++                normalizedActionType,
++                sceneArrival,
++                uiProgress,
++                directionScore,
++                nearTargetSatisfied,
++                stableCompletionFrames,
++                profile.requiredStableFrames
++            )
++        )
++
++        return ViewChangeAnalysisResult(
++            isCompleted = completed,
++            progress = uiProgress,
++            feedbackText = feedback,
++            hasObject = false,
++            targetAlignmentScore = sceneArrival,
++            directionScore = directionScore,
++            targetSimilarityScore = blendedTargetSimilarity,
++            uiHintX = uiHint.first,
++            uiHintY = uiHint.second,
++            subjectConfidence = 0f
++        )
++    }
++
+     private fun actionProfile(normalizedActionType: String): ActionProfile {
+         return ACTION_PROFILES[normalizedActionType] ?: DEFAULT_ACTION_PROFILE
+     }
+@@ -578,7 +746,7 @@ class ViewChangeAnalyzer(
+     }
+ 
+     private fun computeTemporalDirectionScore(): Float {
+-        if (targetSimHistory.size < 4) return 0.5f
++        if (targetSimHistory.size < 4) return 0.22f
+ 
+         val samples = targetSimHistory.toList()
+         val windowSize = minOf(3, samples.size / 2)
+@@ -668,6 +836,18 @@ class ViewChangeAnalyzer(
+         return (0.18f + verticalProgress * 0.82f).coerceIn(0f, 1f)
+     }
+ 
++    private fun isVerticalPoseCompletionSatisfied(
++        poseScore: Float?,
++        sample: CameraPoseSample?
++    ): Boolean {
++        val score = poseScore ?: return false
++        return if (sample?.source == CameraPoseSource.ARCORE && sample.isTracking) {
++            score >= ARCORE_VERTICAL_COMPLETION_FLOOR
++        } else {
++            score >= DEVICE_VERTICAL_COMPLETION_FLOOR
++        }
++    }
++
+     private fun computeStepPoseScore(
+         sample: CameraPoseSample,
+         direction: String
+@@ -676,7 +856,7 @@ class ViewChangeAnalyzer(
+             return null
+         }
+ 
+-        val forwardProgress = if (direction.equals("backward", ignoreCase = true)) {
++        val forwardProgress = if (direction.canonicalViewDirection() == "backward") {
+             -sample.forwardMeters / 0.16f
+         } else {
+             sample.forwardMeters / 0.16f
+@@ -689,17 +869,19 @@ class ViewChangeAnalyzer(
+         sample: CameraPoseSample,
+         direction: String
+     ): Float {
+-        val moveRight = direction.equals("right", ignoreCase = true)
++        val moveRight = direction.canonicalViewDirection() == "right"
++        // When users orbit around a subject, they often rotate the phone opposite to the walking
++        // direction to keep the subject in frame. Treat yaw as weak evidence; lateral ARCore motion
++        // is the reliable signed signal for left/right orbit.
+         val signedYawDelta = if (moveRight) {
+-            sample.yawDeltaDegrees
+-        } else {
+             -sample.yawDeltaDegrees
++        } else {
++            sample.yawDeltaDegrees
+         }
+-        val yawProgress = (0.10f + (signedYawDelta / 18f) * 0.90f).coerceIn(0f, 1f)
+-        val yawMotionFallback = (abs(sample.yawDeltaDegrees) / 30f).coerceIn(0f, 0.55f)
++        val yawProgress = (0.08f + (signedYawDelta / 24f) * 0.42f).coerceIn(0f, 0.50f)
+ 
+         if (sample.source != CameraPoseSource.ARCORE || !sample.isTracking) {
+-            return max(yawProgress, yawMotionFallback)
++            return yawProgress
+         }
+ 
+         val lateralProgress = if (moveRight) {
+@@ -710,8 +892,8 @@ class ViewChangeAnalyzer(
+         val lateralScore = (0.15f + lateralProgress * 0.85f).coerceIn(0f, 1f)
+ 
+         return max(
+-            lateralScore * 0.78f + yawProgress * 0.22f,
+-            max(yawProgress * 0.82f, lateralScore)
++            lateralScore * 0.88f + yawProgress * 0.12f,
++            lateralScore
+         ).coerceIn(0f, 1f)
+     }
+ 
+@@ -726,12 +908,9 @@ class ViewChangeAnalyzer(
+ 
+         val tiltMagnitude = max(abs(sample.pitchDeltaDegrees), abs(sample.rollDeltaDegrees))
+         if (!sample.isTracking) return false
++        if (sample.source != CameraPoseSource.ARCORE) return false
+ 
+-        return if (sample.source == CameraPoseSource.ARCORE) {
+-            abs(sample.verticalMeters) < 0.03f && tiltMagnitude > 8f
+-        } else {
+-            tiltMagnitude > 10f
+-        }
++        return abs(sample.verticalMeters) < 0.03f && tiltMagnitude > 8f
+     }
+ 
+     private fun detectReferenceObject(
+@@ -883,6 +1062,15 @@ class ViewChangeAnalyzer(
+         return (centerScore * 0.70f + sizeScore * 0.30f).coerceIn(0f, 1f)
+     }
+ 
++    private fun NormalizedBoundingBox.isWeakSceneProxyBox(): Boolean {
++        val area = width * height
++        val nearFullWidth = width > 0.72f
++        val nearFullHeight = height > 0.48f
++        val touchesHorizontalEdge = centerX - width / 2f < 0.06f || centerX + width / 2f > 0.94f
++        val touchesVerticalEdge = centerY - height / 2f < 0.06f || centerY + height / 2f > 0.94f
++        return area > 0.24f || (nearFullWidth && touchesHorizontalEdge) || (nearFullHeight && touchesVerticalEdge)
++    }
++
+     private fun computeSourceConsistencyScore(
+         currentBox: NormalizedBoundingBox,
+         actionType: String,
+@@ -934,10 +1122,10 @@ class ViewChangeAnalyzer(
+         val magnitude = 120f * decay
+ 
+         var hintX = when (actionType.normalizedActionType()) {
+-            "orbit" -> if (direction.equals("right", ignoreCase = true)) magnitude else -magnitude
+-            else -> when (direction.lowercase()) {
+-                "side-view-right" -> magnitude
+-                "side-view-left" -> -magnitude
++            "orbit" -> if (direction.canonicalViewDirection() == "right") magnitude else -magnitude
++            else -> when (direction.canonicalViewDirection()) {
++                "right" -> magnitude
++                "left" -> -magnitude
+                 else -> 0f
+             }
+         }
+@@ -1092,6 +1280,42 @@ class ViewChangeAnalyzer(
+         return "方向对了，继续微调到参考图位置"
+     }
+ 
++    private fun generateSceneOnlyFeedback(
++        actionType: String,
++        direction: String,
++        targetGainScore: Float,
++        directionScore: Float,
++        nearTargetSatisfied: Boolean,
++        isCompleted: Boolean,
++        cameraPoseSample: CameraPoseSample?
++    ): String {
++        if (isCompleted) {
++            return "✓ 机位已接近参考视角"
++        }
++
++        if (nearTargetSatisfied) {
++            return "机位差不多了，准备微调构图"
++        }
++
++        if (isLikelyWristOnlyMotion(actionType, cameraPoseSample)) {
++            return when (actionType.normalizedActionType()) {
++                "lowercamera" -> "不是只低头拍，把手机整体放低一点"
++                "raisecamera" -> "不是只仰头拍，把手机整体抬高一点"
++                else -> "继续带着手机整体移动，不是只转手腕"
++            }
++        }
++
++        if (targetGainScore < 0.34f) {
++            return movementPrompt(actionType, direction, stronger = true)
++        }
++
++        if (directionScore < 0.40f) {
++            return movementDirectionCorrection(actionType, direction)
++        }
++
++        return movementPrompt(actionType, direction, stronger = false)
++    }
++
+     private fun subjectPositionCorrection(subjectAssessment: SubjectAssessment): String {
+         val absX = abs(subjectAssessment.targetOffsetX)
+         val absY = abs(subjectAssessment.targetOffsetY)
+@@ -1106,7 +1330,7 @@ class ViewChangeAnalyzer(
+ 
+     private fun movementPrompt(actionType: String, direction: String, stronger: Boolean): String {
+         return when (actionType.normalizedActionType()) {
+-            "orbit" -> if (direction.equals("right", ignoreCase = true)) {
++            "orbit" -> if (direction.canonicalViewDirection() == "right") {
+                 if (stronger) "继续向右绕主体移动" else "方向对了，再向右绕一点"
+             } else {
+                 if (stronger) "继续向左绕主体移动" else "方向对了，再向左绕一点"
+@@ -1132,7 +1356,7 @@ class ViewChangeAnalyzer(
+ 
+     private fun movementDirectionCorrection(actionType: String, direction: String): String {
+         return when (actionType.normalizedActionType()) {
+-            "orbit" -> if (direction.equals("right", ignoreCase = true)) {
++            "orbit" -> if (direction.canonicalViewDirection() == "right") {
+                 "方向还不对，再往主体右侧绕"
+             } else {
+                 "方向还不对，再往主体左侧绕"
+diff --git a/android_frontend/gradle/libs.versions.toml b/android_frontend/gradle/libs.versions.toml
+index 848ee4d..5462a14 100644
+--- a/android_frontend/gradle/libs.versions.toml
++++ b/android_frontend/gradle/libs.versions.toml
+@@ -14,6 +14,7 @@ arcore = "1.46.0"
+ [libraries]
+ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+ androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
++androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
+ androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
+ androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+ androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+diff --git a/pc_demo_parallel_two_stage_new/README.md b/pc_demo_parallel_two_stage_new/README.md
+index 5bcf672..b158128 100644
+--- a/pc_demo_parallel_two_stage_new/README.md
++++ b/pc_demo_parallel_two_stage_new/README.md
+@@ -41,14 +41,21 @@
+ ## 环境变量
+ 
+ ```bash
++export STAGE0_PROVIDER=gemini
+ export STAGE1_PROVIDER=gemini
+ export STAGE2_PROVIDER=gemini
+-export STAGE0_PROVIDER=gemini
+ 
+ export DASHSCOPE_API_KEY=sk-xxx
+ export GEMINI_API_KEY=xxx
+ ```
+ 
++如果你本地访问 Gemini 需要代理，还可以显式设置：
++
++```bash
++export USE_GEMINI_PROXY=true
++export GEMINI_PROXY_URL=http://127.0.0.1:11087
++```
++
+ 如果你想走国内 Gemini 兼容中转，可改为：
+ 
+ ```bash
+@@ -63,6 +70,7 @@ export GEMINI_DOMESTIC_API_VERSION=v1beta
+ - `GEMINI_DOMESTIC_BASE_URL` 填根地址或 API 根地址即可
+ - 不要填成 `.../v1beta/models/{model}:generateContent` 这种完整请求路径
+ - 开启国内模式后，Gemini provider 会走 `Authorization: Bearer <key>` 方式鉴权
++- 国内中转模式和本地代理可以同时开
+ 
+ 可选模型变量：
+ 
+@@ -81,6 +89,70 @@ Stage 0 相关可选参数：
+ export ENABLE_STAGE0=true
+ export STAGE0_MAX_TECHNIQUES=5
+ export STAGE0_TEMPERATURE=0.1
++export STAGE0_TOP_P=0.9
++```
++
++Stage 1 通用参数：
++
++```bash
++export MODEL_TEMPERATURE=0.35
++export MODEL_TOP_P=0.80
++export MODEL_TOP_K=40
++export MODEL_MAX_TOKENS=1024
++
++export STAGE1_MAX_CONCURRENCY=5
++export STAGE1_TIMEOUT_SECONDS=20
++export STAGE2_TIMEOUT_SECONDS=40
++```
++
++Qwen thinking 相关参数：
++
++```bash
++export QWEN_STAGE1_ENABLE_THINKING=false
++export QWEN_STAGE1_THINKING_BUDGET=0
++export QWEN_STAGE0_ENABLE_THINKING=false
++export QWEN_STAGE0_THINKING_BUDGET=0
++```
++
++Gemini Stage 1 相关参数：
++
++```bash
++export ENABLE_THINKING=false
++export MODEL_THINKING_BUDGET=0
++
++export GEMINI_STAGE1_FORCE_MINIMAL_THINKING=true
++export GEMINI_STAGE1_THINKING_LEVEL=minimal
++export GEMINI_STAGE1_THINKING_BUDGET=0
++
++export GEMINI_STAGE1_TEMPERATURE=0.35
++export GEMINI_STAGE1_TOP_P=0.80
++export GEMINI_STAGE1_TOP_K=40
++export GEMINI_STAGE1_MAX_OUTPUT_TOKENS=1024
++export GEMINI_STAGE1_RESPONSE_MIME_TYPE=application/json
++export GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS=true
++```
++
++Gemini Stage 2 相关参数：
++
++```bash
++export GEMINI_STAGE2_TEMPERATURE=1.0
++export GEMINI_STAGE2_TOP_P=0.80
++export GEMINI_STAGE2_TOP_K=40
++export GEMINI_STAGE2_MAX_OUTPUT_TOKENS=1024
++export GEMINI_STAGE2_IMAGE_SIZE=1K
++export GEMINI_STAGE2_INCLUDE_SOURCE_IMAGE=true
++export GEMINI_STAGE2_FORCE_DISABLE_MAX_OUTPUT_TOKENS=true
++export GEMINI_STAGE2_MAX_CONCURRENCY=2
++export GEMINI_STAGE2_MAX_RETRIES=2
++export GEMINI_STAGE2_RETRY_BASE_DELAY_MS=450
++```
++
++Qwen / 图片生成相关参数：
++
++```bash
++export DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
++export IMAGE_DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
++export IMAGE_MAX_RATE=2.0
+ ```
+ 
+ ## 运行
+diff --git a/pc_demo_parallel_two_stage_new/config.py b/pc_demo_parallel_two_stage_new/config.py
+index 23928d3..2ab22d8 100644
+--- a/pc_demo_parallel_two_stage_new/config.py
++++ b/pc_demo_parallel_two_stage_new/config.py
+@@ -1,104 +1,160 @@
+ """
+-三阶段后端配置
++三阶段后端配置。
+ 
+ 目标：
+ 1. Stage 0（软预筛）、Stage 1（分析）与 Stage 2（生图）可独立切换 provider / model
+ 2. 默认使用 Gemini 组合，避免 Qwen 官方速率限制影响默认体验
+ 3. 同时支持 Gemini 作为预筛器、分析器或生图器接入
+ """
++
+ import os
+-from pathlib import Path
+ from dataclasses import dataclass
+-from typing import Dict
++from pathlib import Path
++from typing import Dict, Optional, Tuple
++
++
++def _get_env_str(
++    name: str,
++    default: str,
++    aliases: Tuple[str, ...] = (),
++) -> str:
++    for key in (name, *aliases):
++        value = os.environ.get(key)
++        if value is not None:
++            return value.strip()
++    return default
++
++
++def _get_env_optional_str(
++    name: str,
++    aliases: Tuple[str, ...] = (),
++) -> Optional[str]:
++    for key in (name, *aliases):
++        value = os.environ.get(key)
++        if value is not None:
++            return value.strip()
++    return None
++
++
++def _get_env_bool(
++    name: str,
++    default: bool,
++    aliases: Tuple[str, ...] = (),
++) -> bool:
++    value = _get_env_str(name, "true" if default else "false", aliases).lower()
++    return value in {"1", "true", "yes", "on"}
++
++
++def _get_env_int(
++    name: str,
++    default: int,
++    aliases: Tuple[str, ...] = (),
++) -> int:
++    return int(_get_env_str(name, str(default), aliases))
++
+ 
++def _get_env_float(
++    name: str,
++    default: float,
++    aliases: Tuple[str, ...] = (),
++) -> float:
++    return float(_get_env_str(name, str(default), aliases))
+ 
+-# ==================== Provider 选择 ==================== #
+-STAGE1_PROVIDER = os.environ.get("STAGE1_PROVIDER", "gemini").strip().lower()
+-STAGE2_PROVIDER = os.environ.get("STAGE2_PROVIDER", "gemini").strip().lower()
+-#stage0 是预筛阶段，用于从众多构图技术中筛选出更适合当前图片的技术，默认和 stage1 保持一致，但也可以单独指定为 "gemini" 或 "qwen"
+-STAGE0_PROVIDER = os.environ.get("STAGE0_PROVIDER", STAGE1_PROVIDER).strip().lower()
+ 
+-# ==================== API Keys / Base URLs ==================== #
+-DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
+-DASHSCOPE_BASE_URL = os.environ.get(
++def _select_model_name(provider: str, gemini_model: str, qwen_model: str) -> str:
++    return gemini_model if provider == "gemini" else qwen_model
++
++
++# ==================== Provider（qwen/gemini）选择 ==================== #
++STAGE1_PROVIDER = _get_env_str("STAGE1_PROVIDER", "gemini").lower()
++STAGE2_PROVIDER = _get_env_str("STAGE2_PROVIDER", "gemini").lower()
++# Stage 0 是预筛阶段，默认跟随 Stage 1，也可以单独指定为 "gemini" 或 "qwen"。
++STAGE0_PROVIDER = _get_env_str("STAGE0_PROVIDER", STAGE1_PROVIDER).lower()
++
++
++# ==================== API Keys ==================== #
++DASHSCOPE_API_KEY = _get_env_optional_str("DASHSCOPE_API_KEY")
++GEMINI_API_KEY = _get_env_optional_str("GEMINI_API_KEY")
++GEMINI_DOMESTIC_API_KEY = _get_env_optional_str("GEMINI_DOMESTIC_API_KEY")
++
++
++# ==================== 网络 / 代理配置 ==================== #
++# Qwen 国内访问配置
++DASHSCOPE_BASE_URL = _get_env_str(
+     "DASHSCOPE_BASE_URL",
+     "https://dashscope.aliyuncs.com/compatible-mode/v1",
+ )
++IMAGE_DASHSCOPE_BASE_URL = _get_env_str(
++    "IMAGE_DASHSCOPE_BASE_URL",
++    "https://dashscope.aliyuncs.com/api/v1",
++)
+ 
+-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+-USE_GEMINI_PROXY = True
+ # 本地代理默认走 127.0.0.1:11087；如果你的代理是 socks，请改成 socks5://127.0.0.1:11087
+-GEMINI_PROXY_URL = os.environ.get("GEMINI_PROXY_URL", "http://127.0.0.1:11087").strip()
++USE_GEMINI_PROXY = _get_env_bool("USE_GEMINI_PROXY", True)
++GEMINI_PROXY_URL = _get_env_str(
++    "GEMINI_PROXY_URL",
++    "http://127.0.0.1:11087",
++)
+ 
+ # Gemini 国内中转配置：
+ # - 关闭时：继续使用官方 Gemini API（GEMINI_API_KEY）
+ # - 开启时：使用兼容 Gemini REST 路径的国内中转
+-#   这里的 BASE URL 应填写“服务根地址”或“API 根地址”，不要填写到
+-#   `.../v1beta/models/{model}:generateContent` 这种完整请求路径，
+-#   因为 SDK 会自动拼接 `api_version + models/...`
+-USE_GEMINI_DOMESTIC_API = False
+-GEMINI_DOMESTIC_BASE_URL = os.environ.get("GEMINI_DOMESTIC_BASE_URL",
+-                                          "https://yinli.one")
+-GEMINI_DOMESTIC_API_KEY = os.environ.get("GEMINI_DOMESTIC_API_KEY")
+-GEMINI_DOMESTIC_API_VERSION = os.environ.get("GEMINI_DOMESTIC_API_VERSION", "v1beta").strip()
+-
+-
+-# ==================== Model Names ==================== #
+-QWEN_STAGE1_MODEL = os.environ.get("QWEN_STAGE1_MODEL", "qwen3.6-flash-2026-04-16")
+-QWEN_STAGE2_MODEL = os.environ.get("QWEN_STAGE2_MODEL", "qwen-image-2.0-2026-03-03")
+-QWEN_STAGE0_MODEL = os.environ.get("QWEN_STAGE0_MODEL", QWEN_STAGE1_MODEL)
++# - BASE URL 填服务根地址或 API 根地址，不要填完整 generateContent 路径
++USE_GEMINI_DOMESTIC_API = _get_env_bool("USE_GEMINI_DOMESTIC_API", False)
++GEMINI_DOMESTIC_BASE_URL = _get_env_str(
++    "GEMINI_DOMESTIC_BASE_URL",
++    "https://yinli.one",
++)
++GEMINI_DOMESTIC_API_VERSION = _get_env_str(
++    "GEMINI_DOMESTIC_API_VERSION",
++    "v1beta",
++)
+ 
+-GEMINI_STAGE1_MODEL = os.environ.get("GEMINI_STAGE1_MODEL", "gemini-3-flash-preview")
+-# GEMINI_STAGE1_MODEL = os.environ.get("GEMINI_STAGE1_MODEL", "gemini-2.5-flash")
+-# GEMINI_STAGE1_MODEL = os.environ.get("GEMINI_STAGE1_MODEL", "gemini-2.5-flash-lite")
+-GEMINI_STAGE2_MODEL = os.environ.get("GEMINI_STAGE2_MODEL", "gemini-2.5-flash-image")
+ 
+-GEMINI_STAGE0_MODEL = os.environ.get(
+-    "GEMINI_STAGE0_MODEL",
+-    os.environ.get("GEMINI_SOFT_PREFILTER_MODEL", "gemini-3.1-flash-lite"),
+-)
++# ==================== 模型配置 ==================== #
++QWEN_STAGE1_MODEL = _get_env_str("QWEN_STAGE1_MODEL", "qwen3.6-flash-2026-04-16")
++QWEN_STAGE2_MODEL = _get_env_str("QWEN_STAGE2_MODEL", "qwen-image-2.0-2026-03-03")
++QWEN_STAGE0_MODEL = _get_env_str("QWEN_STAGE0_MODEL", QWEN_STAGE1_MODEL)
+ 
+-# 常用 Gemini 候选：
++GEMINI_STAGE1_MODEL = _get_env_str("GEMINI_STAGE1_MODEL", "gemini-3-flash-preview")
++# 常用 Gemini Stage 1 候选：
+ # - gemini-2.5-flash
+ # - gemini-2.5-flash-lite
+ # - gemini-2.5-pro
++GEMINI_STAGE2_MODEL = _get_env_str("GEMINI_STAGE2_MODEL", "gemini-2.5-flash-image")
++# 常用 Gemini Stage 2 候选：
+ # - gemini-2.5-flash-image
+ # - gemini-2.0-flash-preview-image-generation
+ # - gemini-3.1-flash-image-preview
+ # - gemini-3-pro-image-preview
++GEMINI_STAGE0_MODEL = _get_env_str("GEMINI_STAGE0_MODEL", "gemini-3.1-flash-lite")
+ 
+ 
+ def get_stage0_model_name() -> str:
+-    if STAGE0_PROVIDER == "gemini":
+-        return GEMINI_STAGE0_MODEL
+-    return QWEN_STAGE0_MODEL
++    return _select_model_name(STAGE0_PROVIDER, GEMINI_STAGE0_MODEL, QWEN_STAGE0_MODEL)
+ 
+ 
+ def get_stage1_model_name() -> str:
+-    if STAGE1_PROVIDER == "gemini":
+-        return GEMINI_STAGE1_MODEL
+-    return QWEN_STAGE1_MODEL
++    return _select_model_name(STAGE1_PROVIDER, GEMINI_STAGE1_MODEL, QWEN_STAGE1_MODEL)
+ 
+ 
+ def get_stage2_model_name() -> str:
+-    if STAGE2_PROVIDER == "gemini":
+-        return GEMINI_STAGE2_MODEL
+-    return QWEN_STAGE2_MODEL
++    return _select_model_name(STAGE2_PROVIDER, GEMINI_STAGE2_MODEL, QWEN_STAGE2_MODEL)
+ 
+ 
+ # ==================== 路径配置 ==================== #
+-BASE_DIR = Path(__file__).parent
++BASE_DIR = Path(__file__).resolve().parent
+ TEMP_DIR = BASE_DIR / "temp"
+-TEMP_DIR.mkdir(exist_ok=True)
+ PROMPTS_DIR = BASE_DIR / "prompts"
+ 
++TEMP_DIR.mkdir(exist_ok=True)
++
+ 
+ def load_prompt_file(filename: str) -> str:
+-    prompt_path = PROMPTS_DIR / filename
+-    return prompt_path.read_text(encoding="utf-8").strip()
++    return (PROMPTS_DIR / filename).read_text(encoding="utf-8").strip()
+ 
+ 
+-# ==================== 构图技术配置 ==================== #
++# ==================== Prompt / 构图技术配置 ==================== #
+ @dataclass
+ class TechniqueConfig:
+     id: str
+@@ -109,122 +165,123 @@ class TechniqueConfig:
+ SYSTEM_INSTRUCTION = load_prompt_file("stage1_system_instruction.md")
+ STAGE0_SOFT_PREFILTER_PROMPT_TEMPLATE = load_prompt_file("stage0_soft_prefilter.md")
+ 
++_TECHNIQUE_DEFINITIONS = (
++    ("rule_of_thirds", "三分构图"),
++    ("center_composition", "中心构图"),
++    ("leading_lines", "引导线构图"),
++    ("foreground_framing", "前景/框架构图"),
++    ("diagonal_composition", "对角线构图"),
++)
+ 
+ TECHNIQUE_CONFIGS: Dict[str, TechniqueConfig] = {
+-    "rule_of_thirds": TechniqueConfig(
+-        id="rule_of_thirds",
+-        name="三分构图",
+-        user_prompt=load_prompt_file("techniques/rule_of_thirds.md"),
+-    ),
+-    "center_composition": TechniqueConfig(
+-        id="center_composition",
+-        name="中心构图",
+-        user_prompt=load_prompt_file("techniques/center_composition.md"),
+-    ),
+-    "leading_lines": TechniqueConfig(
+-        id="leading_lines",
+-        name="引导线构图",
+-        user_prompt=load_prompt_file("techniques/leading_lines.md"),
+-    ),
+-    "foreground_framing": TechniqueConfig(
+-        id="foreground_framing",
+-        name="前景/框架构图",
+-        user_prompt=load_prompt_file("techniques/foreground_framing.md"),
+-    ),
+-    "diagonal_composition": TechniqueConfig(
+-        id="diagonal_composition",
+-        name="对角线构图",
+-        user_prompt=load_prompt_file("techniques/diagonal_composition.md"),
+-    ),
++    technique_id: TechniqueConfig(
++        id=technique_id,
++        name=technique_name,
++        user_prompt=load_prompt_file(f"techniques/{technique_id}.md"),
++    )
++    for technique_id, technique_name in _TECHNIQUE_DEFINITIONS
+ }
+ 
+ 
+-# ==================== Stage 1 参数 ==================== #
+-ENABLE_STAGE0 = (
+-    os.environ.get(
+-        "ENABLE_STAGE0",
+-        os.environ.get("ENABLE_GEMINI_SOFT_PREFILTER", "true"),
+-    ).strip().lower() == "true"
++# ==================== Stage 0 配置 ==================== #
++ENABLE_STAGE0 = _get_env_bool(
++    "ENABLE_STAGE0",
++    False,
++    aliases=("ENABLE_GEMINI_SOFT_PREFILTER",),
+ )
+-STAGE0_MAX_TECHNIQUES = int(
+-    os.environ.get(
+-        "STAGE0_MAX_TECHNIQUES",
+-        os.environ.get("GEMINI_SOFT_PREFILTER_MAX_TECHNIQUES", "5"),
+-    )
++STAGE0_MAX_TECHNIQUES = _get_env_int(
++    "STAGE0_MAX_TECHNIQUES",
++    5,
++    aliases=("GEMINI_SOFT_PREFILTER_MAX_TECHNIQUES",),
+ )
+-STAGE0_TEMPERATURE = float(
+-    os.environ.get(
+-        "STAGE0_TEMPERATURE",
+-        os.environ.get("GEMINI_SOFT_PREFILTER_TEMPERATURE", "0.1"),
+-    )
++STAGE0_TEMPERATURE = _get_env_float(
++    "STAGE0_TEMPERATURE",
++    0.1,
++    aliases=("GEMINI_SOFT_PREFILTER_TEMPERATURE",),
+ )
+-STAGE0_TOP_P = float(os.environ.get("STAGE0_TOP_P", "0.9"))
++STAGE0_TOP_P = _get_env_float("STAGE0_TOP_P", 0.9)
+ 
+-MODEL_TEMPERATURE = float(os.environ.get("MODEL_TEMPERATURE", "0.35"))
+-MODEL_TOP_P = float(os.environ.get("MODEL_TOP_P", "0.80"))
+-MODEL_TOP_K = int(os.environ.get("MODEL_TOP_K", "40"))
+-MODEL_MAX_TOKENS = int(os.environ.get("MODEL_MAX_TOKENS", "1024"))
+ 
+-ENABLE_THINKING = os.environ.get("ENABLE_THINKING", "false").strip().lower() == "true"
+-MODEL_THINKING_BUDGET = int(os.environ.get("MODEL_THINKING_BUDGET", "0"))
++# ==================== Stage 1 通用配置 ==================== #
++MODEL_TEMPERATURE = _get_env_float("MODEL_TEMPERATURE", 0.35)
++MODEL_TOP_P = _get_env_float("MODEL_TOP_P", 0.80)
++MODEL_TOP_K = _get_env_int("MODEL_TOP_K", 40)
++MODEL_MAX_TOKENS = _get_env_int("MODEL_MAX_TOKENS", 1024)
+ 
+-# Stage 1 思考控制：
+-# - Gemini 2.5 Flash/Flash Lite：显式设为 thinking_budget=0，避免默认 dynamic thinking 带来额外时延。
+-# - Gemini 3 Flash：显式设为 thinking_level=minimal，避免默认 high dynamic thinking。
+-# - Gemini 2.5 Pro：无法完全关闭，只能压到最低预算。
+-# - Qwen：显式关闭 enable_thinking。
+-QWEN_STAGE1_ENABLE_THINKING = (
+-    os.environ.get("QWEN_STAGE1_ENABLE_THINKING", "false").strip().lower() == "true"
+-)
+-QWEN_STAGE1_THINKING_BUDGET = int(os.environ.get("QWEN_STAGE1_THINKING_BUDGET", "0"))
+-QWEN_STAGE0_ENABLE_THINKING = (
+-    os.environ.get("QWEN_STAGE0_ENABLE_THINKING", "false").strip().lower() == "true"
+-)
+-QWEN_STAGE0_THINKING_BUDGET = int(os.environ.get("QWEN_STAGE0_THINKING_BUDGET", "0"))
++ENABLE_THINKING = _get_env_bool("ENABLE_THINKING", False)
++MODEL_THINKING_BUDGET = _get_env_int("MODEL_THINKING_BUDGET", 0)
+ 
+-GEMINI_STAGE1_FORCE_MINIMAL_THINKING = (
+-    os.environ.get("GEMINI_STAGE1_FORCE_MINIMAL_THINKING", "true").strip().lower() == "true"
++# Stage 1 思考控制：
++# - Gemini 2.5 Flash / Flash Lite：显式设为 thinking_budget=0，避免默认 dynamic thinking 带来额外时延
++# - Gemini 3 Flash：显式设为 thinking_level=minimal，避免默认 high dynamic thinking
++# - Gemini 2.5 Pro：无法完全关闭，只能压到最低预算
++# - Qwen：默认显式关闭 enable_thinking
++QWEN_STAGE1_ENABLE_THINKING = _get_env_bool("QWEN_STAGE1_ENABLE_THINKING", False)
++QWEN_STAGE1_THINKING_BUDGET = _get_env_int("QWEN_STAGE1_THINKING_BUDGET", 0)
++QWEN_STAGE0_ENABLE_THINKING = _get_env_bool("QWEN_STAGE0_ENABLE_THINKING", False)
++QWEN_STAGE0_THINKING_BUDGET = _get_env_int("QWEN_STAGE0_THINKING_BUDGET", 0)
++
++GEMINI_STAGE1_FORCE_MINIMAL_THINKING = _get_env_bool(
++    "GEMINI_STAGE1_FORCE_MINIMAL_THINKING",
++    True,
+ )
+-GEMINI_STAGE1_THINKING_LEVEL = os.environ.get("GEMINI_STAGE1_THINKING_LEVEL", "minimal").strip().lower()
+-GEMINI_STAGE1_THINKING_BUDGET = int(os.environ.get("GEMINI_STAGE1_THINKING_BUDGET", "0"))
++GEMINI_STAGE1_THINKING_LEVEL = _get_env_str(
++    "GEMINI_STAGE1_THINKING_LEVEL",
++    "minimal",
++).lower()
++GEMINI_STAGE1_THINKING_BUDGET = _get_env_int("GEMINI_STAGE1_THINKING_BUDGET", 0)
+ 
+ # Gemini Stage 1 专用参数（会按模型支持情况有选择地下发）
+-GEMINI_STAGE1_TEMPERATURE = float(os.environ.get("GEMINI_STAGE1_TEMPERATURE", str(MODEL_TEMPERATURE)))
+-GEMINI_STAGE1_TOP_P = float(os.environ.get("GEMINI_STAGE1_TOP_P", str(MODEL_TOP_P)))
+-GEMINI_STAGE1_TOP_K = int(os.environ.get("GEMINI_STAGE1_TOP_K", str(MODEL_TOP_K)))
+-GEMINI_STAGE1_MAX_OUTPUT_TOKENS = int(os.environ.get("GEMINI_STAGE1_MAX_OUTPUT_TOKENS", str(MODEL_MAX_TOKENS)))
+-GEMINI_STAGE1_RESPONSE_MIME_TYPE = os.environ.get("GEMINI_STAGE1_RESPONSE_MIME_TYPE", "application/json")
+-GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS = (
+-    os.environ.get("GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS", "true").strip().lower() == "true"
++GEMINI_STAGE1_TEMPERATURE = _get_env_float(
++    "GEMINI_STAGE1_TEMPERATURE",
++    MODEL_TEMPERATURE,
++)
++GEMINI_STAGE1_TOP_P = _get_env_float("GEMINI_STAGE1_TOP_P", MODEL_TOP_P)
++GEMINI_STAGE1_TOP_K = _get_env_int("GEMINI_STAGE1_TOP_K", MODEL_TOP_K)
++GEMINI_STAGE1_MAX_OUTPUT_TOKENS = _get_env_int(
++    "GEMINI_STAGE1_MAX_OUTPUT_TOKENS",
++    MODEL_MAX_TOKENS,
++)
++GEMINI_STAGE1_RESPONSE_MIME_TYPE = _get_env_str(
++    "GEMINI_STAGE1_RESPONSE_MIME_TYPE",
++    "application/json",
++)
++GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS = _get_env_bool(
++    "GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS",
++    True,
+ )
+ 
+-STAGE1_MAX_CONCURRENCY = int(os.environ.get("STAGE1_MAX_CONCURRENCY", "5"))
+-STAGE1_TIMEOUT_SECONDS = float(os.environ.get("STAGE1_TIMEOUT_SECONDS", "20"))
+-STAGE2_TIMEOUT_SECONDS = float(os.environ.get("STAGE2_TIMEOUT_SECONDS", "40"))
++STAGE1_MAX_CONCURRENCY = _get_env_int("STAGE1_MAX_CONCURRENCY", 5)
++STAGE1_TIMEOUT_SECONDS = _get_env_float("STAGE1_TIMEOUT_SECONDS", 20.0)
++STAGE2_TIMEOUT_SECONDS = _get_env_float("STAGE2_TIMEOUT_SECONDS", 40.0)
+ 
+ 
+-# ==================== Stage 2 参数 ==================== #
+-IMAGE_MAX_RATE = float(os.environ.get("IMAGE_MAX_RATE", "2.0"))
+-IMAGE_DASHSCOPE_BASE_URL = os.environ.get(
+-    "IMAGE_DASHSCOPE_BASE_URL",
+-    "https://dashscope.aliyuncs.com/api/v1",
+-)
++# ==================== Stage 2 配置 ==================== #
++IMAGE_MAX_RATE = _get_env_float("IMAGE_MAX_RATE", 2.0)
+ 
+ # Gemini Stage 2 专用参数（同样按模型支持情况有选择地下发）
+-GEMINI_STAGE2_TEMPERATURE = float(os.environ.get("GEMINI_STAGE2_TEMPERATURE", "1.0"))
+-GEMINI_STAGE2_TOP_P = float(os.environ.get("GEMINI_STAGE2_TOP_P", str(MODEL_TOP_P)))
+-GEMINI_STAGE2_TOP_K = int(os.environ.get("GEMINI_STAGE2_TOP_K", str(MODEL_TOP_K)))
+-GEMINI_STAGE2_MAX_OUTPUT_TOKENS = int(os.environ.get("GEMINI_STAGE2_MAX_OUTPUT_TOKENS", "1024"))
++GEMINI_STAGE2_TEMPERATURE = _get_env_float("GEMINI_STAGE2_TEMPERATURE", 1.0)
++GEMINI_STAGE2_TOP_P = _get_env_float("GEMINI_STAGE2_TOP_P", MODEL_TOP_P)
++GEMINI_STAGE2_TOP_K = _get_env_int("GEMINI_STAGE2_TOP_K", MODEL_TOP_K)
++GEMINI_STAGE2_MAX_OUTPUT_TOKENS = _get_env_int(
++    "GEMINI_STAGE2_MAX_OUTPUT_TOKENS",
++    1024,
++)
+ # 注意：
+ # - 2.5-flash-image 默认固定 1024px，不下发 image_size
+ # - 3.x image preview / 2.0 image-generation 才会按模型能力下发 image_size
+-GEMINI_STAGE2_IMAGE_SIZE = os.environ.get("GEMINI_STAGE2_IMAGE_SIZE", "1K")
+-GEMINI_STAGE2_INCLUDE_SOURCE_IMAGE = (
+-    os.environ.get("GEMINI_STAGE2_INCLUDE_SOURCE_IMAGE", "true").strip().lower() == "true"
++GEMINI_STAGE2_IMAGE_SIZE = _get_env_str("GEMINI_STAGE2_IMAGE_SIZE", "1K")
++GEMINI_STAGE2_INCLUDE_SOURCE_IMAGE = _get_env_bool(
++    "GEMINI_STAGE2_INCLUDE_SOURCE_IMAGE",
++    True,
++)
++GEMINI_STAGE2_FORCE_DISABLE_MAX_OUTPUT_TOKENS = _get_env_bool(
++    "GEMINI_STAGE2_FORCE_DISABLE_MAX_OUTPUT_TOKENS",
++    True,
+ )
+-GEMINI_STAGE2_FORCE_DISABLE_MAX_OUTPUT_TOKENS = (
+-    os.environ.get("GEMINI_STAGE2_FORCE_DISABLE_MAX_OUTPUT_TOKENS", "true").strip().lower() == "true"
++GEMINI_STAGE2_MAX_CONCURRENCY = _get_env_int("GEMINI_STAGE2_MAX_CONCURRENCY", 2)
++GEMINI_STAGE2_MAX_RETRIES = _get_env_int("GEMINI_STAGE2_MAX_RETRIES", 2)
++GEMINI_STAGE2_RETRY_BASE_DELAY_MS = _get_env_int(
++    "GEMINI_STAGE2_RETRY_BASE_DELAY_MS",
++    450,
+ )
+-GEMINI_STAGE2_MAX_CONCURRENCY = int(os.environ.get("GEMINI_STAGE2_MAX_CONCURRENCY", "2"))
+-GEMINI_STAGE2_MAX_RETRIES = int(os.environ.get("GEMINI_STAGE2_MAX_RETRIES", "2"))
+-GEMINI_STAGE2_RETRY_BASE_DELAY_MS = int(os.environ.get("GEMINI_STAGE2_RETRY_BASE_DELAY_MS", "450"))
+diff --git a/pc_demo_parallel_two_stage_new/prompts/stage1_system_instruction.md b/pc_demo_parallel_two_stage_new/prompts/stage1_system_instruction.md
+index d59fab0..348db3f 100644
+--- a/pc_demo_parallel_two_stage_new/prompts/stage1_system_instruction.md
++++ b/pc_demo_parallel_two_stage_new/prompts/stage1_system_instruction.md
+@@ -54,12 +54,13 @@ JSON 结构如下：
+ }
+ 
+ # Field Rules
+-1. `composition_data.image_prompt` 必须最先输出，便于支持流式 prompt 前置截取。
+-2. `image_prompt` 用英文，描述原图真实主体与目标构图，不要写 JSON，不要写解释。
+-3. `image_prompt` 必须简洁，尽量控制在 1 句、40-70 个英文词，优先保留对主体、场景和目标构图真正必要的信息。
+-4. `aesthetic_desc` 和 `guide_text` 用中文。
+-5. `steps` 最多 3 步。
+-6. 若 3 步，必须是：1 个机位变化动作 + 1 个 Shift/Level + 1 个 Zoom。
+-7. 若 `is_applicable=false`，则 `composition_data` 必须为 null。
+-8. `shot_spec.target_subject_center` 与 `target_subject_size` 是弱几何先验。只在主体明确时填写，否则置 null。
+-9. `target_subject_center` / `target_subject_size` 需保守、稳定、近似，不能伪装成像素级真值。
++1. `is_applicable` 必须作为 JSON 第一个字段输出，便于流式阶段先判断是否需要进入 Stage 2。
++2. 若 `is_applicable=false`，则 `composition_data` 必须为 null，不要输出 `image_prompt`。
++3. 若 `is_applicable=true`，`composition_data.image_prompt` 必须作为 `composition_data` 内第一个字段输出，便于支持流式 prompt 前置截取。
++4. `image_prompt` 用英文，描述原图真实主体与目标构图，不要写 JSON，不要写解释。
++5. `image_prompt` 必须简洁，尽量控制在 1 句、40-70 个英文词，优先保留对主体、场景和目标构图真正必要的信息。
++6. `aesthetic_desc` 和 `guide_text` 用中文。
++7. `steps` 最多 3 步。
++8. 若 3 步，必须是：1 个机位变化动作 + 1 个 Shift/Level + 1 个 Zoom。
++9. `shot_spec.target_subject_center` 与 `target_subject_size` 是弱几何先验。只在主体明确时填写，否则置 null。
++10. `target_subject_center` / `target_subject_size` 需保守、稳定、近似，不能伪装成像素级真值。
+diff --git a/pc_demo_parallel_two_stage_new/routers/composition.py b/pc_demo_parallel_two_stage_new/routers/composition.py
+index 5ab07d9..2fb72a5 100644
+--- a/pc_demo_parallel_two_stage_new/routers/composition.py
++++ b/pc_demo_parallel_two_stage_new/routers/composition.py
+@@ -10,6 +10,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
+ from fastapi.responses import StreamingResponse
+ 
+ from config import (
++    ENABLE_STAGE0,
+     STAGE1_MAX_CONCURRENCY,
+     STAGE1_TIMEOUT_SECONDS,
+     STAGE2_TIMEOUT_SECONDS,
+@@ -24,6 +25,17 @@ from services.common import to_composition_result
+ 
+ router = APIRouter(tags=["Composition"])
+ 
++MAX_UPLOAD_IMAGE_BYTES = 12 * 1024 * 1024
++MAX_UPLOAD_IMAGE_MB = MAX_UPLOAD_IMAGE_BYTES // (1024 * 1024)
++
++
++def _validate_upload_size(image_bytes: bytes) -> None:
++    if len(image_bytes) > MAX_UPLOAD_IMAGE_BYTES:
++        raise HTTPException(
++            status_code=413,
++            detail=f"图片过大，最大支持 {MAX_UPLOAD_IMAGE_MB}MB",
++        )
++
+ 
+ def _normalized_steps_signature(composition: CompositionResult) -> tuple:
+     return tuple(
+@@ -181,8 +193,16 @@ async def _select_techniques(
+     image_bytes: bytes,
+     requested_techniques: list[str],
+ ) -> list[str]:
++    if not ENABLE_STAGE0 or stage0 is None:
++        print(
++            f"🎯 [stage0=disabled] selected {len(requested_techniques)}/"
++            f"{len(requested_techniques)} -> {requested_techniques}",
++            flush=True,
++        )
++        return requested_techniques
++
+     selected = requested_techniques
+-    if stage0 and hasattr(stage0, "select_techniques"):
++    if hasattr(stage0, "select_techniques"):
+         selected = await stage0.select_techniques(image_bytes, requested_techniques)
+         selected = [
+             technique_id for technique_id in selected if technique_id in requested_techniques
+@@ -457,9 +477,10 @@ async def analyze_composition(
+ 
+     try:
+         image_bytes = await image.read()
++        _validate_upload_size(image_bytes)
+         overall_start = time.perf_counter()
+         requested_techniques = list(TECHNIQUE_CONFIGS.keys())
+-        stage0 = get_stage0_service()
++        stage0 = get_stage0_service() if ENABLE_STAGE0 else None
+         stage1 = get_stage1_service()
+         stage2 = get_stage2_service()
+         timeout_stats = {
+@@ -473,7 +494,7 @@ async def analyze_composition(
+         print(f"📷 接收到图片: {image.filename}, 大小: {len(image_bytes)} bytes")
+         print(
+             f"🚀 启动三阶段分析 "
+-            f"[stage0={stage0.provider_name}:{stage0.model_name}] "
++            f"[stage0={stage0.provider_name + ':' + stage0.model_name if stage0 else 'disabled'}] "
+             f"[stage1={stage1.provider_name}:{stage1.model_name}] "
+             f"[stage2={stage2.provider_name}:{stage2.model_name}] "
+             f"[timeouts s1={STAGE1_TIMEOUT_SECONDS:.0f}s s2={STAGE2_TIMEOUT_SECONDS:.0f}s total<=60s]"
+@@ -513,6 +534,8 @@ async def analyze_composition(
+             total_time_ms=total_time_ms,
+             compositions=final_compositions,
+         )
++    except HTTPException:
++        raise
+     except Exception as error:
+         print(f"❌ 分析失败: {error}")
+         return AnalysisResponse(
+@@ -537,11 +560,12 @@ async def analyze_composition_stream(
+         )
+ 
+     image_bytes = await image.read()
++    _validate_upload_size(image_bytes)
+     requested_techniques = list(TECHNIQUE_CONFIGS.keys())
+ 
+     async def event_generator():
+         overall_start = time.perf_counter()
+-        stage0 = get_stage0_service()
++        stage0 = get_stage0_service() if ENABLE_STAGE0 else None
+         stage2 = get_stage2_service()
+         timeout_stats = {
+             "stage1_timeouts": 0,
+@@ -555,8 +579,8 @@ async def analyze_composition_stream(
+                 "event": "analysis_started",
+                 "requested_techniques": requested_techniques,
+                 "selected_techniques": techniques,
+-                "stage0_provider": stage0.provider_name,
+-                "stage0_model": stage0.model_name,
++                "stage0_provider": stage0.provider_name if stage0 else "disabled",
++                "stage0_model": stage0.model_name if stage0 else "disabled",
+                 "stage1_provider": stage1.provider_name,
+                 "stage1_model": stage1.model_name,
+                 "stage2_provider": stage2.provider_name,
+diff --git a/pc_demo_parallel_two_stage_new/services/common.py b/pc_demo_parallel_two_stage_new/services/common.py
+index 6df889d..3a47dc2 100644
+--- a/pc_demo_parallel_two_stage_new/services/common.py
++++ b/pc_demo_parallel_two_stage_new/services/common.py
+@@ -113,6 +113,18 @@ def extract_complete_json_string_field(text: str, field_name: str) -> Optional[s
+     )
+ 
+ 
++def extract_json_bool_field(text: str, field_name: str) -> Optional[bool]:
++    """
++    从部分 JSON 文本中提取布尔字段值。
++    适合流式阶段尽早判断 is_applicable。
++    """
++    pattern = rf'"{re.escape(field_name)}"\s*:\s*(true|false)'
++    match = re.search(pattern, text, re.IGNORECASE)
++    if not match:
++        return None
++    return match.group(1).lower() == "true"
++
++
+ def prepare_image_bytes(image_bytes: bytes) -> Tuple[bytes, str]:
+     """标准化图片字节，返回 (bytes, mime_type)。"""
+     try:
+diff --git a/pc_demo_parallel_two_stage_new/services/stage1_gemini_provider.py b/pc_demo_parallel_two_stage_new/services/stage1_gemini_provider.py
+index ff27dad..14f0dd7 100644
+--- a/pc_demo_parallel_two_stage_new/services/stage1_gemini_provider.py
++++ b/pc_demo_parallel_two_stage_new/services/stage1_gemini_provider.py
+@@ -33,6 +33,7 @@ from services.common import (
+     Stage1Timing,
+     build_stage1_result,
+     extract_complete_json_string_field,
++    extract_json_bool_field,
+     image_to_data_url,
+     log_stage1_finish,
+     now_perf,
+@@ -189,6 +190,7 @@ class GeminiStage1Provider:
+             timing.stream_created_ts = now_perf()
+             full_text = ""
+             prompt_sent = False
++            applicability_seen = False
+             first_text_logged = False
+ 
+             for chunk in stream:
+@@ -203,7 +205,25 @@ class GeminiStage1Provider:
+                         f"{timing.finish_ms or 0 if False else (now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                         flush=True,
+                     )
+-                if not prompt_sent:
++                if not applicability_seen:
++                    applicability = extract_json_bool_field(full_text, "is_applicable")
++                    if applicability is not None:
++                        applicability_seen = True
++                        if not applicability:
++                            prompt_sent = True
++                            print(
++                                f"  ⏭️  [gemini:{technique_id}] callback is_applicable=false "
++                                f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
++                                flush=True,
++                            )
++                            continue
++                        print(
++                            f"  ✅ [gemini:{technique_id}] callback is_applicable=true "
++                            f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
++                            flush=True,
++                        )
++
++                if applicability_seen and not prompt_sent:
+                     prompt = extract_complete_json_string_field(full_text, "image_prompt")
+                     if prompt:
+                         prompt_sent = True
+@@ -255,6 +275,7 @@ class GeminiStage1Provider:
+             timing.stream_created_ts = now_perf()
+             full_text = ""
+             prompt_sent = False
++            applicability_seen = False
+             chunk_count = 0
+             first_text_logged = False
+ 
+@@ -272,7 +293,26 @@ class GeminiStage1Provider:
+                         f"{elapsed_ms:.0f}ms chars={len(text)}",
+                         flush=True,
+                     )
+-                if not prompt_sent:
++                if not applicability_seen:
++                    applicability = extract_json_bool_field(full_text, "is_applicable")
++                    if applicability is not None:
++                        applicability_seen = True
++                        if not applicability:
++                            prompt_sent = True
++                            loop.call_soon_threadsafe(prompt_ready_event.set)
++                            print(
++                                f"  ⏭️  [gemini:{technique_id}] is_applicable=false "
++                                f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
++                                flush=True,
++                            )
++                            continue
++                        print(
++                            f"  ✅ [gemini:{technique_id}] is_applicable=true "
++                            f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
++                            flush=True,
++                        )
++
++                if applicability_seen and not prompt_sent:
+                     prompt = extract_complete_json_string_field(full_text, "image_prompt")
+                     if prompt:
+                         prompt_sent = True
+diff --git a/pc_demo_parallel_two_stage_new/services/stage1_qwen_provider.py b/pc_demo_parallel_two_stage_new/services/stage1_qwen_provider.py
+index 3881ca8..26b3943 100644
+--- a/pc_demo_parallel_two_stage_new/services/stage1_qwen_provider.py
++++ b/pc_demo_parallel_two_stage_new/services/stage1_qwen_provider.py
+@@ -25,6 +25,7 @@ from services.common import (
+     Stage1Timing,
+     build_stage1_result,
+     extract_complete_json_string_field,
++    extract_json_bool_field,
+     image_to_data_url,
+     log_stage1_finish,
+     now_perf,
+@@ -109,13 +110,32 @@ class QwenStage1Provider:
+         timing.stream_created_ts = now_perf()
+         full_content = ""
+         prompt_sent = False
++        applicability_seen = False
+ 
+         for chunk in stream:
+             delta = chunk.choices[0].delta
+             if delta.content is None:
+                 continue
+             full_content += delta.content
+-            if not prompt_sent:
++            if not applicability_seen:
++                applicability = extract_json_bool_field(full_content, "is_applicable")
++                if applicability is not None:
++                    applicability_seen = True
++                    if not applicability:
++                        prompt_sent = True
++                        print(
++                            f"  ⏭️  [qwen:{technique_id}] callback is_applicable=false "
++                            f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
++                            flush=True,
++                        )
++                        continue
++                    print(
++                        f"  ✅ [qwen:{technique_id}] callback is_applicable=true "
++                        f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
++                        flush=True,
++                    )
++
++            if applicability_seen and not prompt_sent:
+                 prompt = extract_complete_json_string_field(full_content, "image_prompt")
+                 if prompt:
+                     prompt_sent = True
+@@ -153,13 +173,33 @@ class QwenStage1Provider:
+         timing.stream_created_ts = now_perf()
+         full_content = ""
+         prompt_sent = False
++        applicability_seen = False
+ 
+         for chunk in stream:
+             delta = chunk.choices[0].delta
+             if delta.content is None:
+                 continue
+             full_content += delta.content
+-            if not prompt_sent:
++            if not applicability_seen:
++                applicability = extract_json_bool_field(full_content, "is_applicable")
++                if applicability is not None:
++                    applicability_seen = True
++                    if not applicability:
++                        prompt_sent = True
++                        loop.call_soon_threadsafe(prompt_ready_event.set)
++                        print(
++                            f"  ⏭️  [qwen:{technique_id}] is_applicable=false "
++                            f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
++                            flush=True,
++                        )
++                        continue
++                    print(
++                        f"  ✅ [qwen:{technique_id}] is_applicable=true "
++                        f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
++                        flush=True,
++                    )
++
++            if applicability_seen and not prompt_sent:
+                 prompt = extract_complete_json_string_field(full_content, "image_prompt")
+                 if prompt:
+                     prompt_sent = True

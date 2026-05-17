@@ -41,12 +41,19 @@
 ## 环境变量
 
 ```bash
+export STAGE0_PROVIDER=gemini
 export STAGE1_PROVIDER=gemini
 export STAGE2_PROVIDER=gemini
-export STAGE0_PROVIDER=gemini
 
 export DASHSCOPE_API_KEY=sk-xxx
 export GEMINI_API_KEY=xxx
+```
+
+如果你本地访问 Gemini 需要代理，还可以显式设置：
+
+```bash
+export USE_GEMINI_PROXY=true
+export GEMINI_PROXY_URL=http://127.0.0.1:11087
 ```
 
 如果你想走国内 Gemini 兼容中转，可改为：
@@ -63,6 +70,7 @@ export GEMINI_DOMESTIC_API_VERSION=v1beta
 - `GEMINI_DOMESTIC_BASE_URL` 填根地址或 API 根地址即可
 - 不要填成 `.../v1beta/models/{model}:generateContent` 这种完整请求路径
 - 开启国内模式后，Gemini provider 会走 `Authorization: Bearer <key>` 方式鉴权
+- 国内中转模式和本地代理可以同时开
 
 可选模型变量：
 
@@ -81,6 +89,70 @@ Stage 0 相关可选参数：
 export ENABLE_STAGE0=true
 export STAGE0_MAX_TECHNIQUES=5
 export STAGE0_TEMPERATURE=0.1
+export STAGE0_TOP_P=0.9
+```
+
+Stage 1 通用参数：
+
+```bash
+export MODEL_TEMPERATURE=0.35
+export MODEL_TOP_P=0.80
+export MODEL_TOP_K=40
+export MODEL_MAX_TOKENS=1024
+
+export STAGE1_MAX_CONCURRENCY=5
+export STAGE1_TIMEOUT_SECONDS=20
+export STAGE2_TIMEOUT_SECONDS=40
+```
+
+Qwen thinking 相关参数：
+
+```bash
+export QWEN_STAGE1_ENABLE_THINKING=false
+export QWEN_STAGE1_THINKING_BUDGET=0
+export QWEN_STAGE0_ENABLE_THINKING=false
+export QWEN_STAGE0_THINKING_BUDGET=0
+```
+
+Gemini Stage 1 相关参数：
+
+```bash
+export ENABLE_THINKING=false
+export MODEL_THINKING_BUDGET=0
+
+export GEMINI_STAGE1_FORCE_MINIMAL_THINKING=true
+export GEMINI_STAGE1_THINKING_LEVEL=minimal
+export GEMINI_STAGE1_THINKING_BUDGET=0
+
+export GEMINI_STAGE1_TEMPERATURE=0.35
+export GEMINI_STAGE1_TOP_P=0.80
+export GEMINI_STAGE1_TOP_K=40
+export GEMINI_STAGE1_MAX_OUTPUT_TOKENS=1024
+export GEMINI_STAGE1_RESPONSE_MIME_TYPE=application/json
+export GEMINI_STAGE1_FORCE_DISABLE_MAX_OUTPUT_TOKENS=true
+```
+
+Gemini Stage 2 相关参数：
+
+```bash
+export GEMINI_STAGE2_TEMPERATURE=1.0
+export GEMINI_STAGE2_TOP_P=0.80
+export GEMINI_STAGE2_TOP_K=40
+export GEMINI_STAGE2_MAX_OUTPUT_TOKENS=1024
+export GEMINI_STAGE2_IMAGE_SIZE=1K
+export GEMINI_STAGE2_INCLUDE_SOURCE_IMAGE=true
+export GEMINI_STAGE2_FORCE_DISABLE_MAX_OUTPUT_TOKENS=true
+export GEMINI_STAGE2_MAX_CONCURRENCY=2
+export GEMINI_STAGE2_MAX_RETRIES=2
+export GEMINI_STAGE2_RETRY_BASE_DELAY_MS=450
+```
+
+Qwen / 图片生成相关参数：
+
+```bash
+export DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+export IMAGE_DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
+export IMAGE_MAX_RATE=2.0
 ```
 
 ## 运行

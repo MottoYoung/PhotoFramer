@@ -33,6 +33,7 @@ from services.common import (
     Stage1Timing,
     build_stage1_result,
     extract_complete_json_string_field,
+    extract_json_bool_field,
     image_to_data_url,
     log_stage1_finish,
     now_perf,
@@ -189,6 +190,7 @@ class GeminiStage1Provider:
             timing.stream_created_ts = now_perf()
             full_text = ""
             prompt_sent = False
+            applicability_seen = False
             first_text_logged = False
 
             for chunk in stream:
@@ -203,7 +205,25 @@ class GeminiStage1Provider:
                         f"{timing.finish_ms or 0 if False else (now_perf() - timing.request_start_ts) * 1000:.0f}ms",
                         flush=True,
                     )
-                if not prompt_sent:
+                if not applicability_seen:
+                    applicability = extract_json_bool_field(full_text, "is_applicable")
+                    if applicability is not None:
+                        applicability_seen = True
+                        if not applicability:
+                            prompt_sent = True
+                            print(
+                                f"  ⏭️  [gemini:{technique_id}] callback is_applicable=false "
+                                f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                                flush=True,
+                            )
+                            continue
+                        print(
+                            f"  ✅ [gemini:{technique_id}] callback is_applicable=true "
+                            f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                            flush=True,
+                        )
+
+                if applicability_seen and not prompt_sent:
                     prompt = extract_complete_json_string_field(full_text, "image_prompt")
                     if prompt:
                         prompt_sent = True
@@ -255,6 +275,7 @@ class GeminiStage1Provider:
             timing.stream_created_ts = now_perf()
             full_text = ""
             prompt_sent = False
+            applicability_seen = False
             chunk_count = 0
             first_text_logged = False
 
@@ -272,7 +293,26 @@ class GeminiStage1Provider:
                         f"{elapsed_ms:.0f}ms chars={len(text)}",
                         flush=True,
                     )
-                if not prompt_sent:
+                if not applicability_seen:
+                    applicability = extract_json_bool_field(full_text, "is_applicable")
+                    if applicability is not None:
+                        applicability_seen = True
+                        if not applicability:
+                            prompt_sent = True
+                            loop.call_soon_threadsafe(prompt_ready_event.set)
+                            print(
+                                f"  ⏭️  [gemini:{technique_id}] is_applicable=false "
+                                f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                                flush=True,
+                            )
+                            continue
+                        print(
+                            f"  ✅ [gemini:{technique_id}] is_applicable=true "
+                            f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                            flush=True,
+                        )
+
+                if applicability_seen and not prompt_sent:
                     prompt = extract_complete_json_string_field(full_text, "image_prompt")
                     if prompt:
                         prompt_sent = True

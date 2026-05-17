@@ -10,6 +10,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from config import (
+    ENABLE_STAGE0,
     STAGE1_MAX_CONCURRENCY,
     STAGE1_TIMEOUT_SECONDS,
     STAGE2_TIMEOUT_SECONDS,
@@ -23,6 +24,17 @@ from services import get_stage0_service, get_stage1_service, get_stage2_service
 from services.common import to_composition_result
 
 router = APIRouter(tags=["Composition"])
+
+MAX_UPLOAD_IMAGE_BYTES = 12 * 1024 * 1024
+MAX_UPLOAD_IMAGE_MB = MAX_UPLOAD_IMAGE_BYTES // (1024 * 1024)
+
+
+def _validate_upload_size(image_bytes: bytes) -> None:
+    if len(image_bytes) > MAX_UPLOAD_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"图片过大，最大支持 {MAX_UPLOAD_IMAGE_MB}MB",
+        )
 
 
 def _normalized_steps_signature(composition: CompositionResult) -> tuple:
@@ -181,8 +193,16 @@ async def _select_techniques(
     image_bytes: bytes,
     requested_techniques: list[str],
 ) -> list[str]:
+    if not ENABLE_STAGE0 or stage0 is None:
+        print(
+            f"🎯 [stage0=disabled] selected {len(requested_techniques)}/"
+            f"{len(requested_techniques)} -> {requested_techniques}",
+            flush=True,
+        )
+        return requested_techniques
+
     selected = requested_techniques
-    if stage0 and hasattr(stage0, "select_techniques"):
+    if hasattr(stage0, "select_techniques"):
         selected = await stage0.select_techniques(image_bytes, requested_techniques)
         selected = [
             technique_id for technique_id in selected if technique_id in requested_techniques
@@ -457,9 +477,10 @@ async def analyze_composition(
 
     try:
         image_bytes = await image.read()
+        _validate_upload_size(image_bytes)
         overall_start = time.perf_counter()
         requested_techniques = list(TECHNIQUE_CONFIGS.keys())
-        stage0 = get_stage0_service()
+        stage0 = get_stage0_service() if ENABLE_STAGE0 else None
         stage1 = get_stage1_service()
         stage2 = get_stage2_service()
         timeout_stats = {
@@ -473,7 +494,7 @@ async def analyze_composition(
         print(f"📷 接收到图片: {image.filename}, 大小: {len(image_bytes)} bytes")
         print(
             f"🚀 启动三阶段分析 "
-            f"[stage0={stage0.provider_name}:{stage0.model_name}] "
+            f"[stage0={stage0.provider_name + ':' + stage0.model_name if stage0 else 'disabled'}] "
             f"[stage1={stage1.provider_name}:{stage1.model_name}] "
             f"[stage2={stage2.provider_name}:{stage2.model_name}] "
             f"[timeouts s1={STAGE1_TIMEOUT_SECONDS:.0f}s s2={STAGE2_TIMEOUT_SECONDS:.0f}s total<=60s]"
@@ -513,6 +534,8 @@ async def analyze_composition(
             total_time_ms=total_time_ms,
             compositions=final_compositions,
         )
+    except HTTPException:
+        raise
     except Exception as error:
         print(f"❌ 分析失败: {error}")
         return AnalysisResponse(
@@ -537,11 +560,12 @@ async def analyze_composition_stream(
         )
 
     image_bytes = await image.read()
+    _validate_upload_size(image_bytes)
     requested_techniques = list(TECHNIQUE_CONFIGS.keys())
 
     async def event_generator():
         overall_start = time.perf_counter()
-        stage0 = get_stage0_service()
+        stage0 = get_stage0_service() if ENABLE_STAGE0 else None
         stage2 = get_stage2_service()
         timeout_stats = {
             "stage1_timeouts": 0,
@@ -555,8 +579,8 @@ async def analyze_composition_stream(
                 "event": "analysis_started",
                 "requested_techniques": requested_techniques,
                 "selected_techniques": techniques,
-                "stage0_provider": stage0.provider_name,
-                "stage0_model": stage0.model_name,
+                "stage0_provider": stage0.provider_name if stage0 else "disabled",
+                "stage0_model": stage0.model_name if stage0 else "disabled",
                 "stage1_provider": stage1.provider_name,
                 "stage1_model": stage1.model_name,
                 "stage2_provider": stage2.provider_name,

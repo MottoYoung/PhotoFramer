@@ -25,6 +25,7 @@ from services.common import (
     Stage1Timing,
     build_stage1_result,
     extract_complete_json_string_field,
+    extract_json_bool_field,
     image_to_data_url,
     log_stage1_finish,
     now_perf,
@@ -109,13 +110,32 @@ class QwenStage1Provider:
         timing.stream_created_ts = now_perf()
         full_content = ""
         prompt_sent = False
+        applicability_seen = False
 
         for chunk in stream:
             delta = chunk.choices[0].delta
             if delta.content is None:
                 continue
             full_content += delta.content
-            if not prompt_sent:
+            if not applicability_seen:
+                applicability = extract_json_bool_field(full_content, "is_applicable")
+                if applicability is not None:
+                    applicability_seen = True
+                    if not applicability:
+                        prompt_sent = True
+                        print(
+                            f"  ⏭️  [qwen:{technique_id}] callback is_applicable=false "
+                            f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                            flush=True,
+                        )
+                        continue
+                    print(
+                        f"  ✅ [qwen:{technique_id}] callback is_applicable=true "
+                        f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                        flush=True,
+                    )
+
+            if applicability_seen and not prompt_sent:
                 prompt = extract_complete_json_string_field(full_content, "image_prompt")
                 if prompt:
                     prompt_sent = True
@@ -153,13 +173,33 @@ class QwenStage1Provider:
         timing.stream_created_ts = now_perf()
         full_content = ""
         prompt_sent = False
+        applicability_seen = False
 
         for chunk in stream:
             delta = chunk.choices[0].delta
             if delta.content is None:
                 continue
             full_content += delta.content
-            if not prompt_sent:
+            if not applicability_seen:
+                applicability = extract_json_bool_field(full_content, "is_applicable")
+                if applicability is not None:
+                    applicability_seen = True
+                    if not applicability:
+                        prompt_sent = True
+                        loop.call_soon_threadsafe(prompt_ready_event.set)
+                        print(
+                            f"  ⏭️  [qwen:{technique_id}] is_applicable=false "
+                            f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                            flush=True,
+                        )
+                        continue
+                    print(
+                        f"  ✅ [qwen:{technique_id}] is_applicable=true "
+                        f"{(now_perf() - timing.request_start_ts) * 1000:.0f}ms",
+                        flush=True,
+                    )
+
+            if applicability_seen and not prompt_sent:
                 prompt = extract_complete_json_string_field(full_content, "image_prompt")
                 if prompt:
                     prompt_sent = True

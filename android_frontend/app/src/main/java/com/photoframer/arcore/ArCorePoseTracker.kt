@@ -9,6 +9,7 @@ import android.hardware.SensorManager
 import com.google.ar.core.Config
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
@@ -49,6 +50,8 @@ class ArCorePoseTracker(
         sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
     private val executor = Executors.newSingleThreadExecutor()
     private val running = AtomicBoolean(false)
+    private val motionSensorsRegistered = AtomicBoolean(false)
+    private val trackingGeneration = AtomicInteger(0)
     private val latestSample = AtomicReference<CameraPoseSample?>()
     private val orientationLock = Any()
 
@@ -75,16 +78,27 @@ class ArCorePoseTracker(
         preferArCore: Boolean,
         viewportWidth: Int,
         viewportHeight: Int,
-        displayRotation: Int
+        displayRotation: Int,
+        resetBaseline: Boolean = false
     ) {
         updateViewport(viewportWidth, viewportHeight, displayRotation)
+        if (resetBaseline || !running.get()) {
+            resetPoseBaseline()
+        }
         registerMotionSensors()
         running.set(true)
         shouldAttemptArCore = preferArCore && activity != null
 
+        val currentFuture = arCoreFuture
+        if (!shouldAttemptArCore && currentFuture != null) {
+            currentFuture.cancel(true)
+            arCoreFuture = null
+        }
+
         if (shouldAttemptArCore && arCoreFuture == null) {
+            val generation = trackingGeneration.incrementAndGet()
             arCoreFuture = executor.submit {
-                runArCoreLoop(activity!!)
+                runArCoreLoop(activity!!, generation)
             }
         } else if (!shouldAttemptArCore) {
             publishMotionOnlySample()
@@ -94,13 +108,11 @@ class ArCorePoseTracker(
     fun stop() {
         running.set(false)
         shouldAttemptArCore = false
+        trackingGeneration.incrementAndGet()
         arCoreFuture?.cancel(true)
         arCoreFuture = null
         unregisterMotionSensors()
-        synchronized(orientationLock) {
-            baselineOrientation = null
-            latestOrientationDelta = floatArrayOf(0f, 0f, 0f)
-        }
+        resetPoseBaseline()
         latestSample.set(null)
     }
 
@@ -150,18 +162,29 @@ class ArCorePoseTracker(
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
+    private fun resetPoseBaseline() {
+        synchronized(orientationLock) {
+            baselineOrientation = null
+            latestOrientationDelta = floatArrayOf(0f, 0f, 0f)
+        }
+        latestSample.set(null)
+    }
+
     private fun registerMotionSensors() {
         rotationVectorSensor?.let {
-            sensorManager.unregisterListener(this)
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            if (motionSensorsRegistered.compareAndSet(false, true)) {
+                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            }
         }
     }
 
     private fun unregisterMotionSensors() {
-        sensorManager.unregisterListener(this)
+        if (motionSensorsRegistered.compareAndSet(true, false)) {
+            sensorManager.unregisterListener(this)
+        }
     }
 
-    private fun runArCoreLoop(activity: Activity) {
+    private fun runArCoreLoop(activity: Activity, generation: Int) {
         var session: Session? = null
         try {
             session = Session(activity, setOf(Session.Feature.SHARED_CAMERA))
@@ -175,7 +198,12 @@ class ArCorePoseTracker(
 
             var baselineTranslation: FloatArray? = null
 
-            while (running.get() && shouldAttemptArCore && !Thread.currentThread().isInterrupted) {
+            while (
+                running.get() &&
+                shouldAttemptArCore &&
+                trackingGeneration.get() == generation &&
+                !Thread.currentThread().isInterrupted
+            ) {
                 applyDisplayGeometry(session)
                 val frame = session.update()
                 val camera = frame.camera
@@ -212,7 +240,9 @@ class ArCorePoseTracker(
                 session?.close()
             } catch (_: Exception) {
             }
-            arCoreFuture = null
+            if (trackingGeneration.get() == generation) {
+                arCoreFuture = null
+            }
         }
     }
 

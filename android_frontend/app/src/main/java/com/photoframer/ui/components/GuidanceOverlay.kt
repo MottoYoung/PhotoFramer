@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import com.photoframer.data.api.CompositionStep
 import com.photoframer.guidance.isViewpointActionType
+import com.photoframer.guidance.canonicalViewDirection
 import com.photoframer.guidance.normalizedActionType
 import com.photoframer.ui.theme.BlueAccent
 import com.photoframer.ui.theme.SuccessGreen
@@ -603,7 +604,7 @@ private fun DrawScope.drawViewChangeActionGuide(
         "orbit" -> drawOrbitGuide(
             centerX = centerX,
             centerY = centerY,
-            moveRight = !direction.equals("left", ignoreCase = true),
+            moveRight = direction.canonicalViewDirection() == "right",
             progress = progress,
             guideStrength = guideStrength,
             pulseScale = pulseScale,

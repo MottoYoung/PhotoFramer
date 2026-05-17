@@ -113,6 +113,18 @@ def extract_complete_json_string_field(text: str, field_name: str) -> Optional[s
     )
 
 
+def extract_json_bool_field(text: str, field_name: str) -> Optional[bool]:
+    """
+    从部分 JSON 文本中提取布尔字段值。
+    适合流式阶段尽早判断 is_applicable。
+    """
+    pattern = rf'"{re.escape(field_name)}"\s*:\s*(true|false)'
+    match = re.search(pattern, text, re.IGNORECASE)
+    if not match:
+        return None
+    return match.group(1).lower() == "true"
+
+
 def prepare_image_bytes(image_bytes: bytes) -> Tuple[bytes, str]:
     """标准化图片字节，返回 (bytes, mime_type)。"""
     try:

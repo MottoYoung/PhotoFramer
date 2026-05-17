@@ -55,7 +55,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -72,7 +71,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -81,6 +79,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.photoframer.arcore.ArCoreRuntimeState
 import com.photoframer.arcore.CameraPoseSample
@@ -123,6 +123,8 @@ import com.photoframer.utils.ImageSaver
 import com.photoframer.viewmodel.CameraViewModel
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlinx.coroutines.Job
@@ -143,12 +145,13 @@ fun CameraScreen(
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val uiState by viewModel.uiState.collectAsState()
-    val validationResult by viewModel.validationResult.collectAsState()
-    val stepCompleted by viewModel.stepCompleted.collectAsState()
-    val allStepsCompleted by viewModel.allStepsCompleted.collectAsState()
-    val showStepSkip by viewModel.showStepSkip.collectAsState()
-    val postCapturePrompt by viewModel.postCapturePrompt.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val validationResult by viewModel.validationResult.collectAsStateWithLifecycle()
+    val stepCompleted by viewModel.stepCompleted.collectAsStateWithLifecycle()
+    val allStepsCompleted by viewModel.allStepsCompleted.collectAsStateWithLifecycle()
+    val showStepSkip by viewModel.showStepSkip.collectAsStateWithLifecycle()
+    val postCapturePrompt by viewModel.postCapturePrompt.collectAsStateWithLifecycle()
+    val newCandidatePrompt by viewModel.newCandidatePrompt.collectAsStateWithLifecycle()
 
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
@@ -179,8 +182,8 @@ fun CameraScreen(
     var activeEntryMode by remember { mutableStateOf(CameraEntryMode.NONE) }
     var visualStyle by remember { mutableStateOf(CameraVisualStyle.DEFAULT) }
 
-    var frameCounter by remember { mutableIntStateOf(0) }
-    var lastAnalysisTime by remember { mutableStateOf(0L) }
+    val frameCounter = remember { AtomicInteger(0) }
+    val lastAnalysisTime = remember { AtomicLong(0L) }
     var arCoreStatus by remember { mutableStateOf(ArCoreSupport.idleStatus()) }
     var hasRequestedArCoreInstall by remember { mutableStateOf(false) }
     var latestPoseSample by remember { mutableStateOf<CameraPoseSample?>(null) }
@@ -320,8 +323,6 @@ fun CameraScreen(
         shouldUseArCore,
         guidingStep?.stepOrder,
         arCoreStatus.state,
-        previewView?.width,
-        previewView?.height,
         selectedFacing
     ) {
         if (!needsPoseTracking || selectedFacing == CameraSelector.LENS_FACING_FRONT) {
@@ -336,7 +337,8 @@ fun CameraScreen(
             preferArCore = shouldUseArCore && arCoreStatus.isReady,
             viewportWidth = currentPreview?.width ?: 0,
             viewportHeight = currentPreview?.height ?: 0,
-            displayRotation = currentPreview?.display?.rotation ?: Surface.ROTATION_0
+            displayRotation = currentPreview?.display?.rotation ?: Surface.ROTATION_0,
+            resetBaseline = true
         )
     }
 
@@ -676,54 +678,60 @@ fun CameraScreen(
                                     .build()
                                     .also { analysis ->
                                         analysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                                            val currentState = viewModel.uiState.value
-                                            if (currentState is CameraUiState.Guiding) {
-                                                frameCounter += 1
-                                                val currentTime = System.currentTimeMillis()
-                                                if (frameCounter % analyzeEveryNFrames == 0 &&
-                                                    currentTime - lastAnalysisTime > minAnalysisInterval
-                                                ) {
-                                                    lastAnalysisTime = currentTime
-                                                    val bitmap =
-                                                        com.photoframer.vision.ImageConverter.imageProxyToBitmap(
-                                                            imageProxy
-                                                        )
-                                                    if (bitmap != null) {
-                                                        val croppedBitmap =
-                                                            selectedRatio.toTargetAspectRatio()?.let { targetRatio ->
-                                                                com.photoframer.vision.ImageConverter.centerCropToAspectRatio(
-                                                                    bitmap,
-                                                                    targetRatio
-                                                                )
-                                                            } ?: bitmap
-                                                        val scaledBitmap =
-                                                            com.photoframer.vision.ImageConverter.scaleBitmapToWidth(
-                                                                croppedBitmap,
-                                                                com.photoframer.vision.StepValidator.VALIDATION_FRAME_WIDTH
+                                            try {
+                                                val currentState = viewModel.uiState.value
+                                                if (currentState is CameraUiState.Guiding) {
+                                                    val currentFrameCount = frameCounter.incrementAndGet()
+                                                    val currentTime = System.currentTimeMillis()
+                                                    val previousAnalysisTime = lastAnalysisTime.get()
+                                                    if (currentFrameCount % analyzeEveryNFrames == 0 &&
+                                                        currentTime - previousAnalysisTime > minAnalysisInterval &&
+                                                        lastAnalysisTime.compareAndSet(previousAnalysisTime, currentTime)
+                                                    ) {
+                                                        val bitmap =
+                                                            com.photoframer.vision.ImageConverter.imageProxyToBitmap(
+                                                                imageProxy
                                                             )
-                                                        val currentPreview = previewView
-                                                        arCorePoseTracker.updateViewport(
-                                                            width = currentPreview?.width ?: scaledBitmap.width,
-                                                            height = currentPreview?.height ?: scaledBitmap.height,
-                                                            rotation = currentPreview?.display?.rotation
-                                                                ?: Surface.ROTATION_0
-                                                        )
-                                                        val poseSample = arCorePoseTracker.latestPoseSample()
-                                                        scope.launch {
-                                                            latestPoseSample = poseSample
+                                                        if (bitmap != null) {
+                                                            val croppedBitmap =
+                                                                selectedRatio.toTargetAspectRatio()?.let { targetRatio ->
+                                                                    com.photoframer.vision.ImageConverter.centerCropToAspectRatio(
+                                                                        bitmap,
+                                                                        targetRatio
+                                                                    )
+                                                                } ?: bitmap
+                                                            val scaledBitmap =
+                                                                com.photoframer.vision.ImageConverter.scaleBitmapToWidth(
+                                                                    croppedBitmap,
+                                                                    com.photoframer.vision.StepValidator.VALIDATION_FRAME_WIDTH
+                                                                )
+                                                            val currentPreview = previewView
+                                                            arCorePoseTracker.updateViewport(
+                                                                width = currentPreview?.width ?: scaledBitmap.width,
+                                                                height = currentPreview?.height ?: scaledBitmap.height,
+                                                                rotation = currentPreview?.display?.rotation
+                                                                    ?: Surface.ROTATION_0
+                                                            )
+                                                            val poseSample = arCorePoseTracker.latestPoseSample()
+                                                            scope.launch {
+                                                                latestPoseSample = poseSample
+                                                            }
+                                                            viewModel.validateCurrentFrame(
+                                                                currentFrame = scaledBitmap,
+                                                                currentZoomRatio = CameraZoomController.effectiveZoomRatio(
+                                                                    selectedLens,
+                                                                    rawZoomRatio
+                                                                ),
+                                                                cameraPoseSample = poseSample
+                                                            )
                                                         }
-                                                        viewModel.validateCurrentFrame(
-                                                            currentFrame = scaledBitmap,
-                                                            currentZoomRatio = CameraZoomController.effectiveZoomRatio(
-                                                                selectedLens,
-                                                                rawZoomRatio
-                                                            ),
-                                                            cameraPoseSample = poseSample
-                                                        )
                                                     }
                                                 }
+                                            } catch (error: Exception) {
+                                                Log.e(TAG, "相机帧分析失败", error)
+                                            } finally {
+                                                imageProxy.close()
                                             }
-                                            imageProxy.close()
                                         }
                                     }
 
@@ -831,6 +839,17 @@ fun CameraScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 156.dp)
+                    )
+                }
+
+                if (!allStepsCompleted && newCandidatePrompt != null) {
+                    NewCandidateOverlay(
+                        message = newCandidatePrompt?.message.orEmpty(),
+                        onViewCandidates = { viewModel.viewUpdatedCandidates() },
+                        onDismiss = { viewModel.dismissNewCandidatePrompt() },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(start = 20.dp, end = 20.dp, bottom = 96.dp)
                     )
                 }
 
@@ -1239,6 +1258,47 @@ private fun PostCaptureChoiceOverlay(
                 ) {
                     Text("查看其他方案", color = Color.White)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewCandidateOverlay(
+    message: String,
+    onViewCandidates: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = SurfaceDark.copy(alpha = 0.90f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = message,
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            TextButton(onClick = onDismiss) {
+                Text("稍后", color = TextSecondary)
+            }
+            Button(
+                onClick = onViewCandidates,
+                colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                shape = RoundedCornerShape(999.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Text("查看", color = Color.White)
             }
         }
     }

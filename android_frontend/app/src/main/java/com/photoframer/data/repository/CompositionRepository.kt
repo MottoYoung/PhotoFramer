@@ -19,8 +19,14 @@ import java.io.IOException
 import java.io.File
 import java.net.SocketTimeoutException
 import java.security.MessageDigest
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Response
 import retrofit2.HttpException
 
 /**
@@ -64,15 +70,13 @@ class CompositionRepository {
         }
 
         return try {
-            val response = executeWithSingleRetry {
-                val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
-                val imagePart = MultipartBody.Part.createFormData(
-                    "image",
-                    imageFile.name,
-                    requestFile
-                )
-                api.analyzeComposition(imagePart)
-            }
+            val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
+            val imagePart = MultipartBody.Part.createFormData(
+                "image",
+                imageFile.name,
+                requestFile
+            )
+            val response = api.analyzeComposition(imagePart)
 
             if (response.success) {
                 if (response.compositions.isNotEmpty()) {
@@ -88,6 +92,8 @@ class CompositionRepository {
             Result.failure(Exception("分析超时，请重试"))
         } catch (e: IOException) {
             Result.failure(Exception("网络连接失败，已自动重试一次，请检查网络后再试"))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -117,6 +123,8 @@ class CompositionRepository {
             Result.failure(Exception("分析超时，请重试"))
         } catch (e: IOException) {
             Result.failure(Exception("网络连接失败，已自动重试一次，请检查网络后再试"))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -146,6 +154,8 @@ class CompositionRepository {
             Result.failure(Exception(mapInFrameHttpError(e)))
         } catch (e: IOException) {
             Result.failure(Exception("网络连接失败，请确认当前设备可以访问画面内分析服务"))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -158,16 +168,10 @@ class CompositionRepository {
         return try {
             val response = api.healthCheck()
             Result.success(response.status == "healthy")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
-        }
-    }
-
-    private suspend fun <T> executeWithSingleRetry(block: suspend () -> T): T {
-        return try {
-            block()
-        } catch (error: IOException) {
-            block()
         }
     }
 
@@ -190,7 +194,7 @@ class CompositionRepository {
             .addHeader("Accept", "text/event-stream")
             .build()
 
-        httpClient.newCall(request).execute().use { response ->
+        executeCancellable(call = httpClient.newCall(request)).use { response ->
             if (!response.isSuccessful) {
                 throw HttpException(retrofit2.Response.error<String>(
                     response.code,
@@ -305,6 +309,27 @@ class CompositionRepository {
                 )
             )
             return fallbackResponse
+        }
+    }
+
+    private suspend fun executeCancellable(call: Call): Response {
+        return suspendCancellableCoroutine { continuation ->
+            continuation.invokeOnCancellation {
+                call.cancel()
+            }
+
+            try {
+                val response = call.execute()
+                if (continuation.isActive) {
+                    continuation.resume(response)
+                } else {
+                    response.close()
+                }
+            } catch (error: IOException) {
+                if (continuation.isActive) {
+                    continuation.resumeWithException(error)
+                }
+            }
         }
     }
 

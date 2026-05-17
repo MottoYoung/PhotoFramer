@@ -17,6 +17,34 @@ data class HomographyComponents(
 )
 
 /**
+ * 取景器真实前后帧之间的几何变化信号。
+ *
+ * 这些分数来自 source frame -> current frame 的特征匹配/单应性估计，
+ * 用作 view-change 的主几何证据；AI 参考图相似度和主体检测只做辅助。
+ */
+data class ViewChangeGeometry(
+    val quality: Float = 0f,
+    val perspectiveScore: Float = 0f,
+    val shiftXNorm: Float = 0f,
+    val shiftYNorm: Float = 0f,
+    val scaleRatio: Float = 1f,
+    val horizontalPerspective: Float = 0f,
+    val verticalPerspective: Float = 0f,
+    val projectiveX: Float = 0f,
+    val projectiveY: Float = 0f,
+    val orbitLeftScore: Float = 0f,
+    val orbitRightScore: Float = 0f,
+    val raiseScore: Float = 0f,
+    val lowerScore: Float = 0f,
+    val forwardScore: Float = 0f,
+    val backwardScore: Float = 0f
+) {
+    companion object {
+        val Empty = ViewChangeGeometry()
+    }
+}
+
+/**
  * 单应性矩阵分析器
  * 从单应性矩阵中提取平移、缩放、旋转分量
  */

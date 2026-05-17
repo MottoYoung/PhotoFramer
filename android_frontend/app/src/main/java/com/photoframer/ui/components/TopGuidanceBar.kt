@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.photoframer.data.api.CompositionStep
+import com.photoframer.guidance.canonicalViewDirection
 import com.photoframer.guidance.isViewpointActionType
 import com.photoframer.guidance.normalizedActionType
 import com.photoframer.ui.theme.BlueAccent
@@ -377,7 +378,7 @@ private fun getViewChangeHelperText(actionType: String, direction: String): Stri
     return when (actionType.normalizedActionType()) {
         "raisecamera" -> "抬高手机，让机位更高一些"
         "lowercamera" -> "压低手机，让机位更低一些"
-        "orbit" -> if (direction.equals("left", ignoreCase = true)) {
+        "orbit" -> if (direction.canonicalViewDirection() == "left") {
             "围绕主体向左绕拍，切到侧视角"
         } else {
             "围绕主体向右绕拍，切到侧视角"
@@ -387,11 +388,11 @@ private fun getViewChangeHelperText(actionType: String, direction: String): Stri
         } else {
             "带着手机向前一步，靠近主体"
         }
-        else -> when (direction.lowercase()) {
+        else -> when (direction.canonicalViewDirection()) {
             "high-angle" -> "抬高手机，从更高的角度看向主体"
             "low-angle" -> "压低手机，从更低的角度看向主体"
-            "side-view-left" -> "围绕主体向左侧移动，切到侧视角"
-            "side-view-right" -> "围绕主体向右侧移动，切到侧视角"
+            "left" -> "围绕主体向左侧移动，切到侧视角"
+            "right" -> "围绕主体向右侧移动，切到侧视角"
             else -> "围绕主体移动，逐步改变拍摄视角"
         }
     }

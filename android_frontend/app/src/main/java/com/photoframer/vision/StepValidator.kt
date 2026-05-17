@@ -774,6 +774,11 @@ class StepValidator(
                 frameWidth = currentFrame.width,
                 frameHeight = currentFrame.height
             )
+            val viewGeometry = computeViewChangeGeometry(
+                result = sourcePerspectiveResult,
+                frameWidth = currentFrame.width,
+                frameHeight = currentFrame.height
+            )
             targetFeatureScore = (targetPerspectiveResult.matchCount.toFloat() / 28f).coerceIn(0f, 1f)
             val sourceFeatureScore = (sourcePerspectiveResult.matchCount.toFloat() / 28f).coerceIn(0f, 1f)
             val pHashSimilarity = getOrComputePHash(currentFrame)
@@ -786,6 +791,7 @@ class StepValidator(
                 sourceSimilarityScore = sourceFeatureScore,
                 targetSimilarityScore = targetFeatureScore,
                 pHashSimilarity = pHashSimilarity,
+                viewGeometry = viewGeometry,
                 cameraPoseSample = cameraPoseSample
             ) { result ->
                 callback(
@@ -1044,6 +1050,111 @@ class StepValidator(
                 trapezoidScore * 0.35f +
                 inlierScore * 0.15f
             ).coerceIn(0f, 1f)
+    }
+
+    private fun computeViewChangeGeometry(
+        result: HomographyResult,
+        frameWidth: Int,
+        frameHeight: Int
+    ): ViewChangeGeometry {
+        val homography = result.homography ?: return ViewChangeGeometry.Empty
+        if (homography.rows() != 3 || homography.cols() != 3 || homography.empty()) {
+            return ViewChangeGeometry.Empty
+        }
+
+        val h22 = homography.get(2, 2)[0].takeIf { abs(it) > 1e-6 } ?: 1.0
+        val h20 = homography.get(2, 0)[0] / h22
+        val h21 = homography.get(2, 1)[0] / h22
+
+        val corners = arrayOf(
+            doubleArrayOf(0.0, 0.0),
+            doubleArrayOf(frameWidth.toDouble(), 0.0),
+            doubleArrayOf(frameWidth.toDouble(), frameHeight.toDouble()),
+            doubleArrayOf(0.0, frameHeight.toDouble())
+        ).map { point ->
+            projectPoint(homography, point[0], point[1], h22)
+        }
+
+        val projectedCenter = projectPoint(
+            homography = homography,
+            x = frameWidth / 2.0,
+            y = frameHeight / 2.0,
+            h22 = h22
+        )
+        val centerShiftXNorm = ((projectedCenter.first - frameWidth / 2.0) / frameWidth)
+            .toFloat()
+            .coerceIn(-1f, 1f)
+        val centerShiftYNorm = ((projectedCenter.second - frameHeight / 2.0) / frameHeight)
+            .toFloat()
+            .coerceIn(-1f, 1f)
+
+        val topWidth = distance(corners[0], corners[1])
+        val bottomWidth = distance(corners[3], corners[2])
+        val leftHeight = distance(corners[0], corners[3])
+        val rightHeight = distance(corners[1], corners[2])
+        val projectedArea = polygonArea(corners)
+        val frameArea = (frameWidth * frameHeight).toDouble().coerceAtLeast(1.0)
+        val scaleRatio = kotlin.math.sqrt((projectedArea / frameArea).coerceAtLeast(1e-4))
+            .toFloat()
+            .coerceIn(0.25f, 4f)
+
+        val horizontalPerspective = (
+            (rightHeight - leftHeight) / maxOf(leftHeight, rightHeight, 1e-3)
+            ).toFloat().coerceIn(-1f, 1f)
+        val verticalPerspective = (
+            (bottomWidth - topWidth) / maxOf(topWidth, bottomWidth, 1e-3)
+            ).toFloat().coerceIn(-1f, 1f)
+
+        val projectiveX = (h20 * frameWidth * 12.0).toFloat().coerceIn(-1f, 1f)
+        val projectiveY = (h21 * frameHeight * 12.0).toFloat().coerceIn(-1f, 1f)
+        val quality = (result.matchCount.toFloat() / 35f).coerceIn(0f, 1f)
+        val perspectiveScore = computePerspectiveDepartureScore(result, frameWidth, frameHeight)
+
+        val orbitRightRaw = maxOf(horizontalPerspective, projectiveX, centerShiftXNorm * 1.8f)
+        val orbitLeftRaw = maxOf(-horizontalPerspective, -projectiveX, -centerShiftXNorm * 1.8f)
+        val raiseRaw = maxOf(-centerShiftYNorm * 1.7f, -projectiveY, verticalPerspective * 0.8f)
+        val lowerRaw = maxOf(centerShiftYNorm * 1.7f, projectiveY, -verticalPerspective * 0.8f)
+        val forwardRaw = maxOf(scaleRatio - 1f, perspectiveScore * 0.35f)
+        val backwardRaw = maxOf(1f - scaleRatio, perspectiveScore * 0.25f)
+
+        return ViewChangeGeometry(
+            quality = quality,
+            perspectiveScore = perspectiveScore,
+            shiftXNorm = centerShiftXNorm,
+            shiftYNorm = centerShiftYNorm,
+            scaleRatio = scaleRatio,
+            horizontalPerspective = horizontalPerspective,
+            verticalPerspective = verticalPerspective,
+            projectiveX = projectiveX,
+            projectiveY = projectiveY,
+            orbitLeftScore = directionalGeometryScore(orbitLeftRaw, quality),
+            orbitRightScore = directionalGeometryScore(orbitRightRaw, quality),
+            raiseScore = directionalGeometryScore(raiseRaw, quality),
+            lowerScore = directionalGeometryScore(lowerRaw, quality),
+            forwardScore = directionalGeometryScore(forwardRaw, quality, normalizer = 0.22f),
+            backwardScore = directionalGeometryScore(backwardRaw, quality, normalizer = 0.20f)
+        )
+    }
+
+    private fun directionalGeometryScore(
+        raw: Float,
+        quality: Float,
+        normalizer: Float = 0.18f
+    ): Float {
+        if (raw <= 0f || quality <= 0f) return 0f
+        val normalized = (raw / normalizer).coerceIn(0f, 1f)
+        return (normalized * (0.35f + quality * 0.65f)).coerceIn(0f, 1f)
+    }
+
+    private fun polygonArea(points: List<Pair<Double, Double>>): Double {
+        if (points.size < 3) return 0.0
+        var sum = 0.0
+        for (index in points.indices) {
+            val current = points[index]
+            val next = points[(index + 1) % points.size]
+            sum += current.first * next.second - next.first * current.second
+        }
+        return abs(sum) * 0.5
     }
 
     private fun projectPoint(

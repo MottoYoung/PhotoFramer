@@ -26,6 +26,7 @@ def adapt_prompt_for_stage2(
         if has_source_image:
             suffix.append("Preserve the original subject identity, scene layout, lighting logic, and material realism.")
             suffix.append("Treat this as a faithful image edit / composition reframing, not a new scene invention.")
+            suffix.append("Only change framing through camera movement, crop, or zoom; never move, resize, rotate, or reposition real subjects or objects within the world.")
         else:
             suffix.append("Keep the scene realistic and photographically coherent.")
         suffix.append("Do not add new subjects, remove real objects, or alter time, weather, or season.")
@@ -35,6 +36,7 @@ def adapt_prompt_for_stage2(
         suffix = []
         if has_source_image:
             suffix.append("Faithfully preserve the original subject identity and environment while improving only the composition.")
+            suffix.append("Only change camera framing, crop, or zoom; do not move, resize, rotate, or reposition real subjects or objects.")
         suffix.append("Keep the output photorealistic, natural, and free of hallucinated objects.")
         return cleaned + "\n\n" + " ".join(suffix)
 

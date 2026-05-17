@@ -292,15 +292,30 @@ private fun buildCandidatesStatsText(
     applicableCount: Int,
     totalTimeMs: Float
 ): String {
-    val progressText = if (totalTechniques > 0) {
-        "共有 $totalTechniques 个候选方案，目前已完成 ${completedCount.coerceAtMost(totalTechniques)} 个"
+    val safeCompletedCount = if (totalTechniques > 0) {
+        completedCount.coerceIn(0, totalTechniques)
     } else {
-        "正在生成候选方案"
+        completedCount.coerceAtLeast(0)
+    }
+    val isProcessing = totalTechniques <= 0 || safeCompletedCount < totalTechniques
+
+    val progressText = when {
+        isProcessing && totalTechniques > 0 ->
+            "正在加紧生成中，可先用已有方案构图"
+        isProcessing ->
+            "正在生成候选方案，可先用已有方案构图"
+        else ->
+            "已完成分析"
     }
 
-    val usableText = "可用 $applicableCount 个"
-    if (totalTimeMs <= 0f) {
-        return "$progressText  ·  $usableText"
+    val detailText = if (totalTechniques > 0) {
+        "已检查 $safeCompletedCount/$totalTechniques 种构图，可用 $applicableCount 个"
+    } else {
+        "可用 $applicableCount 个"
     }
-    return "$progressText  ·  $usableText  ·  ${totalTimeMs.toInt()}ms"
+
+    if (totalTimeMs <= 0f) {
+        return "$progressText  ·  $detailText"
+    }
+    return "$progressText  ·  $detailText  ·  ${totalTimeMs.toInt()}ms"
 }
