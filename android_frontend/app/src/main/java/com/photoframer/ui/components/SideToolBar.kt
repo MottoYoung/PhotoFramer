@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CenterFocusStrong
-import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TouchApp
@@ -65,8 +64,6 @@ fun SideToolBar(
     onTimerChange: (CaptureTimer) -> Unit,
     touchScreenPhotoEnabled: Boolean,
     onTouchScreenPhotoToggle: () -> Unit,
-    backgroundBlurEnabled: Boolean,
-    onBackgroundBlurToggle: () -> Unit,
     arExperimentEnabled: Boolean,
     onArExperimentToggle: () -> Unit,
     modifier: Modifier = Modifier,
@@ -188,13 +185,6 @@ fun SideToolBar(
             label = "触屏拍照",
             isSelected = touchScreenPhotoEnabled,
             onClick = onTouchScreenPhotoToggle
-        )
-
-        SideToggleCircleButton(
-            icon = Icons.Default.BlurOn,
-            label = "背景虚化",
-            isSelected = backgroundBlurEnabled,
-            onClick = onBackgroundBlurToggle
         )
 
         SideToggleCircleButton(

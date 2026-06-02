@@ -301,22 +301,28 @@ class CameraViewModel : ViewModel() {
 
         // 获取目标图片并创建验证器 (使用 technique 作为 key)
         val targetBitmap = ensureCompositionBitmapCached(guidanceComposition)
-        val inFrameGuideConfig = inFrameGuideConfigCache[guidanceComposition.technique]
-        if (targetBitmap != null) {
-            stepValidator = StepValidator(
-                targetBitmap = targetBitmap,
-                inFrameGuideConfig = inFrameGuideConfig,
-                shotSpec = guidanceComposition.shotSpec
-            )
-        } else {
+        if (targetBitmap == null) {
             stepValidator = null
+            invalidateGuidanceSession()
+            resetGuidanceProgress()
+            _uiState.value = CameraUiState.Error(
+                title = "参考图不可用",
+                message = "当前方案缺少参考图，暂时无法开始引导，请换一个方案试试",
+                actionText = "返回"
+            )
+            return
         }
+
+        val inFrameGuideConfig = inFrameGuideConfigCache[guidanceComposition.technique]
+        stepValidator = StepValidator(
+            targetBitmap = targetBitmap,
+            inFrameGuideConfig = inFrameGuideConfig,
+            shotSpec = guidanceComposition.shotSpec
+        )
         stepValidator?.resetStableFrames()
 
         beginGuidanceSession()
-        _validationResult.value = null
-        _stepCompleted.value = false
-        _allStepsCompleted.value = false
+        resetGuidanceProgress()
         
         _uiState.value = CameraUiState.Guiding(
             composition = guidanceComposition,
@@ -568,16 +574,11 @@ class CameraViewModel : ViewModel() {
     fun skipCurrentStep() {
         val currentState = _uiState.value as? CameraUiState.Guiding ?: return
         clearStepTimeout()
-        invalidatePendingValidation()
-        isAutoAdvancing = false
-        stepValidator?.resetStableFrames()
-        _validationResult.value = null
-        _stepCompleted.value = false
+        prepareForManualStepTransition()
 
         if (currentState.isLastStep) {
             _allStepsCompleted.value = true
         } else {
-            _allStepsCompleted.value = false
             _uiState.value = currentState.copy(
                 currentStepIndex = currentState.currentStepIndex + 1
             )
@@ -598,28 +599,30 @@ class CameraViewModel : ViewModel() {
             AnalysisMode.InFrameComposition -> analyzeInFrameComposition(request.imageFile)
         }
     }
+
+    fun handleErrorAction() {
+        val errorState = _uiState.value as? CameraUiState.Error
+        if (errorState?.actionText == "重试") {
+            retryLastAnalysis()
+        } else if (cachedCandidatesState != null) {
+            backToCandidates()
+        } else {
+            backToPreview()
+        }
+    }
     
     /**
      * 下一步
      */
     fun nextStep() {
-        val currentState = _uiState.value
-        if (currentState is CameraUiState.Guiding && !currentState.isLastStep) {
-            invalidatePendingValidation()
-            isAutoAdvancing = false
-            stepValidator?.resetStableFrames()
-            _validationResult.value = null
-            _stepCompleted.value = false
-            _allStepsCompleted.value = false
+        val currentState = _uiState.value as? CameraUiState.Guiding ?: return
+        if (!currentState.isLastStep) {
+            prepareForManualStepTransition()
             _uiState.value = currentState.copy(
                 currentStepIndex = currentState.currentStepIndex + 1
             )
             armStepTimeout()
-        } else if (
-            currentState is CameraUiState.Guiding &&
-            currentState.isLastStep &&
-            _validationResult.value?.isCompleted == true
-        ) {
+        } else if (_validationResult.value?.isCompleted == true) {
             _allStepsCompleted.value = true
             clearStepTimeout()
             invalidatePendingValidation()
@@ -630,14 +633,9 @@ class CameraViewModel : ViewModel() {
      * 上一步
      */
     fun previousStep() {
-        val currentState = _uiState.value
-        if (currentState is CameraUiState.Guiding && !currentState.isFirstStep) {
-            invalidatePendingValidation()
-            isAutoAdvancing = false
-            stepValidator?.resetStableFrames()
-            _validationResult.value = null
-            _stepCompleted.value = false
-            _allStepsCompleted.value = false
+        val currentState = _uiState.value as? CameraUiState.Guiding ?: return
+        if (!currentState.isFirstStep) {
+            prepareForManualStepTransition()
             _uiState.value = currentState.copy(
                 currentStepIndex = currentState.currentStepIndex - 1
             )
@@ -652,16 +650,10 @@ class CameraViewModel : ViewModel() {
         _postCapturePrompt.value = null
         pendingPostCaptureHint = null
         _newCandidatePrompt.value = null
-        invalidateGuidanceSession()
-        clearStepTimeout()
+        clearGuidanceStateForExit()
         imageCache.clear()
         validationImageCache.clear()
         inFrameGuideConfigCache.clear()
-        stepValidator?.close()  // 释放 ML Kit 资源
-        stepValidator = null
-        _validationResult.value = null
-        _stepCompleted.value = false
-        _allStepsCompleted.value = false
         cachedCandidatesState = null
         _uiState.value = CameraUiState.Preview
     }
@@ -674,13 +666,7 @@ class CameraViewModel : ViewModel() {
         if (cached != null) {
             _postCapturePrompt.value = null
             _newCandidatePrompt.value = null
-            invalidateGuidanceSession()
-            clearStepTimeout()
-            stepValidator?.close()  // 释放 ML Kit 资源
-            stepValidator = null
-            _validationResult.value = null
-            _stepCompleted.value = false
-            _allStepsCompleted.value = false
+            clearGuidanceStateForExit()
             _uiState.value = cached.copy(
                 postCaptureHint = pendingPostCaptureHint ?: cached.postCaptureHint
             )
@@ -879,6 +865,26 @@ class CameraViewModel : ViewModel() {
         invalidatePendingValidation()
         isAutoAdvancing = false
         clearStepTimeout()
+    }
+
+    private fun resetGuidanceProgress() {
+        _validationResult.value = null
+        _stepCompleted.value = false
+        _allStepsCompleted.value = false
+    }
+
+    private fun prepareForManualStepTransition() {
+        invalidatePendingValidation()
+        isAutoAdvancing = false
+        stepValidator?.resetStableFrames()
+        resetGuidanceProgress()
+    }
+
+    private fun clearGuidanceStateForExit() {
+        invalidateGuidanceSession()
+        stepValidator?.close()
+        stepValidator = null
+        resetGuidanceProgress()
     }
 
     private fun armStepTimeout() {

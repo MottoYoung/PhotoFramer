@@ -54,6 +54,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -173,7 +174,6 @@ fun CameraScreen(
     var zoomInteractionVersion by remember { mutableIntStateOf(0) }
 
     var touchScreenPhotoEnabled by remember { mutableStateOf(false) }
-    var backgroundBlurEnabled by remember { mutableStateOf(false) }
     var selectedRatio by remember { mutableStateOf(AspectRatioOption.FULL) }
     var selectedTimer by remember { mutableStateOf(CaptureTimer.OFF) }
     var countdownValue by remember { mutableStateOf<Int?>(null) }
@@ -233,7 +233,14 @@ fun CameraScreen(
         }
     }
 
-    androidx.compose.runtime.DisposableEffect(
+    DisposableEffect(cameraExecutor, arCorePoseTracker) {
+        onDispose {
+            arCorePoseTracker.close()
+            cameraExecutor.shutdownNow()
+        }
+    }
+
+    DisposableEffect(
         lifecycleOwner,
         needsPoseTracking,
         shouldUseArCore,
@@ -915,13 +922,7 @@ fun CameraScreen(
                     title = errorState.title,
                     message = errorState.message,
                     actionText = errorState.actionText,
-                    onRetry = {
-                        if (errorState.actionText == "重试") {
-                            viewModel.retryLastAnalysis()
-                        } else {
-                            viewModel.backToPreview()
-                        }
-                    }
+                    onRetry = { viewModel.handleErrorAction() }
                 )
             }
 
@@ -946,8 +947,6 @@ fun CameraScreen(
                     onTimerChange = { selectedTimer = it },
                     touchScreenPhotoEnabled = touchScreenPhotoEnabled,
                     onTouchScreenPhotoToggle = { touchScreenPhotoEnabled = !touchScreenPhotoEnabled },
-                    backgroundBlurEnabled = backgroundBlurEnabled,
-                    onBackgroundBlurToggle = { backgroundBlurEnabled = !backgroundBlurEnabled },
                     arExperimentEnabled = arExperimentEnabled,
                     onArExperimentToggle = {
                         val newValue = !arExperimentEnabled

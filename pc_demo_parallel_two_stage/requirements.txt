@@ -1,7 +1,0 @@
-fastapi
-uvicorn[standard]
-python-multipart
-openai
-pillow
-python-dotenv
-dashscope

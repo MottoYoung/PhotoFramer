@@ -88,4 +88,7 @@ dependencies {
 
     // ARCore availability / install flow groundwork for camera pose guidance
     implementation(libs.arcore)
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }

@@ -207,6 +207,12 @@ async def _select_techniques(
         selected = [
             technique_id for technique_id in selected if technique_id in requested_techniques
         ]
+        if not selected and requested_techniques:
+            print(
+                "  ⚠️ [stage0] shortlist 为空，回退到完整 technique 列表",
+                flush=True,
+            )
+            selected = requested_techniques
 
     print(
         f"🎯 [stage0={stage0.provider_name}:{stage0.model_name}] "

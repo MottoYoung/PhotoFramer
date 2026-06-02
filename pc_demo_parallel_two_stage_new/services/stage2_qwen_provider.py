@@ -121,8 +121,10 @@ class QwenStage2Provider:
                 request.original_image_b64,
             )
             if success and urls:
-                result.success = True
                 result.image_base64 = await asyncio.to_thread(_url_to_base64, urls[0])
+                result.success = result.image_base64 is not None
+                if not result.success:
+                    result.error_message = "图片下载失败"
             else:
                 result.error_message = error_message or "未返回图片"
         except Exception as error:
